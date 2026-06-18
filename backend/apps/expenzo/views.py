@@ -695,3 +695,49 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+@csrf_exempt
+@login_required
+def delete_group_expense_api(request, group_id, expense_id):
+    if request.method == 'POST' or request.method == 'DELETE':
+        group = get_object_or_404(Group, id=group_id)
+        is_member = GroupMember.objects.filter(group=group, user=request.user).exists()
+        if not is_member:
+            return JsonResponse({'error': 'Unauthorized'}, status=403)
+        expense = get_object_or_404(GroupExpense, id=expense_id, group=group)
+        expense.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'error': 'POST or DELETE required'}, status=405)
+
+@csrf_exempt
+@login_required
+def delete_group_api(request, group_id):
+    if request.method == 'POST' or request.method == 'DELETE':
+        group = get_object_or_404(Group, id=group_id)
+        if group.created_by != request.user:
+            return JsonResponse({'error': 'Only the group creator can delete this group.'}, status=403)
+        group.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'error': 'POST or DELETE required'}, status=405)
+
+@csrf_exempt
+@login_required
+def edit_group_api(request, group_id):
+    if request.method == 'POST':
+        try:
+            group = get_object_or_404(Group, id=group_id)
+            is_member = GroupMember.objects.filter(group=group, user=request.user).exists()
+            if not is_member:
+                return JsonResponse({'error': 'Unauthorized'}, status=403)
+            body = json.loads(request.body)
+            name = body.get('name', '').strip()
+            description = body.get('description', '').strip()
+            if not name:
+                return JsonResponse({'error': 'Group name is required'}, status=400)
+            group.name = name
+            group.description = description
+            group.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'POST required'}, status=405)

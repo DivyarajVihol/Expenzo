@@ -119,7 +119,17 @@
         <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
         Back to Groups
       </a>
-      <h1 class="page-title" style="margin-top: 0.5rem;">{{ group.name }}</h1>
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem;">
+        <h1 class="page-title" style="margin: 0;">{{ group.name }}</h1>
+        <button onclick="openEditGroupModal()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0.25rem;" title="Edit Group Details">
+          <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+        </button>
+        {% if group.created_by == user %}
+          <button onclick="deleteGroup()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0.25rem;" title="Delete Group">
+            <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
+          </button>
+        {% endif %}
+      </div>
       <p class="page-subtitle">{% if group.description %}{{ group.description }}{% else %}No description provided.{% endif %}</p>
     </div>
 
@@ -187,11 +197,21 @@
                     </span>
                   </div>
                 </div>
-                <div style="text-align: right;">
-                  <strong style="font-size: 1.1rem; color: var(--text-primary);">₹{{ exp.amount|floatformat:2 }}</strong>
-                  <div style="font-size: 0.7rem; color: var(--text-muted);">
-                    Split {{ exp.splits.count }} members
+                <div style="text-align: right; display: flex; align-items: center; gap: 0.5rem;">
+                  <div style="text-align: right;">
+                    <strong style="font-size: 1.1rem; color: var(--text-primary);">₹{{ exp.amount|floatformat:2 }}</strong>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">
+                      Split {{ exp.splits.count }} members
+                    </div>
                   </div>
+                  <button 
+                    onclick="deleteGroupExpense('{{ exp.id }}')"
+                    class="btn-delete-item-action"
+                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center;"
+                    title="Delete Expense"
+                  >
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                  </button>
                 </div>
               </div>
             {% endfor %}
@@ -310,9 +330,9 @@
             </div>
             <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
               {% for cat in category_breakdown %}
-                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                  <span style="color: var(--text-secondary);">{{ cat.name }}</span>
-                  <strong>₹{{ cat.value|floatformat:0 }} ({{ cat.percentage }}%)</strong>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                  <span style="color: var(--text-secondary); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ cat.name }}">{{ cat.name }}</span>
+                  <strong style="flex-shrink: 0;">₹{{ cat.value|floatformat:0 }} ({{ cat.percentage }}%)</strong>
                 </div>
               {% endfor %}
             </div>
@@ -326,8 +346,14 @@
         {% if not balances %}
           <p style="text-align: center; padding: 3rem; color: var(--text-secondary);">No data available</p>
         {% else %}
-          <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
-            <img src="data:image/png;base64,{{ net_standing_chart }}" alt="Net standing breakdown chart" style="max-width: 100%; height: auto;">
+          <div class="chart-wrapper">
+            {% if net_standing_chart %}
+                <img src="data:image/png;base64,{{ net_standing_chart }}" alt="Net standing breakdown chart" style="max-width: 100%; height: auto;">
+            {% else %}
+                <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                    No data available to display chart.
+                </div>
+            {% endif %}
           </div>
         {% endif %}
       </div>
@@ -441,6 +467,46 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()">Cancel</button>
         <button type="submit" class="btn btn-primary">Add Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div class="modal-overlay" id="edit-group-modal" style="display: none;">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-header">
+      <h3 class="chart-card-title">Edit Group Details</h3>
+      <button onclick="closeEditGroupModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+    <form id="edit-group-form" onsubmit="submitEditGroup(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Group Name</label>
+          <input
+            type="text"
+            id="edit-group-name"
+            class="input-control"
+            value="{{ group.name }}"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea
+            id="edit-group-desc"
+            class="input-control"
+            rows="3"
+            style="resize: none; background: #0d121f;"
+            placeholder="e.g. Shared flat bills, Trip expenses"
+          >{{ group.description|default:'' }}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeEditGroupModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
       </div>
     </form>
   </div>
@@ -608,6 +674,87 @@
     } catch (err) {
       console.error(err);
       alert('Error recording settlement payment');
+    }
+  }
+
+  function openEditGroupModal() {
+    document.getElementById('edit-group-modal').style.display = 'flex';
+  }
+
+  function closeEditGroupModal() {
+    document.getElementById('edit-group-modal').style.display = 'none';
+  }
+
+  async function submitEditGroup(e) {
+    e.preventDefault();
+    const name = document.getElementById('edit-group-name').value;
+    const description = document.getElementById('edit-group-desc').value;
+
+    try {
+      const res = await fetch("{% url 'api_edit_group' group_id=group.id %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ name, description })
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to edit group');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error editing group details');
+    }
+  }
+
+  async function deleteGroup() {
+    if (!confirm('Are you sure you want to delete this group? All expenses, splits, and settlements will be permanently deleted.')) {
+      return;
+    }
+    try {
+      const res = await fetch("{% url 'api_delete_group' group_id=group.id %}", {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      if (res.ok) {
+        window.location.href = "{% url 'groups' %}";
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete group');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting group');
+    }
+  }
+
+  async function deleteGroupExpense(expenseId) {
+    if (!confirm('Are you sure you want to delete this expense? Split balances will be recalculated.')) {
+      return;
+    }
+    try {
+      const url = `{% url 'api_delete_group_expense' group_id=group.id expense_id=999999 %}`.replace('999999', expenseId);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete expense');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting group expense');
     }
   }
 </script>

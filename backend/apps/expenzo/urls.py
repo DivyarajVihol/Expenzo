@@ -18,6 +18,9 @@ urlpatterns = [
     path('api/recurring/delete/<int:item_id>/<str:item_type>/', views.delete_recurring_api, name='api_delete_recurring'),
     path('api/recurring/edit/<int:item_id>/<str:item_type>/', views.edit_recurring_api, name='api_edit_recurring'),
     path('api/groups/<int:group_id>/expense/add/', views.add_group_expense_api, name='api_add_group_expense'),
+    path('api/groups/<int:group_id>/expense/delete/<int:expense_id>/', views.delete_group_expense_api, name='api_delete_group_expense'),
     path('api/groups/<int:group_id>/settlement/add/', views.add_settlement_api, name='api_add_settlement'),
+    path('api/groups/<int:group_id>/delete/', views.delete_group_api, name='api_delete_group'),
+    path('api/groups/<int:group_id>/edit/', views.edit_group_api, name='api_edit_group'),
     path('api/savings/save/', views.save_savings_goal_api, name='api_save_savings_goal'),
 ]

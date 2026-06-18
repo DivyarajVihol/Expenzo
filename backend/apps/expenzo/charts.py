@@ -100,12 +100,13 @@ def generate_group_net_standing_chart(names, nets):
         # Clean axis lines and set color for tick labels
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_color('rgba(255,255,255,0.1)')
-        ax.spines['bottom'].set_color('rgba(255,255,255,0.1)')
+        ax.spines['left'].set_color((1.0, 1.0, 1.0, 0.1))
+        ax.spines['bottom'].set_color((1.0, 1.0, 1.0, 0.1))
         ax.tick_params(colors='#94a3b8', labelsize=8)
+        plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
 
         # Horizontal zero reference line
-        ax.axhline(0, color='rgba(255,255,255,0.2)', linewidth=1)
+        ax.axhline(0, color=(1.0, 1.0, 1.0, 0.2), linewidth=1)
 
         plt.tight_layout()
 
