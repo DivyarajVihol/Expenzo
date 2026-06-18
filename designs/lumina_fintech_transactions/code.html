@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina Fintech - Transactions</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#002113",
+                        "on-secondary-fixed": "#001a42",
+                        "background": "#131313",
+                        "on-surface-variant": "#cbc3d7",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "tertiary": "#4edea3",
+                        "secondary-container": "#0566d9",
+                        "error-container": "#93000a",
+                        "surface-container-low": "#1c1b1b",
+                        "on-tertiary-container": "#00311f",
+                        "on-surface": "#e5e2e1",
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#131313",
+                        "surface-container-high": "#2a2a2a",
+                        "secondary": "#adc6ff",
+                        "primary-fixed": "#e9ddff",
+                        "on-background": "#e5e2e1",
+                        "outline": "#958ea0",
+                        "on-error": "#690005",
+                        "primary-container": "#a078ff",
+                        "on-tertiary": "#003824",
+                        "surface": "#131313",
+                        "secondary-fixed": "#d8e2ff",
+                        "outline-variant": "#494454",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-primary-container": "#340080",
+                        "inverse-on-surface": "#313030",
+                        "on-secondary": "#002e6a",
+                        "on-primary-fixed-variant": "#5516be",
+                        "tertiary-container": "#00a572",
+                        "surface-container-lowest": "#0e0e0e",
+                        "inverse-surface": "#e5e2e1",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-container": "#201f1f",
+                        "surface-tint": "#d0bcff",
+                        "surface-bright": "#393939",
+                        "on-secondary-container": "#e6ecff",
+                        "primary-fixed-dim": "#d0bcff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "primary": "#d0bcff",
+                        "inverse-primary": "#6d3bd7",
+                        "on-primary-fixed": "#23005c",
+                        "surface-variant": "#353534",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary": "#3c0091",
+                        "error": "#ffb4ab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-xl": "48px",
+                        "margin-desktop": "40px",
+                        "stack-md": "16px",
+                        "gutter": "24px",
+                        "container-max": "1280px",
+                        "stack-lg": "24px",
+                        "margin-mobile": "20px",
+                        "stack-sm": "8px",
+                        "stack-xs": "4px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "headline-md-mobile": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "mono-data": ["Geist"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "headline-md": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg-mobile": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(18, 18, 18, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glow-accent {
+            box-shadow: 0 0 40px rgba(208, 188, 255, 0.15);
+        }
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(160,120,255,0.05) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Custom Scrollbar for sleekness */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #131313;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #353534;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #494454;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-sm min-h-screen overflow-hidden selection:bg-primary-container selection:text-on-primary-container relative">
+<!-- Ambient Background Glows -->
+<div class="ambient-glow" style="top: -100px; left: -100px;"></div>
+<div class="ambient-glow" style="bottom: -200px; right: 100px; background: radial-gradient(circle, rgba(5,102,217,0.05) 0%, rgba(0,0,0,0) 70%);"></div>
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-surface-container-lowest dark:bg-surface-container-lowest h-screen w-72 left-0 top-0 fixed border-r border-white/10 backdrop-blur-xl shadow-sm z-50 flex flex-col py-stack-lg px-stack-md hidden md:flex">
+<div class="mb-stack-xl px-4 flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-accent">
+<span class="material-symbols-outlined text-background" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">FinVision Pro</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">Premium Enterprise</p>
+</div>
+</div>
+<ul class="flex flex-col gap-2 flex-grow">
+<li>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-lg text-body-lg">Overview</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-primary-container bg-primary-container/20 border-r-4 border-primary transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-body-lg text-body-lg font-medium">Transactions</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-lg text-body-lg">Analytics</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-body-lg text-body-lg">Wallet</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-lg text-body-lg">Settings</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto">
+<button class="w-full py-3 px-4 rounded-lg bg-surface-container-high border border-outline-variant hover:bg-surface-bright transition-colors flex items-center justify-center gap-2 group">
+<span class="font-label-md text-label-md text-primary group-hover:text-primary-fixed transition-colors">Upgrade Plan</span>
+<span class="material-symbols-outlined text-primary text-sm">arrow_forward</span>
+</button>
+</div>
+</nav>
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-background/60 dark:bg-background/60 fixed top-0 right-0 left-0 md:left-72 h-20 backdrop-blur-md border-b border-white/5 z-40 flex justify-between items-center px-margin-mobile md:px-margin-desktop">
+<div class="flex items-center gap-4 md:hidden">
+<button class="p-2 text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-title-lg text-title-lg font-black text-on-surface">FinVision</span>
+</div>
+<div class="hidden md:flex flex-1 max-w-md relative focus-within:ring-2 focus-within:ring-secondary-container rounded-lg transition-all">
+<span class="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-on-surface-variant z-10 pointer-events-none">search</span>
+<input class="w-full bg-surface-container py-3 pl-12 pr-4 rounded-lg border border-surface-variant text-on-surface font-body-sm focus:outline-none focus:border-secondary focus:ring-0 transition-all placeholder:text-on-surface-variant/50" placeholder="Search transactions, merchants, or categories..." type="text"/>
+</div>
+<div class="flex items-center gap-4 ml-auto">
+<button class="p-2 text-on-surface-variant hover:bg-surface-variant/30 rounded-lg transition-all relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-background"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-variant/30 rounded-lg transition-all hidden sm:block">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<button class="font-label-md text-label-md text-secondary hidden lg:block hover:bg-surface-variant/30 px-3 py-2 rounded-lg transition-all">
+                Support
+            </button>
+<div class="h-8 w-px bg-white/10 mx-2 hidden sm:block"></div>
+<img alt="User profile" class="w-10 h-10 rounded-full border-2 border-surface-variant hover:border-primary transition-colors cursor-pointer" data-alt="Close up portrait of a professional individual looking slightly off camera, neutral expression, subtle lighting highlighting their features, dark grey background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArmeNmHukyBccnloiZDDWjSqILhjyHEonICAFJ89KP3-yWTnJKyTSk9WMQrH1EKPSrv0emATsBRUni5XvoMWWAYPTV2dSFJj2qAGQoNOkWdFboaGbKR6vR7y97JZ4DouM6QyovjpPNdg1sjNUGbS94kaxO8KckP2fHSs9dxR14ePHwnzYPvbfo1scHW595EiLr_HBbNfdBsSR-OY89WCzKzwXPj5exwmisOfYk6pHkSHapdWu1JVQYTwUry4g75GQMlINhkeThatc"/>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="pt-24 md:pl-72 h-screen overflow-y-auto relative z-10 flex flex-col md:flex-row">
+<!-- Canvas: Transaction List -->
+<div class="flex-1 px-margin-mobile md:px-margin-desktop py-stack-lg max-w-6xl mx-auto w-full transition-all duration-300" id="transaction-canvas">
+<!-- Page Header & Actions -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-stack-lg gap-4">
+<div>
+<h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface mb-2">Transactions</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Review and manage your financial activity.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="glass-panel px-4 py-2.5 rounded-lg flex items-center gap-2 hover:bg-surface-container transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">calendar_today</span>
+<span class="font-label-md text-label-md text-on-surface">Last 30 Days</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant">expand_more</span>
+</button>
+<button class="glass-panel p-2.5 rounded-lg flex items-center justify-center hover:bg-surface-container transition-colors border border-outline-variant text-on-surface-variant hover:text-primary">
+<span class="material-symbols-outlined text-md">filter_list</span>
+</button>
+<button class="bg-primary hover:bg-primary-fixed text-on-primary px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all glow-accent font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-sm">download</span>
+                        Export
+                    </button>
+</div>
+</div>
+<!-- Filters Bar (Glassmorphism Pill container) -->
+<div class="glass-panel rounded-xl p-2 mb-stack-lg flex flex-wrap gap-2 items-center bg-surface-container-low/50">
+<span class="font-label-md text-label-md text-on-surface-variant ml-2 mr-4 uppercase tracking-wider text-[10px]">Filter By:</span>
+<button class="bg-surface-variant text-on-surface px-3 py-1.5 rounded-full font-label-md text-label-md flex items-center gap-1 border border-transparent hover:border-outline-variant transition-colors">
+                    All Status
+                    <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<button class="bg-transparent text-on-surface-variant px-3 py-1.5 rounded-full font-label-md text-label-md flex items-center gap-1 border border-transparent hover:border-outline-variant hover:bg-surface-variant/50 transition-colors">
+                    Categories
+                    <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<button class="bg-transparent text-on-surface-variant px-3 py-1.5 rounded-full font-label-md text-label-md flex items-center gap-1 border border-transparent hover:border-outline-variant hover:bg-surface-variant/50 transition-colors">
+                    Amount Range
+                    <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<div class="ml-auto flex items-center gap-2 pr-2">
+<span class="w-2 h-2 rounded-full bg-tertiary glow-accent"></span>
+<span class="font-mono-data text-mono-data text-tertiary">Live Sync Active</span>
+</div>
+</div>
+<!-- Transactions Data Table Area -->
+<div class="glass-panel rounded-xl overflow-hidden mb-stack-xl flex flex-col bg-[#121212]/80">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 bg-surface-container-lowest/50">
+<div class="col-span-5 md:col-span-4 font-label-md text-label-md text-on-surface-variant uppercase">Merchant / Description</div>
+<div class="col-span-3 hidden md:block font-label-md text-label-md text-on-surface-variant uppercase">Category</div>
+<div class="col-span-3 font-label-md text-label-md text-on-surface-variant uppercase">Date</div>
+<div class="col-span-4 md:col-span-2 font-label-md text-label-md text-on-surface-variant uppercase text-right">Amount</div>
+</div>
+<!-- List Items -->
+<div class="flex flex-col">
+<!-- Item 1 (Selected State) -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 items-center bg-primary-container/10 border-l-2 border-l-primary cursor-pointer hover:bg-surface-container-high transition-colors group">
+<div class="col-span-5 md:col-span-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center border border-white/10 group-hover:border-primary/50 transition-colors shrink-0">
+<span class="material-symbols-outlined text-on-surface">computer</span>
+</div>
+<div class="truncate">
+<p class="font-body-sm text-body-sm font-medium text-on-surface truncate">Apple Store - San Francisco</p>
+<p class="font-label-md text-label-md text-on-surface-variant truncate">Card ending in ••••4291</p>
+</div>
+</div>
+<div class="col-span-3 hidden md:flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-surface-variant text-on-surface font-label-md text-[10px] uppercase border border-outline-variant/30">Technology</span>
+</div>
+<div class="col-span-3 flex flex-col justify-center">
+<p class="font-body-sm text-body-sm text-on-surface">Oct 24, 2023</p>
+<p class="font-label-md text-label-md text-on-surface-variant">14:23 PST</p>
+</div>
+<div class="col-span-4 md:col-span-2 flex flex-col items-end justify-center">
+<p class="font-mono-data text-mono-data text-on-surface font-semibold">-$2,499.00</p>
+<span class="px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-label-md text-[10px] mt-1 border border-tertiary/20">Completed</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 items-center cursor-pointer hover:bg-surface-container-high transition-colors group">
+<div class="col-span-5 md:col-span-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center border border-white/10 group-hover:border-white/30 transition-colors shrink-0">
+<span class="material-symbols-outlined text-on-surface">flight</span>
+</div>
+<div class="truncate">
+<p class="font-body-sm text-body-sm font-medium text-on-surface truncate">Delta Airlines</p>
+<p class="font-label-md text-label-md text-on-surface-variant truncate">Card ending in ••••4291</p>
+</div>
+</div>
+<div class="col-span-3 hidden md:flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-surface-variant text-on-surface font-label-md text-[10px] uppercase border border-outline-variant/30">Travel</span>
+</div>
+<div class="col-span-3 flex flex-col justify-center">
+<p class="font-body-sm text-body-sm text-on-surface">Oct 22, 2023</p>
+<p class="font-label-md text-label-md text-on-surface-variant">09:15 EST</p>
+</div>
+<div class="col-span-4 md:col-span-2 flex flex-col items-end justify-center">
+<p class="font-mono-data text-mono-data text-on-surface font-semibold">-$450.50</p>
+<span class="px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-label-md text-[10px] mt-1 border border-tertiary/20">Completed</span>
+</div>
+</div>
+<!-- Item 3 (Income) -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 items-center cursor-pointer hover:bg-surface-container-high transition-colors group">
+<div class="col-span-5 md:col-span-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center border border-tertiary/30 shrink-0">
+<span class="material-symbols-outlined text-tertiary">account_balance</span>
+</div>
+<div class="truncate">
+<p class="font-body-sm text-body-sm font-medium text-on-surface truncate">Stripe Transfer</p>
+<p class="font-label-md text-label-md text-on-surface-variant truncate">Deposit to Main Account</p>
+</div>
+</div>
+<div class="col-span-3 hidden md:flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-tertiary/10 text-tertiary font-label-md text-[10px] uppercase border border-tertiary/20">Income</span>
+</div>
+<div class="col-span-3 flex flex-col justify-center">
+<p class="font-body-sm text-body-sm text-on-surface">Oct 20, 2023</p>
+<p class="font-label-md text-label-md text-on-surface-variant">02:00 UTC</p>
+</div>
+<div class="col-span-4 md:col-span-2 flex flex-col items-end justify-center">
+<p class="font-mono-data text-mono-data text-tertiary font-semibold">+$12,500.00</p>
+<span class="px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-label-md text-[10px] mt-1 border border-tertiary/20">Completed</span>
+</div>
+</div>
+<!-- Item 4 (Pending) -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 items-center cursor-pointer hover:bg-surface-container-high transition-colors group opacity-75">
+<div class="col-span-5 md:col-span-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center border border-white/10 group-hover:border-white/30 transition-colors shrink-0">
+<span class="material-symbols-outlined text-on-surface">restaurant</span>
+</div>
+<div class="truncate">
+<p class="font-body-sm text-body-sm font-medium text-on-surface truncate">Philz Coffee</p>
+<p class="font-label-md text-label-md text-on-surface-variant truncate">Card ending in ••••4291</p>
+</div>
+</div>
+<div class="col-span-3 hidden md:flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-surface-variant text-on-surface font-label-md text-[10px] uppercase border border-outline-variant/30">Food &amp; Drink</span>
+</div>
+<div class="col-span-3 flex flex-col justify-center">
+<p class="font-body-sm text-body-sm text-on-surface">Oct 24, 2023</p>
+<p class="font-label-md text-label-md text-on-surface-variant">08:30 PST</p>
+</div>
+<div class="col-span-4 md:col-span-2 flex flex-col items-end justify-center">
+<p class="font-mono-data text-mono-data text-on-surface font-semibold">-$6.50</p>
+<span class="px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md text-[10px] mt-1 border border-outline-variant">Pending</span>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-surface-container-lowest/30">
+<p class="font-label-md text-label-md text-on-surface-variant">Showing 1-4 of 128</p>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded bg-surface-variant text-on-surface font-label-md text-sm flex items-center justify-center border border-outline-variant/30">1</button>
+<button class="w-8 h-8 rounded hover:bg-surface-container-high text-on-surface-variant font-label-md text-sm flex items-center justify-center transition-colors">2</button>
+<button class="w-8 h-8 rounded hover:bg-surface-container-high text-on-surface-variant font-label-md text-sm flex items-center justify-center transition-colors">3</button>
+<button class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Panel: Detail View (Glassmorphism Overlay on smaller screens, sticky side panel on large) -->
+<aside class="hidden lg:flex flex-col w-96 bg-surface-container-lowest border-l border-white/10 shrink-0 h-full overflow-y-auto relative z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+<!-- Detail Header -->
+<div class="p-6 border-b border-white/5 relative overflow-hidden bg-gradient-to-b from-[#1a1a1a] to-transparent">
+<!-- Abstract receipt pattern background -->
+<div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, #ffffff 10px, #ffffff 12px);"></div>
+<div class="flex justify-between items-start relative z-10 mb-6">
+<div class="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center border border-white/10 shadow-lg">
+<span class="material-symbols-outlined text-on-surface text-xl">computer</span>
+</div>
+<button class="p-1 rounded-full text-on-surface-variant hover:bg-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+<div class="relative z-10">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-1">Apple Store - San Francisco</h3>
+<p class="font-mono-data text-mono-data text-on-surface-variant mb-4">-$2,499.00</p>
+<div class="flex gap-2">
+<span class="px-2 py-1 rounded bg-tertiary/10 text-tertiary font-label-md text-[10px] uppercase border border-tertiary/20 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Completed
+                        </span>
+<span class="px-2 py-1 rounded bg-surface-variant text-on-surface font-label-md text-[10px] uppercase border border-outline-variant/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">category</span> Technology
+                        </span>
+</div>
+</div>
+</div>
+<!-- Detail Content -->
+<div class="p-6 flex flex-col gap-6 flex-grow">
+<!-- Map / Location -->
+<div class="rounded-xl overflow-hidden border border-white/10 h-32 relative bg-surface-container-high group">
+<img alt="Map location" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity grayscale contrast-125" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAmrlXIVg0L0jNCsOifjcKwt8uHOuwdwAG7W-4sUTZNQMqN8mR1wKOeUR2ewhtZG8KdjLKCn2j8-iXae65UVccXum3V8YRcIhcKBM3DYr-E6ayLk7_MhjJWJY0-SQmYNP25rxcaQ-KKe2C7YddTtDPG-xxgwMrQ4tyhPuabSMWfR3xaunpJ4YWmdGrblmcAhAWpnKhp232_lCFsrg5-sHmJsE7DYBxLdSPJdVcOA_3n9hU7jKKz8XO7cWR8oYUCbwYWlj5uprIGJg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3">
+<p class="font-label-md text-label-md text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                            300 Post St, San Francisco, CA
+                        </p>
+</div>
+</div>
+<!-- Info Grid -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-3 rounded-lg border border-white/5">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Date &amp; Time</p>
+<p class="font-body-sm text-body-sm text-on-surface">Oct 24, 2023<br/>14:23 PST</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border border-white/5">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Payment Method</p>
+<p class="font-body-sm text-body-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">credit_card</span>
+                            •••• 4291
+                        </p>
+</div>
+</div>
+<!-- Receipt Scan Area -->
+<div>
+<h4 class="font-label-md text-label-md text-on-surface-variant uppercase mb-3">Receipt &amp; Documents</h4>
+<div class="border border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-surface-container-low/50 transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-on-surface-variant">upload_file</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface mb-1">Upload Receipt</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">Drop image or PDF here</p>
+</div>
+</div>
+<!-- Notes Area -->
+<div>
+<h4 class="font-label-md text-label-md text-on-surface-variant uppercase mb-3">Notes</h4>
+<textarea class="w-full bg-surface-container-low rounded-lg border border-white/10 p-3 font-body-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none h-20" placeholder="Add a note to this transaction..."></textarea>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="p-6 border-t border-white/5 bg-surface-container-lowest mt-auto flex gap-3">
+<button class="flex-1 py-2.5 rounded-lg bg-surface-variant text-on-surface font-label-md text-label-md border border-outline-variant hover:bg-surface-bright transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">edit_note</span>
+                    Save Note
+                </button>
+<button class="px-4 py-2.5 rounded-lg bg-error-container/20 text-error font-label-md text-label-md border border-error/30 hover:bg-error-container/40 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">flag</span>
+</button>
+</div>
+</aside>
+</main>
+</body></html>

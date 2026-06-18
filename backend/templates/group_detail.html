@@ -1,0 +1,614 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ group.name }} - EXPENZO{% endblock %}
+
+{% block extra_css %}
+<style>
+  .group-detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.5rem;
+  }
+  .group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+  .tabs-row {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition-fast);
+  }
+  .tab-btn:hover {
+    color: var(--text-primary);
+  }
+  .tab-btn.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-primary);
+  }
+  .grid-two-col {
+    display: grid;
+    grid-template-columns: 2.1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .grid-two-col {
+      grid-template-columns: 1fr;
+    }
+  }
+  .member-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  }
+  .member-row:last-child {
+    border-bottom: none;
+  }
+  .amount-receive {
+    color: var(--accent-success);
+    font-weight: 700;
+  }
+  .amount-pay {
+    color: var(--accent-danger);
+    font-weight: 700;
+  }
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+  @media (max-width: 768px) {
+    .analytics-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .analytics-metric-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .metric-card {
+    padding: 1.25rem 1.5rem;
+    background: rgba(255,255,255,0.01);
+    border: 1px solid var(--border-color);
+  }
+  .ledger-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .ledger-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="group-detail-container">
+  
+  <!-- Back link and Header -->
+  <div class="group-header">
+    <div>
+      <a href="{% url 'groups' %}" class="back-dashboard-btn">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+        Back to Groups
+      </a>
+      <h1 class="page-title" style="margin-top: 0.5rem;">{{ group.name }}</h1>
+      <p class="page-subtitle">{% if group.description %}{{ group.description }}{% else %}No description provided.{% endif %}</p>
+    </div>
+
+    <!-- Add Member Inline Box -->
+    <div class="glass-card" style="padding: 1.25rem 1.5rem; max-width: 380px; width: 100%;">
+      <h4 style="margin: 0 0 0.75rem 0; font-size: 0.9rem; font-weight: 700;">Add Member</h4>
+      <form method="POST" action="{% url 'group_detail' group_id=group.id %}" style="display: flex; gap: 0.5rem;">
+        {% csrf_token %}
+        <input 
+          type="email" 
+          name="new_member_email" 
+          placeholder="Enter member's email" 
+          class="input-control" 
+          style="padding: 0.45rem 0.75rem; font-size: 0.85rem;"
+          required
+        />
+        <button type="submit" class="btn btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.85rem; border: none; cursor: pointer;">
+          Add
+        </button>
+      </form>
+      {% if error %}
+        <div style="font-size: 0.75rem; color: var(--accent-danger); margin-top: 0.5rem;">{{ error }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-row">
+    <button class="tab-btn {% if active_tab == 'ledger' %}active{% endif %}" onclick="switchTab('ledger')">Expenses Ledger</button>
+    <button class="tab-btn {% if active_tab == 'balances' %}active{% endif %}" onclick="switchTab('balances')">Balances & Standing</button>
+    <button class="tab-btn {% if active_tab == 'analytics' %}active{% endif %}" onclick="switchTab('analytics')">Group Analytics</button>
+  </div>
+
+  <!-- 1. EXPENSES LEDGER TAB -->
+  <div id="tab-content-ledger" class="tab-content" style="display: {% if active_tab == 'ledger' %}block{% else %}none{% endif %};">
+    <div class="grid-two-col">
+      <!-- Left: Expenses List -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <h3 style="font-size: 1.1rem; font-weight: 700;">Ledger Transactions</h3>
+          <button class="btn btn-primary" onclick="openExpenseModal()" style="padding: 0.5rem 1rem; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.25rem;">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+            Add Expense
+          </button>
+        </div>
+
+        {% if not expenses %}
+          <div class="glass-card" style="padding: 4rem 2rem; text-align: center; color: var(--text-secondary);">
+            <i data-lucide="clipboard-list" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <h4>No Expenses Logged</h4>
+            <p style="font-size: 0.85rem; margin-top: 0.25rem;">Start adding bill expenses to see the split balances calculated automatically.</p>
+          </div>
+        {% else %}
+          <div class="ledger-list">
+            {% for exp in expenses %}
+              <div class="ledger-item">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="clipboard-list" style="color: var(--accent-primary); width: 16px; height: 16px;"></i>
+                  </div>
+                  <div>
+                    <strong style="display: block; font-size: 0.95rem;">{{ exp.description }}</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                      Paid by {{ exp.paid_by.first_name|default:exp.paid_by.username }} • {{ exp.date|date:"F d, Y" }}
+                    </span>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <strong style="font-size: 1.1rem; color: var(--text-primary);">₹{{ exp.amount|floatformat:2 }}</strong>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">
+                    Split {{ exp.splits.count }} members
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Right: Group Members -->
+      <div class="glass-card" style="padding: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="users" style="color: var(--accent-primary); width: 18px; height: 18px;"></i>
+          Group Members ({{ members|length }})
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          {% for m in members %}
+            <div class="member-row">
+              <div>
+                <strong style="display: block; font-size: 0.9rem; color: var(--text-primary);">{{ m.first_name|default:m.username }}</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">{{ m.email }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. BALANCES TAB -->
+  <div id="tab-content-balances" class="tab-content" style="display: {% if active_tab == 'balances' %}block{% else %}none{% endif %};">
+    <div class="grid-two-col">
+      <!-- Left: Net Standing -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem;">Members Net Standing</h3>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for b in balances %}
+            <div style="display: flex; justify-content: space-between; alignItems: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+              <div>
+                <strong style="display: block; font-size: 0.95rem;">{{ b.name }}</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">{{ b.email }}</span>
+              </div>
+              <div style="display: flex; align-items: center;">
+                {% if b.net > 0.01 %}
+                  <span class="amount-receive" style="font-size: 1.1rem;">+₹{{ b.net|floatformat:2 }}</span>
+                {% elif b.net < -0.01 %}
+                  <span class="amount-pay" style="font-size: 1.1rem;">-₹{{ b.net|abs|floatformat:2 }}</span>
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.95rem;">Settled</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Right: Simplified Repayments -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem;">Simplified Repayments</h3>
+        {% if not debts %}
+          <p style="text-align: center; padding: 3rem; color: var(--text-secondary); font-size: 0.9rem;">
+            Everyone is fully settled! No debts outstanding.
+          </p>
+        {% else %}
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for d in debts %}
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(255, 255, 255, 0.02);">
+                <div style="font-size: 0.95rem;">
+                  <strong>{{ d.fromUserName }}</strong> owes <strong>{{ d.toUserName }}</strong>
+                  <span style="display: block; color: var(--accent-primary); font-weight: 700; font-size: 1.15rem; margin-top: 0.25rem;">
+                    ₹{{ d.amount|floatformat:2 }}
+                  </span>
+                </div>
+                <button class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="triggerSettleUp('{{ d.fromUserId }}', '{{ d.toUserId }}', '{{ d.amount }}')">
+                  Settle Up
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ANALYTICS TAB -->
+  <div id="tab-content-analytics" class="tab-content" style="display: {% if active_tab == 'analytics' %}block{% else %}none{% endif %};">
+    <!-- Metric Cards -->
+    <div class="analytics-metric-row">
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Total Spend</span>
+        <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-top: 0.25rem;">₹{{ total_spend|floatformat:2 }}</h2>
+      </div>
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Highest Contributor</span>
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-success); margin-top: 0.45rem;">{{ highest_contributor }}</h2>
+      </div>
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Highest Debtor</span>
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-danger); margin-top: 0.45rem;">{{ highest_debtor }}</h2>
+      </div>
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Settled Ratio</span>
+        <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--accent-primary); margin-top: 0.25rem;">{{ settlement_ratio }}</h2>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="analytics-grid">
+      <!-- Categories Pie Chart -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
+        <h3 class="chart-card-title">Category Spending</h3>
+        {% if total_spend == 0 %}
+          <p style="text-align: center; padding: 3rem; color: var(--text-secondary);">No data available</p>
+        {% else %}
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 200px; flex-wrap: wrap;">
+            <div class="pie-chart-wrapper">
+              <img src="data:image/png;base64,{{ category_pie_chart }}" alt="Category breakdown" style="width: 180px; height: 180px;">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+              {% for cat in category_breakdown %}
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                  <span style="color: var(--text-secondary);">{{ cat.name }}</span>
+                  <strong>₹{{ cat.value|floatformat:0 }} ({{ cat.percentage }}%)</strong>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Net Standings Bar Chart -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
+        <h3 class="chart-card-title">Net Standing Breakdown</h3>
+        {% if not balances %}
+          <p style="text-align: center; padding: 3rem; color: var(--text-secondary);">No data available</p>
+        {% else %}
+          <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
+            <img src="data:image/png;base64,{{ net_standing_chart }}" alt="Net standing breakdown chart" style="max-width: 100%; height: auto;">
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Settle Up Modal -->
+<div class="modal-overlay" id="settle-modal" style="display: none;">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header">
+      <h3 class="chart-card-title">Settle Up Payment</h3>
+      <button onclick="closeSettleModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+    <form id="settle-form" onsubmit="submitSettlement(event)">
+      <div class="modal-body">
+        <input type="hidden" id="settle-from-id">
+        <input type="hidden" id="settle-to-id">
+        <p style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-primary);">
+          Record cash/bank settlement transfer payment:
+        </p>
+        <div class="form-group">
+          <label class="form-label">Settle Amount (₹)</label>
+          <input
+            type="number"
+            id="settle-amount"
+            class="input-control"
+            required
+            min="0.01"
+            step="0.01"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeSettleModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Record Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Group Expense Modal -->
+<div class="modal-overlay" id="expense-modal" style="display: none;">
+  <div class="modal-content" style="max-width: 480px;">
+    <div class="modal-header">
+      <h3 class="chart-card-title">Add Group Expense</h3>
+      <button onclick="closeExpenseModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+    <form id="expense-form" onsubmit="submitExpense(event)">
+      <div class="modal-body" style="max-height: 420px; overflow-y: auto;">
+        <div class="form-group">
+          <label class="form-label">Amount (₹)</label>
+          <input
+            type="number"
+            id="exp-amount"
+            class="input-control"
+            placeholder="0.00"
+            required
+            min="1"
+            step="0.01"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input
+            type="text"
+            id="exp-desc"
+            class="input-control"
+            placeholder="e.g. Grocery dinner, Office lunch"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paid By</label>
+          <select id="exp-paid-by" class="input-control" style="background: #0d121f;">
+            {% for m in members %}
+              <option value="{{ m.id }}">{{ m.first_name|default:m.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Split Method</label>
+          <select id="exp-split-type" class="input-control" style="background: #0d121f;" onchange="toggleSplitInputs(this.value)">
+            <option value="EQUAL">Split Equally</option>
+            <option value="EXACT">Exact Shares</option>
+            <option value="PERCENTAGE">Percentage Splits</option>
+          </select>
+        </div>
+
+        <!-- Members split values selectors -->
+        <div id="split-inputs-container" style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1rem;">
+          <h4 style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-secondary);">Select participating members:</h4>
+          {% for m in members %}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;" class="split-member-row" id="split-row-{{ m.id }}">
+              <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" checked class="split-member-checkbox" value="{{ m.id }}">
+                {{ m.first_name|default:m.username }}
+              </label>
+              <!-- Exact / Percentage inputs (hidden by default) -->
+              <input type="number" class="input-control split-custom-input exact-input" placeholder="₹" style="width: 80px; display: none; padding: 0.25rem 0.5rem; font-size: 0.85rem;" data-user-id="{{ m.id }}">
+              <input type="number" class="input-control split-custom-input pct-input" placeholder="%" style="width: 80px; display: none; padding: 0.25rem 0.5rem; font-size: 0.85rem;" data-user-id="{{ m.id }}">
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    // Show active tab content
+    document.getElementById(`tab-content-${tabName}`).style.display = 'block';
+    
+    // Set active button class
+    // Find tab button that matches tabName and add active
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(b => {
+      if (b.innerText.toLowerCase().includes(tabName.slice(0, 5))) {
+        b.classList.add('active');
+      }
+    });
+    
+    // Update URL query parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabName);
+    window.history.replaceState({}, '', url.toString());
+    
+    lucide.createIcons();
+  }
+
+  function openExpenseModal() {
+    document.getElementById('expense-modal').style.display = 'flex';
+  }
+
+  function closeExpenseModal() {
+    document.getElementById('expense-modal').style.display = 'none';
+  }
+
+  function openSettleModal() {
+    document.getElementById('settle-modal').style.display = 'flex';
+  }
+
+  function closeSettleModal() {
+    document.getElementById('settle-modal').style.display = 'none';
+  }
+
+  function toggleSplitInputs(type) {
+    const checkboxes = document.querySelectorAll('.split-member-checkbox');
+    const exactInputs = document.querySelectorAll('.exact-input');
+    const pctInputs = document.querySelectorAll('.pct-input');
+
+    if (type === 'EQUAL') {
+      checkboxes.forEach(c => c.style.display = 'inline-block');
+      exactInputs.forEach(i => i.style.display = 'none');
+      pctInputs.forEach(i => i.style.display = 'none');
+    } else if (type === 'EXACT') {
+      checkboxes.forEach(c => c.style.display = 'none');
+      exactInputs.forEach(i => i.style.display = 'block');
+      pctInputs.forEach(i => i.style.display = 'none');
+    } else if (type === 'PERCENTAGE') {
+      checkboxes.forEach(c => c.style.display = 'none');
+      exactInputs.forEach(i => i.style.display = 'none');
+      pctInputs.forEach(i => i.style.display = 'block');
+    }
+  }
+
+  async function submitExpense(e) {
+    e.preventDefault();
+    const amount = parseFloat(document.getElementById('exp-amount').value);
+    const description = document.getElementById('exp-desc').value;
+    const paidBy = document.getElementById('exp-paid-by').value;
+    const splitType = document.getElementById('exp-split-type').value;
+
+    let splits = [];
+    if (splitType === 'EQUAL') {
+      const checkedBoxes = document.querySelectorAll('.split-member-checkbox:checked');
+      if (checkedBoxes.length === 0) {
+        alert('Please select at least one participating member.');
+        return;
+      }
+      checkedBoxes.forEach(cb => {
+        splits.push({ userId: cb.value });
+      });
+    } else if (splitType === 'EXACT') {
+      let sum = 0;
+      document.querySelectorAll('.exact-input').forEach(input => {
+        const val = parseFloat(input.value) || 0;
+        if (val > 0) {
+          splits.push({ userId: input.dataset.userId, amount: val });
+          sum += val;
+        }
+      });
+      if (Math.abs(sum - amount) > 0.05) {
+        alert(`Sum of exact values (₹${sum}) must equal total amount (₹${amount})`);
+        return;
+      }
+    } else if (splitType === 'PERCENTAGE') {
+      let sumPct = 0;
+      document.querySelectorAll('.pct-input').forEach(input => {
+        const val = parseFloat(input.value) || 0;
+        if (val > 0) {
+          splits.push({ userId: input.dataset.userId, percentage: val });
+          sumPct += val;
+        }
+      });
+      if (Math.abs(sumPct - 100) > 0.05) {
+        alert(`Sum of percentages (${sumPct}%) must equal 100%`);
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch("{% url 'api_add_group_expense' group_id=group.id %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ amount, description, paidBy, splitType, splits, date: new Date().toISOString().split('T')[0] })
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to save expense');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving group expense');
+    }
+  }
+
+  function triggerSettleUp(fromId, toId, amount) {
+    document.getElementById('settle-from-id').value = fromId;
+    document.getElementById('settle-to-id').value = toId;
+    document.getElementById('settle-amount').value = amount;
+    openSettleModal();
+  }
+
+  async function submitSettlement(e) {
+    e.preventDefault();
+    const fromUserId = document.getElementById('settle-from-id').value;
+    const toUserId = document.getElementById('settle-to-id').value;
+    const amount = parseFloat(document.getElementById('settle-amount').value);
+
+    try {
+      const res = await fetch("{% url 'api_add_settlement' group_id=group.id %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ fromUserId, toUserId, amount })
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to record settlement payment');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error recording settlement payment');
+    }
+  }
+</script>
+{% endblock %}

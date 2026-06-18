@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina Fintech - Wallet</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#002113",
+                      "on-secondary-fixed": "#001a42",
+                      "background": "#131313",
+                      "on-surface-variant": "#cbc3d7",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "tertiary": "#4edea3",
+                      "secondary-container": "#0566d9",
+                      "error-container": "#93000a",
+                      "surface-container-low": "#1c1b1b",
+                      "on-tertiary-container": "#00311f",
+                      "on-surface": "#e5e2e1",
+                      "on-error-container": "#ffdad6",
+                      "surface-dim": "#131313",
+                      "surface-container-high": "#2a2a2a",
+                      "secondary": "#adc6ff",
+                      "primary-fixed": "#e9ddff",
+                      "on-background": "#e5e2e1",
+                      "outline": "#958ea0",
+                      "on-error": "#690005",
+                      "primary-container": "#a078ff",
+                      "on-tertiary": "#003824",
+                      "surface": "#131313",
+                      "secondary-fixed": "#d8e2ff",
+                      "outline-variant": "#494454",
+                      "on-secondary-fixed-variant": "#004395",
+                      "on-primary-container": "#340080",
+                      "inverse-on-surface": "#313030",
+                      "on-secondary": "#002e6a",
+                      "on-primary-fixed-variant": "#5516be",
+                      "tertiary-container": "#00a572",
+                      "surface-container-lowest": "#0e0e0e",
+                      "inverse-surface": "#e5e2e1",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "surface-container": "#201f1f",
+                      "surface-tint": "#d0bcff",
+                      "surface-bright": "#393939",
+                      "on-secondary-container": "#e6ecff",
+                      "primary-fixed-dim": "#d0bcff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "primary": "#d0bcff",
+                      "inverse-primary": "#6d3bd7",
+                      "on-primary-fixed": "#23005c",
+                      "surface-variant": "#353534",
+                      "surface-container-highest": "#353534",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-primary": "#3c0091",
+                      "error": "#ffb4ab"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "24": "24px",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-xl": "48px",
+                      "margin-desktop": "40px",
+                      "stack-md": "16px",
+                      "gutter": "24px",
+                      "container-max": "1280px",
+                      "stack-lg": "24px",
+                      "margin-mobile": "20px",
+                      "stack-sm": "8px",
+                      "stack-xs": "4px"
+              },
+              "fontFamily": {
+                      "body-sm": ["Inter"],
+                      "headline-md-mobile": ["Inter"],
+                      "title-lg": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "mono-data": ["Geist"],
+                      "headline-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "display-lg-mobile": ["Inter"],
+                      "label-md": ["Geist"]
+              },
+              "fontSize": {
+                      "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                      "headline-md-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                      "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "mono-data": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                      "headline-md": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                      "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "display-lg-mobile": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .glass-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .card-gradient-1 {
+            background: linear-gradient(135deg, rgba(160, 120, 255, 0.8) 0%, rgba(5, 102, 217, 0.6) 100%);
+        }
+        .card-gradient-2 {
+            background: linear-gradient(135deg, rgba(78, 222, 163, 0.8) 0%, rgba(5, 102, 217, 0.6) 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar Web -->
+<nav class="hidden md:flex justify-between items-center px-margin-desktop h-20 fixed top-0 right-0 left-72 bg-background/60 dark:bg-background/60 backdrop-blur-md border-b border-white/5 z-50">
+<div class="font-title-lg text-title-lg font-black text-on-surface">Lumina</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full hover:bg-surface-variant/30 flex items-center justify-center transition-all focus-within:ring-2 focus-within:ring-secondary-container">
+<span class="material-symbols-outlined text-secondary dark:text-secondary">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-full hover:bg-surface-variant/30 flex items-center justify-center transition-all focus-within:ring-2 focus-within:ring-secondary-container">
+<span class="material-symbols-outlined text-secondary dark:text-secondary">help_outline</span>
+</button>
+<button class="font-label-md text-label-md text-secondary dark:text-secondary hover:bg-surface-variant/30 px-3 py-1.5 rounded-lg transition-all focus-within:ring-2 focus-within:ring-secondary-container">Support</button>
+<div class="w-10 h-10 rounded-full bg-surface-variant overflow-hidden border border-white/10 ml-2">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWLpWSgW1M2QP4ChsLO3Z00mSmyIdW2hNiymPPL8qt35oocQ1GbMBa07fdnOuraeBXhjaXwGOAgjttgCGtUUj4gqmOWubVP-FWIoMfZpBMhK_flqkmedBN8KiyIoFicqdO4xpKJU1lx-uM29mTZyn3cXSdn9OWPamlKBjymSWAyKzDgNmkHULMjw5BrRoauxPXm11s8xmNLKBQSZmZ1CaPnc-E3QxHmojC2jKOYAxkiBV5CdJdBLKy92XiPxvk5Vb502CWfnRT08o"/>
+</div>
+</div>
+</nav>
+<!-- SideNavBar Web -->
+<aside class="hidden md:flex flex-col h-screen w-72 left-0 top-0 fixed bg-surface-container-lowest dark:bg-surface-container-lowest border-r border-white/10 backdrop-blur-xl shadow-sm z-50 py-stack-lg px-stack-md">
+<div class="mb-stack-xl px-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container font-bold">diamond</span>
+</div>
+<div>
+<div class="font-headline-md text-title-lg font-bold text-primary dark:text-primary">Lumina Pro</div>
+<div class="font-label-md text-label-md text-on-surface-variant">Premium Enterprise</div>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg font-body-lg text-body-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Overview
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg font-body-lg text-body-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+                Transactions
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg font-body-lg text-body-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Analytics
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg font-body-lg text-body-lg text-on-primary-container bg-primary-container/20 border-r-4 border-primary hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+                Wallet
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg font-body-lg text-body-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="mt-auto pt-stack-md">
+<button class="w-full py-3 rounded-xl bg-surface-container-high text-primary font-label-md text-label-md hover:bg-surface-variant transition-colors flex items-center justify-center gap-2 border border-white/5">
+<span class="material-symbols-outlined text-[18px]">upgrade</span>
+                Upgrade Plan
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="md:ml-72 pt-20 md:pt-28 px-margin-mobile md:px-margin-desktop pb-32 md:pb-margin-desktop min-h-screen">
+<div class="max-w-container-max mx-auto">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-stack-xl gap-4">
+<div>
+<h1 class="font-display-lg-mobile md:font-display-lg text-on-surface mb-2 tracking-tight">Your Wallet</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Manage your cards, linked accounts, and digital assets.</p>
+</div>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-primary-fixed transition-colors self-start md:self-auto shadow-[0_0_20px_rgba(208,188,255,0.2)]">
+<span class="material-symbols-outlined">add</span>
+                    Add New Card
+                </button>
+</div>
+<!-- Cards Horizontal Scroll Area -->
+<section class="mb-stack-xl">
+<div class="flex overflow-x-auto hide-scrollbar gap-gutter pb-8 -mx-margin-mobile md:-mx-0 px-margin-mobile md:px-0 snap-x">
+<!-- Physical Card -->
+<div class="min-w-[320px] md:min-w-[380px] h-[220px] rounded-24 p-6 flex flex-col justify-between card-gradient-1 relative overflow-hidden shadow-[0_10px_40px_rgba(160,120,255,0.15)] snap-center flex-shrink-0 border border-white/20">
+<div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjEpIi8+PC9zdmc+')] opacity-50 pointer-events-none"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<div class="font-label-md text-label-md text-white/80 mb-1 tracking-wider uppercase">Lumina Black</div>
+<div class="font-title-lg text-title-lg text-white">Physical Card</div>
+</div>
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">contactless</span>
+</div>
+<div class="relative z-10 mt-auto">
+<div class="font-mono-data text-mono-data text-white/90 text-xl tracking-[0.2em] mb-4">•••• •••• •••• 4289</div>
+<div class="flex justify-between items-end">
+<div>
+<div class="font-label-md text-label-md text-white/60 mb-1">Cardholder</div>
+<div class="font-body-sm text-body-sm text-white">Alex Morgan</div>
+</div>
+<div class="flex gap-2">
+<div class="w-8 h-8 rounded-full bg-red-500/80 mix-blend-screen"></div>
+<div class="w-8 h-8 rounded-full bg-yellow-500/80 mix-blend-screen -ml-4"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Virtual Card -->
+<div class="min-w-[320px] md:min-w-[380px] h-[220px] rounded-24 p-6 flex flex-col justify-between card-gradient-2 relative overflow-hidden shadow-[0_10px_40px_rgba(78,222,163,0.1)] snap-center flex-shrink-0 border border-white/20">
+<div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGwyMCAyME0yMCAwbC0yMCAyMCIgc3Ryb2tlPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuMDUpIiBmaWxsPSJub25lIi8+PC9zdmc+')] opacity-30 pointer-events-none"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<div class="font-label-md text-label-md text-white/80 mb-1 tracking-wider uppercase flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_8px_rgba(78,222,163,0.8)]"></span> Active
+                                </div>
+<div class="font-title-lg text-title-lg text-white">Virtual Spend</div>
+</div>
+<span class="material-symbols-outlined text-white text-3xl">shopping_cart</span>
+</div>
+<div class="relative z-10 mt-auto">
+<div class="font-mono-data text-mono-data text-white/90 text-xl tracking-[0.2em] mb-4">•••• •••• •••• 9921</div>
+<div class="flex justify-between items-end">
+<div>
+<div class="font-label-md text-label-md text-white/60 mb-1">Expires</div>
+<div class="font-mono-data text-mono-data text-white">12/26</div>
+</div>
+<div class="font-label-md text-label-md text-white border border-white/30 px-3 py-1 rounded-full backdrop-blur-md">
+                                    Online Only
+                                </div>
+</div>
+</div>
+</div>
+<!-- Add Card Ghost -->
+<div class="min-w-[320px] md:min-w-[380px] h-[220px] rounded-24 p-6 flex flex-col items-center justify-center glass-card border-dashed border-2 border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all cursor-pointer snap-center flex-shrink-0 group">
+<div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4 group-hover:scale-110 transition-transform group-hover:bg-primary-container/20">
+<span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-primary">add_card</span>
+</div>
+<div class="font-title-lg text-title-lg text-on-surface">Create Virtual Card</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-2">Instant generation</div>
+</div>
+</div>
+<!-- Card Actions -->
+<div class="flex justify-center md:justify-start gap-4 mt-6">
+<button class="glass-card px-5 py-3 rounded-xl flex items-center gap-2 text-on-surface hover:bg-white/5 transition-colors font-label-md text-label-md">
+<span class="material-symbols-outlined text-secondary">visibility</span>
+                        View PIN
+                    </button>
+<button class="glass-card px-5 py-3 rounded-xl flex items-center gap-2 text-on-surface hover:bg-white/5 transition-colors font-label-md text-label-md">
+<span class="material-symbols-outlined text-tertiary">settings</span>
+                        Limits
+                    </button>
+<button class="glass-card px-5 py-3 rounded-xl flex items-center gap-2 text-error hover:bg-error/10 transition-colors border-error/20 font-label-md text-label-md">
+<span class="material-symbols-outlined">ac_unit</span>
+                        Freeze Card
+                    </button>
+</div>
+</section>
+<!-- Bento Grid Layout for Accounts & Crypto -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Linked Accounts Column -->
+<div class="lg:col-span-2 flex flex-col gap-gutter">
+<div class="flex items-center justify-between">
+<h2 class="font-title-lg text-title-lg text-on-surface">Linked Accounts</h2>
+<button class="text-primary font-label-md text-label-md hover:underline flex items-center gap-1">
+                            Link Bank <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="bg-surface-container-low rounded-24 p-6 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
+<div class="absolute top-0 left-0 w-1 h-full bg-secondary"></div>
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+<div>
+<div class="font-title-lg text-title-lg text-on-surface">Chase Checking</div>
+<div class="font-mono-data text-mono-data text-on-surface-variant text-sm mt-1">•••• 8821</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline-md text-headline-md text-on-surface">$12,450.00</div>
+<div class="font-label-md text-label-md text-tertiary flex items-center justify-end gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> Updated just now
+                                </div>
+</div>
+</div>
+<div class="w-full h-[1px] bg-white/5 my-4"></div>
+<div class="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant">
+<span>Primary funding source</span>
+<button class="px-4 py-2 rounded-lg bg-surface hover:bg-surface-bright transition-colors border border-white/5">Manage</button>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-24 p-6 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors opacity-70 hover:opacity-100">
+<div class="absolute top-0 left-0 w-1 h-full bg-outline-variant"></div>
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-outline text-2xl">account_balance</span>
+</div>
+<div>
+<div class="font-title-lg text-title-lg text-on-surface">Citi Savings</div>
+<div class="font-mono-data text-mono-data text-on-surface-variant text-sm mt-1">•••• 3442</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline-md text-headline-md text-on-surface">$45,200.00</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Digital Assets / Crypto Side -->
+<div class="lg:col-span-1 flex flex-col gap-gutter">
+<div class="flex items-center justify-between">
+<h2 class="font-title-lg text-title-lg text-on-surface flex items-center gap-2">
+                            Digital Assets <span class="material-symbols-outlined text-tertiary text-[18px]">verified</span>
+</h2>
+</div>
+<div class="bg-surface-container-low rounded-24 p-6 border border-white/5 h-full flex flex-col bg-gradient-to-b from-surface-container-low to-surface-container-lowest">
+<div class="mb-6">
+<div class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-2">Total Crypto Balance</div>
+<div class="font-display-lg text-display-lg text-on-surface flex items-baseline gap-2">
+                                $8,240<span class="font-title-lg text-title-lg text-on-surface-variant">.45</span>
+</div>
+<div class="font-label-md text-label-md text-tertiary bg-tertiary/10 inline-flex items-center gap-1 px-2 py-1 rounded mt-2">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +5.2% (24h)
+                            </div>
+</div>
+<div class="flex-1 flex flex-col gap-4">
+<!-- BTC -->
+<div class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-[#F7931A]/20 flex items-center justify-center text-[#F7931A] font-bold">
+                                        ₿
+                                    </div>
+<div>
+<div class="font-body-lg text-body-lg font-semibold text-on-surface">Bitcoin</div>
+<div class="font-mono-data text-label-md text-on-surface-variant">0.045 BTC</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-mono-data text-body-sm text-on-surface">$3,105.00</div>
+<div class="font-mono-data text-label-md text-tertiary">+2.1%</div>
+</div>
+</div>
+<!-- ETH -->
+<div class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-[#627EEA]/20 flex items-center justify-center text-[#627EEA] font-bold">
+                                        Ξ
+                                    </div>
+<div>
+<div class="font-body-lg text-body-lg font-semibold text-on-surface">Ethereum</div>
+<div class="font-mono-data text-label-md text-on-surface-variant">1.42 ETH</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-mono-data text-body-sm text-on-surface">$4,520.45</div>
+<div class="font-mono-data text-label-md text-tertiary">+1.8%</div>
+</div>
+</div>
+<!-- SOL -->
+<div class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-[#14F195]/20 flex items-center justify-center text-[#14F195] font-bold">
+                                        ◎
+                                    </div>
+<div>
+<div class="font-body-lg text-body-lg font-semibold text-on-surface">Solana</div>
+<div class="font-mono-data text-label-md text-on-surface-variant">12.5 SOL</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-mono-data text-body-sm text-on-surface">$615.00</div>
+<div class="font-mono-data text-label-md text-error">-0.5%</div>
+</div>
+</div>
+</div>
+<button class="w-full mt-4 py-3 border border-white/10 rounded-xl font-label-md text-label-md text-on-surface hover:bg-white/5 transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">swap_horiz</span> Trade Assets
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Mobile -->
+<nav class="md:hidden fixed bottom-0 w-full bg-surface-container-lowest/90 backdrop-blur-xl border-t border-white/5 z-50 px-2 py-2 flex justify-around items-center h-[80px]">
+<a class="flex flex-col items-center gap-1 p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-md text-[10px]">Activity</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-primary" href="#">
+<div class="bg-primary-container/20 px-4 py-1 rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<span class="font-label-md text-[10px] font-bold">Wallet</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-[10px]">Profile</span>
+</a>
+</nav>
+</body></html>

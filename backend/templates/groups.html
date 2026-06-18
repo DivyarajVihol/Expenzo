@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Group Splits - EXPENZO{% endblock %}
+
+{% block extra_css %}
+<style>
+  .groups-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0.5rem;
+  }
+  .groups-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .group-card {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 140px;
+    text-decoration: none;
+    transition: var(--transition-smooth);
+    border: 1px solid var(--border-color);
+  }
+  .group-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+    background: var(--bg-card-hover);
+  }
+  .group-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  .group-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .group-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .create-group-card {
+    padding: 2rem;
+  }
+  .create-group-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="groups-container">
+  
+  <div class="groups-header-row">
+    <div>
+      <a href="{% url 'dashboard' %}" class="btn-back-dashboard" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-bottom: 0.5rem;">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+        Back to Dashboard
+      </a>
+      <h1 class="page-title">Group Splits</h1>
+      <p class="page-subtitle">Track, split, and settle bills with friends and roommates</p>
+    </div>
+  </div>
+
+  <div class="groups-grid">
+    {% for group in groups %}
+      <a href="{% url 'group_detail' group_id=group.id %}" class="glass-card group-card">
+        <div>
+          <h3 class="group-title">{{ group.name }}</h3>
+          <p class="group-desc">{% if group.description %}{{ group.description }}{% else %}No description provided.{% endif %}</p>
+        </div>
+        <div class="group-meta">
+          <i data-lucide="calendar" style="width: 12px; height: 12px;"></i>
+          Created {{ group.created_at|date:"M Y" }}
+        </div>
+      </a>
+    {% empty %}
+      <div class="glass-card" style="grid-column: 1 / -1; padding: 4rem 2rem; text-align: center; color: var(--text-secondary);">
+        <i data-lucide="users" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+        <h3>No Groups Found</h3>
+        <p style="font-size: 0.9rem; margin-top: 0.25rem;">You are not in any split groups yet. Create a group on the right to start splitting bills!</p>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Create New Group Card -->
+  <div class="glass-card create-group-card" style="max-width: 500px; margin-top: 2rem;">
+    <h3 class="create-group-title">Create a New Group</h3>
+    <form method="POST" action="{% url 'groups' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Group Name</label>
+        <input 
+          type="text" 
+          name="name" 
+          class="input-control" 
+          placeholder="e.g. Roommates, Weekend Trip, Office Lunch" 
+          required
+        />
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Description (Optional)</label>
+        <textarea 
+          name="description" 
+          class="input-control" 
+          placeholder="What is this group for?" 
+          rows="3"
+          style="resize: none;"
+        ></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+        <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
+        Create Group
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

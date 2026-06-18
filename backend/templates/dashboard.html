@@ -1,0 +1,472 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Overview - EXPENZO{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Top Navbar Row -->
+<div class="dashboard-nav-row">
+  <div class="dashboard-title-area">
+    <h1 class="page-title">Overview</h1>
+    <p class="page-subtitle">Welcome back, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}. Here's your financial summary.</p>
+  </div>
+  
+  <div class="dashboard-actions-area">
+    <!-- Search and Filter Form -->
+    <form method="GET" action="{% url 'dashboard' %}" class="search-wrapper" style="display: flex; gap: 0.5rem; max-width: 400px; width: 100%;">
+      <div style="position: relative; flex: 1;">
+        <i data-lucide="search" class="search-icon" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 18px; height: 18px;"></i>
+        <input
+          type="text"
+          name="search"
+          placeholder="Search transactions..."
+          class="input-control search-input"
+          value="{{ search_query }}"
+          style="padding-left: 2.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); width: 100%; box-sizing: border-box;"
+        />
+      </div>
+      <input type="hidden" name="filter" value="{{ filter_type }}">
+    </form>
+  </div>
+</div>
+
+<!-- Main Grid Layout -->
+<div class="dashboard-main-grid">
+  
+  <!-- Left Column -->
+  <div class="left-column">
+    
+    <!-- Top Cards Row -->
+    <div class="top-cards-row">
+      
+      <!-- Monthly Balance Card -->
+      <div class="glass-card balance-card">
+        <div>
+          <span class="balance-card-label">
+            Monthly Balance ({{ active_month_label }})
+          </span>
+          <div class="balance-amount-row">
+            <h2 class="balance-amount">
+              ₹{{ monthly_balance|floatformat:2 }}
+            </h2>
+          </div>
+          <div class="cumulative-badge" style="color: {% if monthly_balance >= 0 %}var(--accent-success){% else %}var(--accent-danger){% endif %}; background: {% if monthly_balance >= 0 %}rgba(16, 185, 129, 0.1){% else %}rgba(244, 63, 94, 0.1){% endif %};">
+            <i data-lucide="trending-up" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i>
+            Cumulative balance
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+          <button class="btn btn-secondary btn-add-income" onclick="openTransactionModal('Income')" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; background: #ffffff; color: #000000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            + Add Income
+          </button>
+        </div>
+
+        <!-- Decorative credit card icon badge -->
+        <div class="balance-card-bg-icon">
+          <i data-lucide="credit-card" style="width: 64px; height: 64px;"></i>
+        </div>
+      </div>
+
+      <!-- Savings Goal Card -->
+      <div class="glass-card savings-card">
+        <div class="savings-card-header">
+          <div>
+            <h4 class="savings-title">Savings Goal</h4>
+            <p class="savings-subtitle">Track progress to your target</p>
+          </div>
+          <button onclick="openSavingsModal()" class="btn-edit-savings">
+            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
+
+        <div class="savings-gauge-section">
+          <!-- Circular Gauge Chart generated via Matplotlib/Seaborn -->
+          <div class="gauge-chart-wrapper">
+            {% if gauge_chart %}
+              <img src="data:image/png;base64,{{ gauge_chart }}" alt="Savings Gauge" style="width: 100px; height: 100px;">
+            {% else %}
+              <div style="font-size: 0.85rem; color: var(--text-muted)">0%</div>
+            {% endif %}
+          </div>
+
+          <div class="savings-text-info">
+            <div class="savings-info-label">Current Savings</div>
+            <div class="savings-info-value">₹{{ savings_current|floatformat:2 }}</div>
+            <div class="savings-info-target">
+              Goal: ₹{{ savings_target|floatformat:2 }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Spending breakdown Pie Chart -->
+    <div class="glass-card" style="padding: 1.5rem 1.75rem;">
+      <div class="spending-card-header">
+        <div>
+          <h3 class="spending-title">Monthly Spending</h3>
+          <p class="spending-subtitle">Category breakdown for the selected month</p>
+        </div>
+      </div>
+
+      <div class="spending-chart-section">
+        {% if not pie_chart %}
+          <div class="no-spending-text">
+            No spending recorded for this month.
+          </div>
+        {% else %}
+          <div class="pie-chart-wrapper">
+            <img src="data:image/png;base64,{{ pie_chart }}" alt="Spending Breakdown" style="width: 180px; height: 180px;">
+          </div>
+
+          <div class="legend-grid">
+            {% for cat in category_breakdown %}
+              <div class="legend-item">
+                <span class="legend-dot" style="background: {{ cat.color }};"></span>
+                <span class="legend-label">{{ cat.name }}</span>
+                <strong class="legend-value">₹{{ cat.value|floatformat:2 }} ({{ cat.percentage }}%)</strong>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column (Side Panel) -->
+  <div class="right-column">
+    
+    <!-- Consolidated Quick Action Card -->
+    <div class="glass-card quick-actions-card">
+      <h3 class="quick-actions-title">Quick Actions</h3>
+      <button
+        onclick="openTransactionModal('Food')"
+        class="btn btn-primary btn-quick-expense"
+        style="width: 100%; padding: 0.75rem; border-radius: 12px; display: flex; gap: 0.5rem; justify-content: center; align-items: center; border: none; cursor: pointer; font-weight: 600;"
+      >
+        <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
+        <span>Log New Transaction</span>
+      </button>
+    </div>
+
+    <!-- Recent Expenses List Card -->
+    <div class="glass-card" style="padding: 1.5rem;">
+      <div class="spending-card-header">
+        <h3 class="quick-actions-title">Recent Transactions</h3>
+        <div>
+          <select
+            class="recent-transactions-select"
+            onchange="changeFilter(this.value)"
+            style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;"
+          >
+            <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Time</option>
+            <option value="daily" {% if filter_type == 'daily' %}selected{% endif %}>Today</option>
+            <option value="weekly" {% if filter_type == 'weekly' %}selected{% endif %}>Weekly</option>
+            <option value="monthly" {% if filter_type == 'monthly' %}selected{% endif %}>Monthly</option>
+          </select>
+        </div>
+      </div>
+
+      {% if not recent_transactions %}
+        <p class="empty-list-text" style="text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 0.85rem;">
+          No transactions found.
+        </p>
+      {% else %}
+        <div class="transaction-list-container">
+          {% for exp in recent_transactions %}
+            <div class="transaction-item-row" id="tx-row-{{ exp.id }}">
+              <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+                <div class="transaction-icon-box">
+                  <i data-lucide="credit-card" style="width: 16px; height: 16px; color: {% if exp.category == 'Income' %}var(--accent-success){% else %}var(--accent-primary){% endif %};"></i>
+                </div>
+                
+                <div class="min-w-0">
+                  <div class="transaction-title-desc" style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {{ exp.description }}
+                  </div>
+                  <div class="transaction-meta-row" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 0.5rem; align-items: center;">
+                    <span>{{ exp.category }}</span>
+                    <span>•</span>
+                    <span>{{ exp.date|date:"j M" }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="transaction-value-amount" style="font-weight: 700; font-size: 0.9rem; color: {% if exp.category == 'Income' %}var(--accent-success){% else %}var(--accent-danger){% endif %};">
+                  {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+                </span>
+                
+                <button
+                  onclick="deleteTransaction('{{ exp.id }}')"
+                  class="btn-delete-item-action"
+                  style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center;"
+                >
+                  <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Savings Goal Modal -->
+<div class="modal-overlay" id="savings-modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="chart-card-title">Adjust Savings Goal</h3>
+      <button onclick="closeSavingsModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+    <form id="savings-form" onsubmit="saveSavingsGoal(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Goal Target Amount</label>
+          <input
+            type="number"
+            id="savings-target-input"
+            class="input-control"
+            placeholder="e.g. 50000"
+            value="{{ savings_target }}"
+            required
+            min="0"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Saved Amount</label>
+          <input
+            type="number"
+            id="savings-current-input"
+            class="input-control"
+            placeholder="e.g. 12000"
+            value="{{ savings_current }}"
+            required
+            min="0"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeSavingsModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Expense/Income Transaction Modal -->
+<div class="modal-overlay" id="transaction-modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="chart-card-title" id="tx-modal-title">Add Transaction</h3>
+      <button onclick="closeTransactionModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+    <form id="transaction-form" onsubmit="saveTransaction(event)">
+      <div style="padding: 0.6rem 1.5rem; background: rgba(129, 140, 248, 0.08); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.5rem;">
+        <i data-lucide="info" style="color: var(--accent-primary); width: 14px; height: 14px;"></i>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">
+          You can only add transactions for the current month.
+        </span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Amount (₹)</label>
+          <input
+            type="number"
+            id="tx-amount"
+            class="input-control"
+            placeholder="0.00"
+            required
+            min="0.01"
+            step="0.01"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input
+            type="text"
+            id="tx-description"
+            class="input-control"
+            placeholder="e.g. Grocery, Lunch, Salary"
+            required
+          />
+        </div>
+        <div class="form-group" id="tx-category-group">
+          <label class="form-label">Category</label>
+          <select id="tx-category" class="input-control" style="background: #0d121f;">
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Rent">Rent</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Health">Health</option>
+            <option value="Education">Education</option>
+            <option value="Investment">Investment</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select id="tx-payment" class="input-control" style="background: #0d121f;">
+            <option value="Cash">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Debit Card">Debit Card</option>
+            <option value="Net Banking">Net Banking</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input
+            type="date"
+            id="tx-date"
+            class="input-control"
+            required
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeTransactionModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Log Transaction</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Set default transaction date to today
+  document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+
+  function changeFilter(val) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('filter', val);
+    window.location.href = url.toString();
+  }
+
+  function openSavingsModal() {
+    document.getElementById('savings-modal').style.display = 'flex';
+  }
+
+  function closeSavingsModal() {
+    document.getElementById('savings-modal').style.display = 'none';
+  }
+
+  function openTransactionModal(defaultCat) {
+    const modal = document.getElementById('transaction-modal');
+    const title = document.getElementById('tx-modal-title');
+    const catGroup = document.getElementById('tx-category-group');
+    const categorySelect = document.getElementById('tx-category');
+
+    if (defaultCat === 'Income') {
+      title.innerText = 'Add Income';
+      catGroup.style.display = 'none';
+      categorySelect.value = 'Income';
+    } else {
+      title.innerText = 'Add Expense';
+      catGroup.style.display = 'block';
+      categorySelect.value = defaultCat;
+    }
+
+    modal.style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  function closeTransactionModal() {
+    document.getElementById('transaction-modal').style.display = 'none';
+  }
+
+  async function saveSavingsGoal(e) {
+    e.preventDefault();
+    const target = document.getElementById('savings-target-input').value;
+    const current = document.getElementById('savings-current-input').value;
+
+    try {
+      const res = await fetch("{% url 'api_save_savings_goal' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ target, current })
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to save savings goal');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving savings goal');
+    }
+  }
+
+  async function saveTransaction(e) {
+    e.preventDefault();
+    const amount = document.getElementById('tx-amount').value;
+    const description = document.getElementById('tx-description').value;
+    const category = document.getElementById('tx-category').value;
+    const paymentMethod = document.getElementById('tx-payment').value;
+    const date = document.getElementById('tx-date').value;
+
+    try {
+      const res = await fetch("{% url 'api_add_expense' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ amount, description, category, paymentMethod, date })
+      });
+      
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to save transaction');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving transaction');
+    }
+  }
+
+  async function deleteTransaction(id) {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
+    try {
+      const res = await fetch(`/api/expenses/delete/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      if (res.ok) {
+        document.getElementById(`tx-row-${id}`).remove();
+        window.location.reload(); // Reload to sync charts and balances
+      } else {
+        alert('Failed to delete transaction');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting transaction');
+    }
+  }
+</script>
+{% endblock %}

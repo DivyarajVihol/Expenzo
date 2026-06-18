@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Expense History - EXPENZO{% endblock %}
+
+{% block extra_css %}
+<style>
+  .history-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.5rem;
+  }
+  .history-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .btn-back-dashboard {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+  }
+  .btn-back-dashboard:hover {
+    color: var(--text-primary);
+  }
+  .filters-card {
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .filters-row {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-group {
+    flex: 1 1 200px;
+  }
+  .month-group-card {
+    margin-bottom: 1.25rem;
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+  }
+  .month-group-header {
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: var(--transition-fast);
+  }
+  .month-group-header:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .month-title-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .month-label {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .month-total-spend {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+  }
+  .month-breakdown-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .breakdown-pill {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .month-expenses-content {
+    border-top: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .tx-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .tx-table th {
+    text-align: left;
+    padding: 1rem 1.75rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+  }
+  .tx-table td {
+    padding: 1rem 1.75rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+    color: var(--text-primary);
+  }
+  .tx-table tr:last-child td {
+    border-bottom: none;
+  }
+  .amount-income {
+    color: var(--accent-success);
+    font-weight: 700;
+  }
+  .amount-expense {
+    color: var(--accent-danger);
+    font-weight: 700;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-secondary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-container">
+  
+  <!-- Header row -->
+  <div class="history-header-row">
+    <div>
+      <a href="{% url 'dashboard' %}" class="btn-back-dashboard">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+        Back to Dashboard
+      </a>
+      <h1 class="page-title">Expense History</h1>
+      <p class="page-subtitle">View and filter your past transactions and records</p>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="glass-card filters-card">
+    <form method="GET" action="{% url 'history' %}" id="filter-form">
+      <div class="filters-row">
+        <!-- Search bar -->
+        <div class="filter-group" style="flex: 2 1 300px; position: relative;">
+          <label class="form-label font-xs">Search Description</label>
+          <div style="position: relative;">
+            <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px;"></i>
+            <input
+              type="text"
+              name="search"
+              placeholder="e.g. rent, lunch, grocery..."
+              class="input-control"
+              value="{{ search_query }}"
+              style="padding-left: 2.25rem; box-sizing: border-box; width: 100%;"
+              onchange="document.getElementById('filter-form').submit()"
+            />
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filter-group">
+          <label class="form-label font-xs">Category</label>
+          <select name="category" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
+            <option value="All">All Categories</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Payment Method Filter -->
+        <div class="filter-group">
+          <label class="form-label font-xs">Payment Method</label>
+          <select name="paymentMethod" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
+            <option value="All">All Methods</option>
+            {% for method in payment_methods %}
+              <option value="{{ method }}" {% if selected_payment == method %}selected{% endif %}>{{ method }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- History Groups Lists -->
+  {% if not grouped_months %}
+    <div class="glass-card empty-state">
+      <i data-lucide="info" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+      <h3>No Transaction Records Found</h3>
+      <p style="font-size: 0.9rem; margin-top: 0.25rem;">Try adjusting your filters or add transactions on the dashboard.</p>
+    </div>
+  {% else %}
+    {% for month in grouped_months %}
+      <div class="month-group-card">
+        <!-- Collapsible Header -->
+        <div class="month-group-header" onclick="toggleMonth('{{ month.key }}')">
+          <div class="month-title-info">
+            <span class="month-label">{{ month.label }}</span>
+            <span class="month-total-spend">Total Spend: ₹{{ month.total_spend|floatformat:2 }}</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <!-- Category Pills Breakdown -->
+            <div class="month-breakdown-row" style="display: flex; gap: 0.5rem;">
+              {% for break in month.category_breakdown %}
+                <span class="breakdown-pill" style="border: 1px solid {{ break.color }}; background: rgba(255,255,255,0.01);">
+                  <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: {{ break.color }};"></span>
+                  {{ break.name }}: ₹{{ break.amount|floatformat:0 }}
+                </span>
+              {% endfor %}
+            </div>
+            <!-- Arrow indicators -->
+            <i data-lucide="chevron-down" id="arrow-{{ month.key }}" style="color: var(--text-secondary); width: 20px; height: 20px;"></i>
+          </div>
+        </div>
+
+        <!-- Collapsible Table -->
+        <div class="month-expenses-content" id="content-{{ month.key }}" style="display: none;">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Payment Method</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for exp in month.expenses %}
+                <tr>
+                  <td>{{ exp.date|date:"F d, Y" }}</td>
+                  <td style="font-weight: 500;">{{ exp.description }}</td>
+                  <td>
+                    <span class="breakdown-pill" style="border: 1px solid {% if exp.category == 'Income' %}var(--accent-success){% else %}var(--accent-primary){% endif %}; width: fit-content; padding: 0.1rem 0.5rem;">
+                      {{ exp.category }}
+                    </span>
+                  </td>
+                  <td>{{ exp.payment_method }}</td>
+                  <td style="text-align: right;" class="{% if exp.category == 'Income' %}amount-income{% else %}amount-expense{% endif %}">
+                    {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Automatically expand the first month group on load
+  window.addEventListener('DOMContentLoaded', () => {
+    {% if grouped_months %}
+      const firstKey = "{{ grouped_months.0.key }}";
+      if (firstKey) {
+        toggleMonth(firstKey);
+      }
+    {% endif %}
+  });
+
+  function toggleMonth(key) {
+    const content = document.getElementById(`content-${key}`);
+    const arrow = document.getElementById(`arrow-${key}`);
+    
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      arrow.setAttribute('data-lucide', 'chevron-up');
+    } else {
+      content.style.display = 'none';
+      arrow.setAttribute('data-lucide', 'chevron-down');
+    }
+    
+    lucide.createIcons();
+  }
+</script>
+{% endblock %}

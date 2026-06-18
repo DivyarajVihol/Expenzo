@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recurring Monthly Finance - EXPENZO{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recurring.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="recurring-container">
+  <!-- Header with back button -->
+  <div class="recurring-header">
+    <div>
+      <a href="{% url 'dashboard' %}" class="back-dashboard-btn">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+        Back to Dashboard
+      </a>
+      <h1 class="page-title">Recurring Monthly Finance</h1>
+      <p class="page-subtitle">Configure income and expense templates applied automatically each month</p>
+    </div>
+
+    <form method="POST" action="{% url 'recurring' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="recalculate">
+      <button 
+        type="submit" 
+        class="btn btn-secondary recalculate-btn"
+        onclick="return confirm('Are you sure you want to recalculate the current month\'s recurring items? This will reset and regenerate them based on your current setup.')"
+      >
+        <i data-lucide="refresh-cw" style="width: 14px; height: 14px; margin-right: 0.25rem;"></i>
+        Recalculate Current Month
+      </button>
+    </form>
+  </div>
+
+  <!-- Add Entry Inline Form -->
+  <div class="glass-card recurring-card-padding">
+    <h3 class="recurring-card-title">Add Recurring Template</h3>
+    <form method="POST" action="{% url 'recurring' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <div class="add-template-form-row">
+        <div class="form-group form-group-type">
+          <label class="form-label font-xs">Finance Type</label>
+          <select 
+            name="type"
+            class="input-control select-control-dark" 
+            style="background: #0d121f;"
+          >
+            <option value="income">Fixed Income</option>
+            <option value="expense">Fixed Expense</option>
+          </select>
+        </div>
+        
+        <div class="form-group form-group-desc">
+          <label class="form-label font-xs">Description Name</label>
+          <input 
+            type="text" 
+            name="name"
+            class="input-control" 
+            placeholder="e.g. Salary, House Rent, Gym Subscription" 
+            required
+          />
+        </div>
+
+        <div class="form-group form-group-amount">
+          <label class="form-label font-xs">Monthly Amount (₹)</label>
+          <input 
+            type="number" 
+            name="amount"
+            class="input-control" 
+            placeholder="e.g. 15000" 
+            required
+            min="0.01"
+            step="0.01"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary add-template-btn" style="border: none; cursor: pointer; font-weight: 600;">
+          <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+          Add Template
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Two columns layout for Incomes and Expenses lists -->
+  <div class="recurring-grid">
+    
+    <!-- Left Side - Monthly Incomes -->
+    <div class="glass-card recurring-card-padding">
+      <h3 class="income-list-title">
+        <i data-lucide="arrow-up-right" style="width: 18px; height: 18px;"></i>
+        Fixed Monthly Incomes
+      </h3>
+      {% if not recurring_incomes %}
+        <p class="empty-list-text">
+          No fixed incomes configured.
+        </p>
+      {% else %}
+        <div class="recurring-items-list">
+          {% for item in recurring_incomes %}
+            <div class="recurring-item-row" id="item-row-income-{{ item.id }}">
+              <!-- View Mode -->
+              <div id="view-mode-income-{{ item.id }}" style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <div>
+                  <strong class="item-info-name">{{ item.name }}</strong>
+                  <span class="item-info-amount-income">₹{{ item.amount|floatformat:2 }}</span>
+                </div>
+                <div class="item-actions-wrapper">
+                  <button 
+                    onclick="startEdit('{{ item.id }}', 'income', '{{ item.name }}', '{{ item.amount }}')"
+                    class="action-btn-secondary"
+                    title="Edit"
+                  >
+                    <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+                  </button>
+                  <button 
+                    onclick="deleteRecurring('{{ item.id }}', 'income')" 
+                    class="action-btn-danger"
+                    title="Delete"
+                  >
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Edit Mode (Initially Hidden) -->
+              <div id="edit-mode-income-{{ item.id }}" class="edit-mode-container" style="display: none; width: 100%;">
+                <input type="text" id="edit-name-income-{{ item.id }}" class="input-control edit-input-text">
+                <input type="number" id="edit-amount-income-{{ item.id }}" class="input-control edit-input-amount" step="0.01">
+                <button onclick="saveEdit('{{ item.id }}', 'income')" class="btn btn-primary edit-save-btn" style="border: none; cursor: pointer;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
+                <button onclick="cancelEdit('{{ item.id }}', 'income')" class="btn btn-secondary edit-cancel-btn" style="border: none; cursor: pointer;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Right Side - Monthly Expenses -->
+    <div class="glass-card recurring-card-padding">
+      <h3 class="expense-list-title">
+        <i data-lucide="arrow-down-right" style="width: 18px; height: 18px;"></i>
+        Fixed Monthly Expenses
+      </h3>
+      {% if not recurring_expenses %}
+        <p class="empty-list-text">
+          No fixed expenses configured.
+        </p>
+      {% else %}
+        <div class="recurring-items-list">
+          {% for item in recurring_expenses %}
+            <div class="recurring-item-row" id="item-row-expense-{{ item.id }}">
+              <!-- View Mode -->
+              <div id="view-mode-expense-{{ item.id }}" style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <div>
+                  <strong class="item-info-name">{{ item.name }}</strong>
+                  <span class="item-info-amount-expense">₹{{ item.amount|floatformat:2 }}</span>
+                </div>
+                <div class="item-actions-wrapper">
+                  <button 
+                    onclick="startEdit('{{ item.id }}', 'expense', '{{ item.name }}', '{{ item.amount }}')"
+                    class="action-btn-secondary"
+                    title="Edit"
+                  >
+                    <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+                  </button>
+                  <button 
+                    onclick="deleteRecurring('{{ item.id }}', 'expense')" 
+                    class="action-btn-danger"
+                    title="Delete"
+                  >
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Edit Mode (Initially Hidden) -->
+              <div id="edit-mode-expense-{{ item.id }}" class="edit-mode-container" style="display: none; width: 100%;">
+                <input type="text" id="edit-name-expense-{{ item.id }}" class="input-control edit-input-text">
+                <input type="number" id="edit-amount-expense-{{ item.id }}" class="input-control edit-input-amount" step="0.01">
+                <button onclick="saveEdit('{{ item.id }}', 'expense')" class="btn btn-primary edit-save-btn" style="border: none; cursor: pointer;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
+                <button onclick="cancelEdit('{{ item.id }}', 'expense')" class="btn btn-secondary edit-cancel-btn" style="border: none; cursor: pointer;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function startEdit(id, type, name, amount) {
+    document.getElementById(`view-mode-${type}-${id}`).style.display = 'none';
+    document.getElementById(`edit-mode-${type}-${id}`).style.display = 'flex';
+    document.getElementById(`edit-name-${type}-${id}`).value = name;
+    document.getElementById(`edit-amount-${type}-${id}`).value = amount;
+    lucide.createIcons();
+  }
+
+  function cancelEdit(id, type) {
+    document.getElementById(`view-mode-${type}-${id}`).style.display = 'flex';
+    document.getElementById(`edit-mode-${type}-${id}`).style.display = 'none';
+    lucide.createIcons();
+  }
+
+  async function saveEdit(id, type) {
+    const name = document.getElementById(`edit-name-${type}-${id}`).value;
+    const amount = document.getElementById(`edit-amount-${type}-${id}`).value;
+
+    try {
+      const res = await fetch(`/api/recurring/edit/${id}/${type}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ name, amount })
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert('Failed to update template');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating template');
+    }
+  }
+
+  async function deleteRecurring(id, type) {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    try {
+      const res = await fetch(`/api/recurring/delete/${id}/${type}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      if (res.ok) {
+        document.getElementById(`item-row-${type}-${id}`).remove();
+        window.location.reload(); // Reload to sync calculations
+      } else {
+        alert('Failed to delete template');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting template');
+    }
+  }
+</script>
+{% endblock %}
