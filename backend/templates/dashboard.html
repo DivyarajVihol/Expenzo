@@ -187,7 +187,7 @@
                   <i data-lucide="credit-card" style="width: 16px; height: 16px; color: {% if exp.category == 'Income' %}var(--accent-success){% else %}var(--accent-primary){% endif %};"></i>
                 </div>
                 
-                <div class="min-w-0">
+                <div style="min-width: 0; flex-grow: 1;">
                   <div class="transaction-title-desc" style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     {{ exp.description }}
                   </div>
@@ -199,7 +199,7 @@
                 </div>
               </div>
 
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
                 <span class="transaction-value-amount" style="font-weight: 700; font-size: 0.9rem; color: {% if exp.category == 'Income' %}var(--accent-success){% else %}var(--accent-danger){% endif %};">
                   {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
                 </span>
