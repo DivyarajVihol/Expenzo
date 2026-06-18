@@ -97,7 +97,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-secondary);
-  fontWeight: 600;
+  font-weight: 600;
 }
 
 .balance-amount-row {
@@ -297,9 +297,9 @@
 .legend-label {
   color: var(--text-secondary);
   font-size: 0.85rem;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .legend-value {
