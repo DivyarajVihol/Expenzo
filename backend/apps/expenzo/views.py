@@ -503,6 +503,35 @@ def add_expense_api(request):
 
 @csrf_exempt
 @login_required
+def edit_expense_api(request, expense_id):
+    if request.method == 'POST' or request.method == 'PUT':
+        try:
+            expense = get_object_or_404(PersonalExpense, id=expense_id, user=request.user)
+            body = json.loads(request.body)
+            amount = float(body.get('amount'))
+            category = body.get('category')
+            payment_method = body.get('paymentMethod')
+            description = body.get('description')
+            date_str = body.get('date')
+            
+            txn_date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
+            txn_date = django_timezone.make_aware(txn_date)
+            
+            expense.amount = amount
+            expense.category = category
+            expense.payment_method = payment_method
+            expense.description = description
+            expense.date = txn_date
+            expense.save()
+            
+            recalculate_current_month(request.user)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'POST or PUT required'}, status=405)
+
+@csrf_exempt
+@login_required
 def delete_expense_api(request, expense_id):
     if request.method == 'POST' or request.method == 'DELETE':
         expense = get_object_or_404(PersonalExpense, id=expense_id, user=request.user)
@@ -632,6 +661,75 @@ def add_group_expense_api(request, group_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'POST required'}, status=405)
+
+@csrf_exempt
+@login_required
+def edit_group_expense_api(request, group_id, expense_id):
+    if request.method == 'POST' or request.method == 'PUT':
+        try:
+            group = get_object_or_404(Group, id=group_id)
+            group_expense = get_object_or_404(GroupExpense, id=expense_id, group=group)
+            body = json.loads(request.body)
+            
+            amount = float(body.get('amount'))
+            description = body.get('description')
+            payers = body.get('payers', [])
+            split_type = body.get('splitType', 'EQUAL')
+            splits_data = body.get('splits', [])
+            date_str = body.get('date')
+            
+            if not payers:
+                return JsonResponse({'error': 'At least one payer is required.'}, status=400)
+                
+            total_paid = sum(float(p['amount']) for p in payers)
+            if abs(total_paid - amount) > 0.01:
+                return JsonResponse({'error': f'Sum of payments ({total_paid}) must equal total amount ({amount}).'}, status=400)
+            
+            txn_date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
+            txn_date = django_timezone.make_aware(txn_date)
+            
+            first_payer = get_object_or_404(User, id=payers[0]['userId'])
+            
+            # Update expense object
+            group_expense.amount = amount
+            group_expense.description = description
+            group_expense.date = txn_date
+            group_expense.paid_by = first_payer
+            group_expense.save()
+            
+            # Clear old payments and splits
+            group_expense.payments.all().delete()
+            group_expense.splits.all().delete()
+            
+            # Create new GroupExpensePayment records
+            for p in payers:
+                u = get_object_or_404(User, id=p['userId'])
+                GroupExpensePayment.objects.create(
+                    group_expense=group_expense,
+                    user=u,
+                    amount=float(p['amount'])
+                )
+            
+            # Create new splits
+            if split_type == 'EQUAL':
+                share = amount / len(splits_data)
+                for s in splits_data:
+                    u = get_object_or_404(User, id=s['userId'])
+                    GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=share)
+            elif split_type == 'EXACT':
+                for s in splits_data:
+                    u = get_object_or_404(User, id=s['userId'])
+                    GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=float(s['amount']))
+            elif split_type == 'PERCENTAGE':
+                for s in splits_data:
+                    u = get_object_or_404(User, id=s['userId'])
+                    share = (float(s['percentage']) / 100) * amount
+                    GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=share)
+                    
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'POST or PUT required'}, status=405)
 
 @csrf_exempt
 @login_required

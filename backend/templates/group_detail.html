@@ -223,7 +223,29 @@
         {% else %}
           <div class="ledger-list">
             {% for exp in expenses %}
-              <div class="ledger-item">
+              <div class="ledger-item" style="cursor: pointer;" onclick="openEditGroupExpenseModal('{{ exp.id }}')">
+                <script type="application/json" id="exp-data-{{ exp.id }}">
+                  {
+                    "id": "{{ exp.id }}",
+                    "description": "{{ exp.description|escapejs }}",
+                    "amount": "{{ exp.amount }}",
+                    "date": "{{ exp.date|date:'Y-m-d' }}",
+                    "payers": [
+                      {% for pmt in exp.payments.all %}
+                        { "userId": "{{ pmt.user.id }}", "amount": "{{ pmt.amount }}" }{% if not forloop.last %},{% endif %}
+                      {% empty %}
+                        {% if exp.paid_by %}
+                          { "userId": "{{ exp.paid_by.id }}", "amount": "{{ exp.amount }}" }
+                        {% endif %}
+                      {% endfor %}
+                    ],
+                    "splits": [
+                      {% for split in exp.splits.all %}
+                        { "userId": "{{ split.user.id }}", "amount": "{{ split.amount }}" }{% if not forloop.last %},{% endif %}
+                      {% endfor %}
+                    ]
+                  }
+                </script>
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                   <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
                     <i data-lucide="clipboard-list" style="color: var(--accent-primary); width: 16px; height: 16px;"></i>
@@ -251,7 +273,7 @@
                     </div>
                   </div>
                   <button 
-                    onclick="deleteGroupExpense('{{ exp.id }}')"
+                    onclick="event.stopPropagation(); deleteGroupExpense('{{ exp.id }}')"
                     class="btn-delete-item-action"
                     style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center;"
                     title="Delete Expense"
@@ -454,28 +476,19 @@
       </button>
     </div>
     <form id="expense-form" onsubmit="submitExpense(event)">
+      <input type="hidden" id="exp-id" value="">
       <div class="modal-body" style="max-height: 420px; overflow-y: auto;">
         <div class="form-group">
           <label class="form-label">Amount (₹)</label>
-          <input
-            type="number"
-            id="exp-amount"
-            class="input-control"
-            placeholder="0.00"
-            required
-            min="1"
-            step="0.01"
-          />
+          <input type="number" id="exp-amount" class="input-control" placeholder="0.00" required min="1" step="0.01" />
         </div>
         <div class="form-group">
           <label class="form-label">Description</label>
-          <input
-            type="text"
-            id="exp-desc"
-            class="input-control"
-            placeholder="e.g. Grocery dinner, Office lunch"
-            required
-          />
+          <input type="text" id="exp-desc" class="input-control" placeholder="e.g. Grocery dinner, Office lunch" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" id="exp-date" class="input-control" required />
         </div>
         <div class="form-group">
           <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
@@ -600,7 +613,58 @@
   }
 
   function openExpenseModal() {
+    document.getElementById('expense-form').reset();
+    document.getElementById('exp-id').value = '';
+    document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
+    document.querySelector('#expense-modal .chart-card-title').innerText = 'Add Group Expense';
+    
+    const payersContainer = document.getElementById('payers-container');
+    payersContainer.innerHTML = '';
+    addPayerRow();
+    
+    const splitTypeSelect = document.getElementById('exp-split-type');
+    splitTypeSelect.value = 'EQUAL';
+    toggleSplitInputs('EQUAL');
+
     document.getElementById('expense-modal').style.display = 'flex';
+  }
+
+  function openEditGroupExpenseModal(id) {
+    const dataNode = document.getElementById('exp-data-' + id);
+    if (!dataNode) return;
+    const data = JSON.parse(dataNode.textContent);
+    
+    document.getElementById('expense-form').reset();
+    document.getElementById('exp-id').value = id;
+    
+    document.getElementById('exp-amount').value = data.amount;
+    document.getElementById('exp-desc').value = data.description;
+    document.getElementById('exp-date').value = data.date;
+    
+    const payersContainer = document.getElementById('payers-container');
+    payersContainer.innerHTML = '';
+    data.payers.forEach((payer, idx) => {
+      addPayerRow();
+      const row = payersContainer.children[idx];
+      row.querySelector('.payer-select').value = payer.userId;
+      row.querySelector('.payer-amount').value = payer.amount;
+    });
+
+    const splitTypeSelect = document.getElementById('exp-split-type');
+    splitTypeSelect.value = 'EXACT';
+    toggleSplitInputs('EXACT');
+    
+    document.querySelectorAll('.exact-input').forEach(i => i.value = '');
+    data.splits.forEach(split => {
+      const input = document.querySelector(`.exact-input[data-user-id="${split.userId}"]`);
+      if (input) {
+        input.value = split.amount;
+      }
+    });
+
+    document.querySelector('#expense-modal .chart-card-title').innerText = 'Edit Group Expense';
+    document.getElementById('expense-modal').style.display = 'flex';
+    lucide.createIcons();
   }
 
   function closeExpenseModal() {
@@ -660,8 +724,10 @@
 
   async function submitExpense(e) {
     e.preventDefault();
+    const expId = document.getElementById('exp-id').value;
     const amount = parseFloat(document.getElementById('exp-amount').value);
     const description = document.getElementById('exp-desc').value;
+    const date = document.getElementById('exp-date').value;
     const splitType = document.getElementById('exp-split-type').value;
 
     let payers = [];
@@ -723,14 +789,18 @@
       }
     }
 
+    const endpoint = expId 
+      ? `{% url 'api_edit_group_expense' group_id=group.id expense_id=999999 %}`.replace('999999', expId)
+      : `{% url 'api_add_group_expense' group_id=group.id %}`;
+
     try {
-      const res = await fetch("{% url 'api_add_group_expense' group_id=group.id %}", {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({ amount, description, payers, splitType, splits, date: new Date().toISOString().split('T')[0] })
+        body: JSON.stringify({ amount, description, payers, splitType, splits, date })
       });
       if (res.ok) {
         window.location.reload();

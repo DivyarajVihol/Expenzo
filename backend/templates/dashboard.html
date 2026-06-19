@@ -181,7 +181,7 @@
       {% else %}
         <div class="transaction-list-container">
           {% for exp in recent_transactions %}
-            <div class="transaction-item-row" id="tx-row-{{ exp.id }}">
+            <div class="transaction-item-row" id="tx-row-{{ exp.id }}" style="cursor: pointer;" onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category }}', '{{ exp.payment_method }}', '{{ exp.date|date:'Y-m-d' }}')">
               <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
                 <div class="transaction-icon-box">
                   <i data-lucide="credit-card" style="width: 16px; height: 16px; color: {% if exp.category == 'Income' %}var(--accent-success){% else %}var(--accent-primary){% endif %};"></i>
@@ -205,7 +205,7 @@
                 </span>
                 
                 <button
-                  onclick="deleteTransaction('{{ exp.id }}')"
+                  onclick="event.stopPropagation(); deleteTransaction('{{ exp.id }}')"
                   class="btn-delete-item-action"
                   style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center;"
                 >
@@ -276,6 +276,7 @@
       </button>
     </div>
     <form id="transaction-form" onsubmit="saveTransaction(event)">
+      <input type="hidden" id="tx-id" value="">
       <div style="padding: 0.6rem 1.5rem; background: rgba(129, 140, 248, 0.08); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.5rem;">
         <i data-lucide="info" style="color: var(--accent-primary); width: 14px; height: 14px;"></i>
         <span style="font-size: 0.75rem; color: var(--text-secondary);">
@@ -369,13 +370,17 @@
     document.getElementById('savings-modal').style.display = 'none';
   }
 
-  function openTransactionModal(defaultCat) {
-    const modal = document.getElementById('transaction-modal');
+  function openTransactionModal(type, defaultCat) {
     const title = document.getElementById('tx-modal-title');
     const catGroup = document.getElementById('tx-category-group');
     const categorySelect = document.getElementById('tx-category');
+    const modal = document.getElementById('transaction-modal');
+    
+    // Reset form
+    document.getElementById('transaction-form').reset();
+    document.getElementById('tx-id').value = "";
 
-    if (defaultCat === 'Income') {
+    if (type === 'income') {
       title.innerText = 'Add Income';
       catGroup.style.display = 'none';
       categorySelect.value = 'Income';
@@ -386,6 +391,28 @@
     }
 
     modal.style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  function openEditPersonalModal(id, amount, description, category, paymentMethod, date) {
+    document.getElementById('tx-id').value = id;
+    document.getElementById('tx-amount').value = amount;
+    document.getElementById('tx-description').value = description;
+    document.getElementById('tx-category').value = category;
+    document.getElementById('tx-payment').value = paymentMethod;
+    document.getElementById('tx-date').value = date;
+
+    const title = document.getElementById('tx-modal-title');
+    const catGroup = document.getElementById('tx-category-group');
+    title.innerText = 'Edit Expense';
+    
+    if (category === 'Income') {
+      catGroup.style.display = 'none';
+    } else {
+      catGroup.style.display = 'block';
+    }
+
+    document.getElementById('transaction-modal').style.display = 'flex';
     lucide.createIcons();
   }
 
@@ -421,14 +448,17 @@
 
   async function saveTransaction(e) {
     e.preventDefault();
+    const id = document.getElementById('tx-id').value;
     const amount = document.getElementById('tx-amount').value;
     const description = document.getElementById('tx-description').value;
     const category = document.getElementById('tx-category').value;
     const paymentMethod = document.getElementById('tx-payment').value;
     const date = document.getElementById('tx-date').value;
 
+    const endpoint = id ? `/api/expenses/edit/${id}/` : "{% url 'api_add_expense' %}";
+
     try {
-      const res = await fetch("{% url 'api_add_expense' %}", {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
