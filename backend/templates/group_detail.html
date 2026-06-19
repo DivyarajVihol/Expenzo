@@ -269,14 +269,19 @@
       </div>
       <p class="page-subtitle">{% if group.description %}{{ group.description }}{% else %}No description provided.{% endif %}</p>
     </div>
+    <div style="display: flex; align-items: flex-start; margin-top: 1.5rem;">
+      <button class="btn btn-primary" onclick="openExpenseModal()" style="padding: 0.6rem 1.25rem; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; background: var(--accent-primary);">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+        Add Expense
+      </button>
+    </div>
   </div>
 
   <!-- Tabs Navigation -->
   <div class="tabs-row">
-    <button class="tab-btn {% if active_tab == 'ledger' %}active{% endif %}" onclick="switchTab('ledger')">Expenses</button>
+    <button class="tab-btn {% if active_tab == 'ledger' %}active{% endif %}" onclick="switchTab('ledger')">Home</button>
     <button class="tab-btn {% if active_tab == 'balances' %}active{% endif %}" onclick="switchTab('balances')">Balances</button>
     <button class="tab-btn {% if active_tab == 'members' %}active{% endif %}" onclick="switchTab('members')">Members</button>
-    <button class="tab-btn {% if active_tab == 'analytics' %}active{% endif %}" onclick="switchTab('analytics')">Analytics</button>
     <button class="tab-btn {% if active_tab == 'history' %}active{% endif %}" onclick="switchTab('history')">History</button>
     {% if user_role == 'ADMIN' %}
     <button class="tab-btn {% if active_tab == 'settings' %}active{% endif %}" onclick="switchTab('settings')">Settings</button>
@@ -285,86 +290,71 @@
 
   <!-- 1. EXPENSES LEDGER TAB -->
   <div id="tab-content-ledger" class="tab-content" style="display: {% if active_tab == 'ledger' %}block{% else %}none{% endif %};">
-    <div class="grid-two-col">
-      <!-- Left: Expenses List -->
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-          <h3 style="font-size: 1.1rem; font-weight: 700;">Ledger Transactions</h3>
-          <button class="btn btn-primary" onclick="openExpenseModal()" style="padding: 0.5rem 1rem; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.25rem;">
-            <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-            Add Expense
-          </button>
-        </div>
+    
+    <!-- Metric Cards -->
+    <div class="analytics-metric-row">
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Total Spend</span>
+        <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-top: 0.25rem;">₹{{ total_spend|floatformat:2 }}</h2>
+      </div>
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Highest Contributor</span>
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-success); margin-top: 0.45rem;">{{ highest_contributor }}</h2>
+      </div>
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Highest Debtor</span>
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-danger); margin-top: 0.45rem;">{{ highest_debtor }}</h2>
+      </div>
+      <div class="glass-card metric-card">
+        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Settled Ratio</span>
+        <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--accent-primary); margin-top: 0.25rem;">{{ settlement_ratio }}</h2>
+      </div>
+    </div>
 
-        {% if not expenses %}
-          <div class="glass-card" style="padding: 4rem 2rem; text-align: center; color: var(--text-secondary);">
-            <i data-lucide="clipboard-list" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 1rem;"></i>
-            <h4>No Expenses Logged</h4>
-            <p style="font-size: 0.85rem; margin-top: 0.25rem;">Start adding bill expenses to see the split balances calculated automatically.</p>
-          </div>
+    <!-- Charts -->
+    <div class="analytics-grid" style="margin-bottom: 2rem;">
+      <!-- Categories Pie Chart -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
+        <h3 class="chart-card-title">Category Spending</h3>
+        {% if total_spend == 0 %}
+          <p style="text-align: center; padding: 3rem; color: var(--text-secondary);">No data available</p>
         {% else %}
-          <div class="ledger-list">
-            {% for exp in expenses %}
-              <div class="ledger-item">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="clipboard-list" style="color: var(--accent-primary); width: 16px; height: 16px;"></i>
-                  </div>
-                  <div>
-                    <strong style="display: block; font-size: 0.95rem;">{{ exp.description }}</strong>
-                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
-                      Paid by 
-                      {% if exp.payments.count > 1 %}
-                        Multiple
-                      {% elif exp.payments.count == 1 %}
-                        {{ exp.payments.first.user.first_name|default:exp.payments.first.user.username }}
-                      {% else %}
-                        {{ exp.paid_by.first_name|default:exp.paid_by.username }}
-                      {% endif %}
-                      • {{ exp.date|date:"F d, Y" }}
-                    </span>
-                  </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 200px; flex-wrap: wrap;">
+            <div class="pie-chart-wrapper">
+              <img src="data:image/png;base64,{{ category_pie_chart }}" alt="Category breakdown" style="width: 180px; height: 180px;">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+              {% for cat in category_breakdown %}
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                  <span style="color: var(--text-secondary); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ cat.name }}">{{ cat.name }}</span>
+                  <strong style="flex-shrink: 0;">₹{{ cat.value|floatformat:0 }} ({{ cat.percentage }}%)</strong>
                 </div>
-                <div style="text-align: right; display: flex; align-items: center; gap: 0.5rem;">
-                  <div style="text-align: right;">
-                    <strong style="font-size: 1.1rem; color: var(--text-primary);">₹{{ exp.amount|floatformat:2 }}</strong>
-                    <div style="font-size: 0.7rem; color: var(--text-muted);">
-                      Split {{ exp.splits.count }} members
-                    </div>
-                  </div>
-                  <button 
-                    onclick="deleteGroupExpense('{{ exp.id }}')"
-                    class="btn-delete-item-action"
-                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center;"
-                    title="Delete Expense"
-                  >
-                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
-                  </button>
-                </div>
-              </div>
-            {% endfor %}
+              {% endfor %}
+            </div>
           </div>
         {% endif %}
       </div>
 
-      <!-- Right: Group Members -->
-      <div class="glass-card" style="padding: 1.5rem;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i data-lucide="users" style="color: var(--accent-primary); width: 18px; height: 18px;"></i>
-          Group Members ({{ members|length }})
-        </h3>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          {% for m in members %}
-            <div class="member-row">
-              <div>
-                <strong style="display: block; font-size: 0.9rem; color: var(--text-primary);">{{ m.first_name|default:m.username }}</strong>
-                <span style="font-size: 0.75rem; color: var(--text-muted);">{{ m.email }}</span>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
+      <!-- Net Standings Bar Chart -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
+        <h3 class="chart-card-title">Net Standing Breakdown</h3>
+        {% if not balances %}
+          <p style="text-align: center; padding: 3rem; color: var(--text-secondary);">No data available</p>
+        {% else %}
+          <div class="chart-wrapper">
+            {% if net_standing_chart %}
+                <img src="data:image/png;base64,{{ net_standing_chart }}" alt="Net standing breakdown chart" style="max-width: 100%; height: auto;">
+            {% else %}
+                <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                    No data available to display chart.
+                </div>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
     </div>
+
+    <!-- Removed Ledger list and Group Members -->
   </div>
 
   <!-- 2. BALANCES TAB -->
@@ -422,71 +412,7 @@
     </div>
   </div>
 
-  <!-- 3. ANALYTICS TAB -->
-  <div id="tab-content-analytics" class="tab-content" style="display: {% if active_tab == 'analytics' %}block{% else %}none{% endif %};">
-    <!-- Metric Cards -->
-    <div class="analytics-metric-row">
-      <div class="glass-card metric-card">
-        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Total Spend</span>
-        <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-top: 0.25rem;">₹{{ total_spend|floatformat:2 }}</h2>
-      </div>
-      <div class="glass-card metric-card">
-        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Highest Contributor</span>
-        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-success); margin-top: 0.45rem;">{{ highest_contributor }}</h2>
-      </div>
-      <div class="glass-card metric-card">
-        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Highest Debtor</span>
-        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-danger); margin-top: 0.45rem;">{{ highest_debtor }}</h2>
-      </div>
-      <div class="glass-card metric-card">
-        <span class="form-label" style="font-size: 0.75rem; text-transform: uppercase;">Settled Ratio</span>
-        <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--accent-primary); margin-top: 0.25rem;">{{ settlement_ratio }}</h2>
-      </div>
-    </div>
-
-    <!-- Charts -->
-    <div class="analytics-grid">
-      <!-- Categories Pie Chart -->
-      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
-        <h3 class="chart-card-title">Category Spending</h3>
-        {% if total_spend == 0 %}
-          <p style="text-align: center; padding: 3rem; color: var(--text-secondary);">No data available</p>
-        {% else %}
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 200px; flex-wrap: wrap;">
-            <div class="pie-chart-wrapper">
-              <img src="data:image/png;base64,{{ category_pie_chart }}" alt="Category breakdown" style="width: 180px; height: 180px;">
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
-              {% for cat in category_breakdown %}
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                  <span style="color: var(--text-secondary); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ cat.name }}">{{ cat.name }}</span>
-                  <strong style="flex-shrink: 0;">₹{{ cat.value|floatformat:0 }} ({{ cat.percentage }}%)</strong>
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-        {% endif %}
-      </div>
-
-      <!-- Net Standings Bar Chart -->
-      <div class="glass-card" style="padding: 1.5rem 1.75rem;">
-        <h3 class="chart-card-title">Net Standing Breakdown</h3>
-        {% if not balances %}
-          <p style="text-align: center; padding: 3rem; color: var(--text-secondary);">No data available</p>
-        {% else %}
-          <div class="chart-wrapper">
-            {% if net_standing_chart %}
-                <img src="data:image/png;base64,{{ net_standing_chart }}" alt="Net standing breakdown chart" style="max-width: 100%; height: auto;">
-            {% else %}
-                <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
-                    No data available to display chart.
-                </div>
-            {% endif %}
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+  <!-- 3. ANALYTICS MERGED INTO LEDGER -->
 
   <!-- 4. MEMBERS TAB -->
   <div id="tab-content-members" class="tab-content" style="display: {% if active_tab == 'members' %}block{% else %}none{% endif %};">
