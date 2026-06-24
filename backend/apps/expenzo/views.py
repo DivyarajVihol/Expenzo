@@ -1087,13 +1087,16 @@ def login_view(request):
             
         user = authenticate(request, username=email, password=password)
         if user is not None:
-            if not user.is_active:
-                return render(request, 'login.html', {'error': 'Account is not activated. Please check your email / console for the link.'})
             cache.delete(cache_key) # Reset attempts on success
             login(request, user)
             logger.warning(f"SECURITY: Successful login for {email} from IP {ip}.")
             return redirect('dashboard')
         else:
+            # Check if it failed because the user is inactive
+            user_obj = get_object_or_none(User, username=email)
+            if user_obj and not user_obj.is_active and user_obj.check_password(password):
+                return render(request, 'login.html', {'error': 'Account is not activated. Please check your email inbox for the activation link.'})
+                
             cache.set(cache_key, attempts + 1, timeout=900) # 15 minutes lock
             logger.warning(f"SECURITY: Failed login attempt for {email} from IP {ip}.")
             return render(request, 'login.html', {'error': 'Invalid credentials'})
