@@ -365,7 +365,7 @@
   </div>
 
     <!-- 1. EXPENSES LEDGER TAB -->
-  <div id="tab-content-ledger" class="tab-content" style="display: {% if active_tab == 'ledger' %}block{% else %}none{% endif %};">
+  <div id="tab-content-ledger" class="tab-content" {% if active_tab == 'ledger' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
     
     <!-- Metric Cards -->
     <div class="analytics-metric-row">
@@ -433,14 +433,14 @@
   </div>
 
   <!-- 2. BALANCES TAB -->
-  <div id="tab-content-balances" class="tab-content" style="display: {% if active_tab == 'balances' %}block{% else %}none{% endif %};">
+  <div id="tab-content-balances" class="tab-content" {% if active_tab == 'balances' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
     <div class="grid-two-col">
       <!-- Left: Net Standing -->
       <div class="glass-card" style="padding: 1.5rem 1.75rem;">
         <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem;">Members Net Standing</h3>
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
           {% for b in balances %}
-            <div style="display: flex; justify-content: space-between; alignItems: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
               <div>
                 <strong style="display: block; font-size: 0.95rem;">{{ b.name }}</strong>
                 <span style="font-size: 0.75rem; color: var(--text-muted);">{{ b.email }}</span>
@@ -490,7 +490,7 @@
   <!-- 3. ANALYTICS MERGED INTO LEDGER -->
 
   <!-- 4. MEMBERS TAB -->
-  <div id="tab-content-members" class="tab-content" style="display: {% if active_tab == 'members' %}block{% else %}none{% endif %};">
+  <div id="tab-content-members" class="tab-content" {% if active_tab == 'members' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
     <div class="glass-card" style="padding: 1.5rem 1.75rem;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Group Members</h3>
@@ -528,7 +528,7 @@
             <div class="member-actions">
               <div class="member-balance-info">
                 <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Net Balance</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: {% if member.net > 0 %}var(--accent-success){% elif member.net < 0 %}var(--accent-danger){% else %}var(--text-secondary){% endif %};">
+                <div {% if member.net > 0 %}style="font-size: 1.1rem; font-weight: 700; color: var(--accent-success);"{% elif member.net < 0 %}style="font-size: 1.1rem; font-weight: 700; color: var(--accent-danger);"{% else %}style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary);"{% endif %}>
                   {% if member.net > 0 %}+{% endif %}₹{{ member.net|floatformat:2 }}
                 </div>
               </div>
@@ -551,7 +551,7 @@
 
   <!-- 5. SETTINGS TAB (ADMIN ONLY) -->
   {% if user_role == 'ADMIN' %}
-  <div id="tab-content-settings" class="tab-content" style="display: {% if active_tab == 'settings' %}block{% else %}none{% endif %};">
+  <div id="tab-content-settings" class="tab-content" {% if active_tab == 'settings' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
     <div class="grid-two-col" style="grid-template-columns: 1fr 1fr; align-items: start;">
       
       <!-- Edit Details -->
@@ -613,7 +613,7 @@
   {% endif %}
 
   <!-- 6. HISTORY TAB -->
-  <div id="tab-content-history" class="tab-content" style="display: {% if active_tab == 'history' %}block{% else %}none{% endif %};">
+  <div id="tab-content-history" class="tab-content" {% if active_tab == 'history' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
     
     <!-- Filters Card -->
     <div class="glass-card filters-card">
@@ -673,8 +673,8 @@
               <!-- Category Pills Breakdown -->
               <div class="month-breakdown-row" style="display: flex; gap: 0.5rem;">
                 {% for break in month.category_breakdown %}
-                  <span class="breakdown-pill" style="border: 1px solid {{ break.color }}; background: rgba(255,255,255,0.01);">
-                    <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: {{ break.color }};"></span>
+                  <span class="breakdown-pill" {% if break.color %}style="border: 1px solid {{ break.color }}; background: rgba(255,255,255,0.01);"{% endif %}>
+                    <span {% if break.color %}style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: {{ break.color }};"{% endif %}></span>
                     {{ break.name }}: ₹{{ break.amount|floatformat:0 }}
                   </span>
                 {% endfor %}
@@ -1272,12 +1272,10 @@
 
   // Automatically expand the first month group on load
   window.addEventListener('DOMContentLoaded', () => {
-    {% if grouped_months %}
-      const firstKey = "{{ grouped_months.0.key }}";
-      if (firstKey) {
-        toggleMonth(firstKey);
-      }
-    {% endif %}
+    const firstKey = "{{ grouped_months.0.key|default:'' }}";
+    if (firstKey && firstKey.trim() !== '') {
+      toggleMonth(firstKey);
+    }
   });
 
   function toggleMonth(key) {
