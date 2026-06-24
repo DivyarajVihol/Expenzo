@@ -1044,7 +1044,7 @@ def register_view(request):
                 fail_silently=False,
             )
             return render(request, 'login.html', {'message': 'Registration successful! Please check your console/terminal to activate your account.'})
-        except Exception as e:
+        except Exception:
             # Fallback if email sending fails completely
             user.is_active = True
             user.save()
