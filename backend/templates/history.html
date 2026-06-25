@@ -283,9 +283,16 @@
       <div class="month-group-card">
         <!-- Collapsible Header -->
         <div class="month-group-header" onclick="toggleMonth('{{ month.key }}')">
-          <div class="month-title-info">
+          <div class="month-title-info" style="align-items: center; flex-wrap: wrap;">
             <span class="month-label">{{ month.label }}</span>
-            <span class="month-total-spend">Total Spend: ₹{{ month.total_spend|floatformat:2 }}</span>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              {% if month.total_income > 0 %}
+                <span class="month-total-spend" style="color: var(--accent-success); border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">Income: +₹{{ month.total_income|floatformat:2 }}</span>
+              {% endif %}
+              {% if month.total_spend > 0 or month.total_income == 0 %}
+                <span class="month-total-spend" style="color: var(--accent-danger); border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.05);">Spend: -₹{{ month.total_spend|floatformat:2 }}</span>
+              {% endif %}
+            </div>
           </div>
 
           <div style="display: flex; align-items: center; gap: 1.5rem;">

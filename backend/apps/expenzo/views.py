@@ -108,6 +108,14 @@ def dashboard_view(request):
         if acc not in SUPPORTED_ACCOUNTS:
             acc = 'Others'
             
+        if exp.category == 'Income':
+            account_stats[acc]['income'] += exp.amount
+            account_stats[acc]['balance'] += exp.amount
+        else:
+            account_stats[acc]['expense'] += exp.amount
+            account_stats[acc]['balance'] -= exp.amount
+            
+    for exp in monthly_expenses:
         # PM logic
         pm = exp.payment_method
         if pm == 'Net Banking' or pm == 'Bank Account':
@@ -116,13 +124,8 @@ def dashboard_view(request):
             pm = 'Others'
             
         if exp.category == 'Income':
-            account_stats[acc]['income'] += exp.amount
-            account_stats[acc]['balance'] += exp.amount
             pm_stats[pm]['income'] += exp.amount
-            pm_stats[pm]['count'] += 1
         else:
-            account_stats[acc]['expense'] += exp.amount
-            account_stats[acc]['balance'] -= exp.amount
             pm_stats[pm]['expense'] += exp.amount
             pm_stats[pm]['count'] += 1
             
@@ -261,6 +264,7 @@ def history_view(request):
         label = datetime(year, month, 1).strftime("%B %Y")
         
         total_spend = sum(e.amount for e in exps if e.category != "Income")
+        total_income = sum(e.amount for e in exps if e.category == "Income")
         
         # Calculate category breakdown
         category_sums = {}
@@ -281,6 +285,7 @@ def history_view(request):
             'label': label,
             'expenses': exps,
             'total_spend': total_spend,
+            'total_income': total_income,
             'category_breakdown': breakdown
         })
         
@@ -584,6 +589,7 @@ def group_detail_view(request, group_id):
         label = datetime(year, month, 1).strftime("%B %Y")
         
         total_month_spend = sum(e.amount for e in exps if e.category != "Income")
+        total_month_income = sum(e.amount for e in exps if e.category == "Income")
         
         category_sums = {}
         for e in exps:
@@ -603,6 +609,7 @@ def group_detail_view(request, group_id):
             'label': label,
             'expenses': exps,
             'total_spend': total_month_spend,
+            'total_income': total_month_income,
             'category_breakdown': breakdown
         })
         
@@ -666,10 +673,17 @@ def add_expense_api(request):
             if amount <= 0:
                 return JsonResponse({'error': 'Amount must be greater than zero.'}, status=400)
             category = strip_tags(body.get('category', ''))[:50]
-            payment_method = strip_tags(body.get('paymentMethod', ''))[:50]
             account = strip_tags(body.get('account', 'Bank Account'))[:50]
+            payment_method = strip_tags(body.get('paymentMethod', ''))[:50]
             description = strip_tags(body.get('description', ''))[:250]
             date_str = strip_tags(body.get('date', ''))[:20]
+            
+            if account == 'Cash':
+                payment_method = 'Cash'
+            elif account == 'Credit Card':
+                payment_method = 'Credit Card'
+            elif account == 'Bank Account' and payment_method not in ['UPI', 'Debit Card', 'Bank Transfer']:
+                payment_method = 'UPI'
             
             txn_date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
             txn_date = django_timezone.make_aware(txn_date)
@@ -713,10 +727,17 @@ def edit_expense_api(request, expense_id):
             if amount <= 0:
                 return JsonResponse({'error': 'Amount must be greater than zero.'}, status=400)
             category = strip_tags(body.get('category', ''))[:50]
-            payment_method = strip_tags(body.get('paymentMethod', ''))[:50]
             account = strip_tags(body.get('account', 'Bank Account'))[:50]
+            payment_method = strip_tags(body.get('paymentMethod', ''))[:50]
             description = strip_tags(body.get('description', ''))[:250]
             date_str = strip_tags(body.get('date', ''))[:20]
+            
+            if account == 'Cash':
+                payment_method = 'Cash'
+            elif account == 'Credit Card':
+                payment_method = 'Credit Card'
+            elif account == 'Bank Account' and payment_method not in ['UPI', 'Debit Card', 'Bank Transfer']:
+                payment_method = 'UPI'
             
             txn_date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
             txn_date = django_timezone.make_aware(txn_date)

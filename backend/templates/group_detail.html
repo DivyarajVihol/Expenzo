@@ -664,17 +664,24 @@
         <div class="month-group-card">
           <!-- Collapsible Header -->
           <div class="month-group-header" onclick="toggleMonth('{{ month.key }}')">
-            <div class="month-title-info">
-              <span class="month-label">{{ month.label }}</span>
-              <span class="month-total-spend">Total Spend: ₹{{ month.total_spend|floatformat:2 }}</span>
+          <div class="month-title-info" style="align-items: center; flex-wrap: wrap;">
+            <span class="month-label">{{ month.label }}</span>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              {% if month.total_income > 0 %}
+                <span class="month-total-spend" style="color: var(--accent-success); border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">Income: +₹{{ month.total_income|floatformat:2 }}</span>
+              {% endif %}
+              {% if month.total_spend > 0 or month.total_income == 0 %}
+                <span class="month-total-spend" style="color: var(--accent-danger); border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.05);">Spend: -₹{{ month.total_spend|floatformat:2 }}</span>
+              {% endif %}
             </div>
+          </div>
 
             <div style="display: flex; align-items: center; gap: 1.5rem;">
               <!-- Category Pills Breakdown -->
               <div class="month-breakdown-row" style="display: flex; gap: 0.5rem;">
                 {% for break in month.category_breakdown %}
-                  <span class="breakdown-pill" {% if break.color %}style="border: 1px solid {{ break.color }}; background: rgba(255,255,255,0.01);"{% endif %}>
-                    <span {% if break.color %}style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: {{ break.color }};"{% endif %}></span>
+                  <span class="breakdown-pill color-border-apply" data-color="{{ break.color|default:'#000' }}" style="background: rgba(255,255,255,0.01);">
+                    <span class="color-bg-apply" data-color="{{ break.color|default:'#000' }}" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%;"></span>
                     {{ break.name }}: ₹{{ break.amount|floatformat:0 }}
                   </span>
                 {% endfor %}
@@ -912,6 +919,15 @@
     
     lucide.createIcons();
   }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.color-border-apply').forEach(el => {
+      el.style.borderColor = el.getAttribute('data-color');
+    });
+    document.querySelectorAll('.color-bg-apply').forEach(el => {
+      el.style.backgroundColor = el.getAttribute('data-color');
+    });
+  });
 
   function openExpenseModal() {
     document.getElementById('expense-form').reset();
