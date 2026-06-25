@@ -489,6 +489,23 @@
     </form>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-modal" style="display: none;">
+  <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div style="text-align: center;">
+      <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
+      <h3 style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Delete Transaction</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+        Are you sure you want to delete this transaction? This action cannot be undone.
+      </p>
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="flex: 1; background: var(--accent-danger); border-color: var(--accent-danger);">Delete</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -678,25 +695,40 @@
     }
   }
 
-  async function deleteTransaction(id) {
-    if (!confirm('Are you sure you want to delete this transaction?')) return;
+  let txToDelete = null;
+
+  function deleteTransaction(id) {
+    txToDelete = id;
+    document.getElementById('delete-modal').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  function closeDeleteModal() {
+    txToDelete = null;
+    document.getElementById('delete-modal').style.display = 'none';
+  }
+
+  document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+    if (!txToDelete) return;
     try {
-      const res = await fetch(`/api/expenses/delete/${id}/`, {
+      const res = await fetch(`/api/expenses/delete/${txToDelete}/`, {
         method: 'POST',
         headers: {
           'X-CSRFToken': '{{ csrf_token }}'
         }
       });
       if (res.ok) {
-        document.getElementById(`tx-row-${id}`).remove();
+        document.getElementById(`tx-row-${txToDelete}`).remove();
         window.location.reload(); // Reload to sync charts and balances
       } else {
         alert('Failed to delete transaction');
+        closeDeleteModal();
       }
     } catch (err) {
       console.error(err);
       alert('Error deleting transaction');
+      closeDeleteModal();
     }
-  }
+  });
 </script>
 {% endblock %}
