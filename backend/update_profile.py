@@ -1,53 +1,23 @@
-{% extends 'base.html' %}
-{% load static %}
+import re
+import os
 
-{% block title %}My Profile - EXPENZO{% endblock %}
+file_path = r"C:\Users\Divyarajsinh\OneDrive\Documents\python\Expenzo\backend\templates\profile.html"
 
-{% block extra_css %}
-<style>
-  .profile-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 0.5rem;
-  }
-  .profile-header-card {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-  .profile-avatar-large {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .profile-avatar-large i {
-    width: 36px;
-    height: 36px;
-    color: var(--text-muted);
-  }
-</style>
-{% endblock %}
+with open(file_path, "r", encoding="utf-8") as f:
+    content = f.read()
 
+# 1. Update Profile Card to have an ID for instant updates, and add default avatar SVG fallback if needed
+# The user wants "If no avatar exists, show a default avatar." We'll just keep the lucide icon or a nice SVG.
 
-{% block content %}
-<div class="profile-container">
-  
-  <a href="{% url 'dashboard' %}" class="btn-back-dashboard" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-bottom: 1.5rem;">
-    <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
-    Back to Dashboard
-  </a>
+profile_card_old = """    <div class="profile-avatar-large">
+      {% if profile.avatar %}
+        <img src="{{ profile.avatar }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+      {% else %}
+        <i data-lucide="user"></i>
+      {% endif %}
+    </div>"""
 
-  <!-- Profile Card -->
-  <div class="glass-card profile-header-card">
-    <div class="profile-avatar-large" id="main-avatar-display" style="position: relative; overflow: hidden; background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);">
+profile_card_new = """    <div class="profile-avatar-large" id="main-avatar-display" style="position: relative; overflow: hidden; background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);">
       {% if profile.avatar %}
         <img src="{{ profile.avatar }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
       {% else %}
@@ -57,21 +27,12 @@
           <circle cx="50" cy="35" r="22" fill="#ffffff" />
         </svg>
       {% endif %}
-    </div>
-    <div>
-      <h2 style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">
-        {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
-      </h2>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">{{ user.email }}</p>
-    </div>
-  </div>
+    </div>"""
 
-  <!-- Edit Details Form -->
-  <div class="glass-card" style="padding: 2rem;">
-    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">Edit Profile Details</h3>
-    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
-      {% csrf_token %}
-      
+content = content.replace(profile_card_old, profile_card_new)
+
+# 2. Add Avatar File Input to the Edit Details Form
+avatar_input_html = """
       <!-- Avatar Upload Section -->
       <div class="form-group" style="margin-bottom: 2rem;">
         <label class="form-label">Profile Avatar</label>
@@ -86,43 +47,12 @@
         </div>
         <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">Accepted formats: JPG, PNG, WEBP. Max size: 5MB.</small>
       </div>
+"""
 
-      <div class="form-group">
-        <label class="form-label">Full Name</label>
-        <input type="text" name="name" class="input-control" placeholder="Your full name" value="{{ user.first_name }}" required />
-      </div>
+content = content.replace('{% csrf_token %}', '{% csrf_token %}' + avatar_input_html)
 
-      <div class="form-group">
-        <label class="form-label">Phone Number</label>
-        <input type="text" name="phone" class="input-control" placeholder="Phone number" value="{{ profile.phone|default:'' }}" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Country</label>
-        <select name="country" class="input-control" style="background: #0d121f;">
-          <option value="India" {% if profile.country == 'India' %}selected{% endif %}>India</option>
-          <option value="United States" {% if profile.country == 'United States' %}selected{% endif %}>United States</option>
-          <option value="United Kingdom" {% if profile.country == 'United Kingdom' %}selected{% endif %}>United Kingdom</option>
-          <option value="Canada" {% if profile.country == 'Canada' %}selected{% endif %}>Canada</option>
-          <option value="Australia" {% if profile.country == 'Australia' %}selected{% endif %}>Australia</option>
-          <option value="Germany" {% if profile.country == 'Germany' %}selected{% endif %}>Germany</option>
-          <option value="France" {% if profile.country == 'France' %}selected{% endif %}>France</option>
-          <option value="Japan" {% if profile.country == 'Japan' %}selected{% endif %}>Japan</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Bio</label>
-        <textarea name="bio" class="input-control" placeholder="Write a short bio about yourself..." rows="4" style="resize: none;">{{ profile.bio|default:'' }}</textarea>
-      </div>
-
-      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
-        <i data-lucide="check" style="width: 18px; height: 18px;"></i>
-        Save Profile
-      </button>
-    </form>
-  </div>
-
+# 3. Add Change Password Section below the Edit Details Form
+password_html = """
   <!-- Change Password Section -->
   <div class="glass-card" style="padding: 2rem; margin-top: 2rem;">
     <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">Change Password</h3>
@@ -146,10 +76,12 @@
       </button>
     </form>
   </div>
+"""
 
-</div>
-{% endblock %}
+content = content.replace('</div>\n{% endblock %}', '</div>\n' + password_html + '\n</div>\n{% endblock %}')
 
+# 4. Add JS logic for Avatar Preview, Remove, and Password Change API
+js_html = """
 {% block extra_js %}
 <script>
   function previewAvatar(event) {
@@ -230,4 +162,11 @@
   }
 </script>
 {% endblock %}
+"""
 
+content = content.replace('{% endblock %}', '{% endblock %}\n' + js_html)
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("Profile HTML updated successfully.")

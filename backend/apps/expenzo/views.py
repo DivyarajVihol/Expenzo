@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import login, authenticate, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone as django_timezone
 from django.db.models import Q
@@ -21,6 +22,7 @@ from django.utils.html import strip_tags
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.core.cache import cache 
+from django.core.files.storage import FileSystemStorage
 
 from .models import (
     UserProfile, PersonalExpense, RecurringIncome, RecurringExpense,
@@ -648,6 +650,25 @@ def profile_view(request):
     profile = user.profile
     
     if request.method == 'POST':
+        # Handle avatar removal
+        if request.POST.get('remove_avatar') == 'true':
+            profile.avatar = ''
+            
+        # Handle avatar file upload
+        if 'avatar_file' in request.FILES:
+            avatar_file = request.FILES['avatar_file']
+            allowed_types = ['image/jpeg', 'image/png', 'image/webp']
+            if avatar_file.content_type in allowed_types and avatar_file.size <= 5 * 1024 * 1024:
+                fs = FileSystemStorage(location='media/avatars/')
+                ext = avatar_file.name.split('.')[-1]
+                filename = f"user_{user.id}_{int(django_timezone.now().timestamp())}.{ext}"
+                saved_name = fs.save(filename, avatar_file)
+                profile.avatar = f"/media/avatars/{saved_name}"
+        else:
+            selected_avatar = strip_tags(request.POST.get('avatar', ''))
+            if selected_avatar and selected_avatar.startswith('avatar-'):
+                profile.avatar = selected_avatar[:255]
+
         profile.phone = strip_tags(request.POST.get('phone', ''))[:20]
         profile.bio = strip_tags(request.POST.get('bio', ''))[:500]
         profile.country = strip_tags(request.POST.get('country', 'India'))[:100]
@@ -1315,3 +1336,33 @@ def api_leave_group(request, group_id):
         membership.delete()
         return JsonResponse({'status': 'success'})
     return JsonResponse({'error': 'POST required'}, status=405)
+
+@rate_limit(limit=10, window=60)
+@login_required
+@require_POST
+def api_change_password(request):
+    try:
+        body = json.loads(request.body)
+        current_password = body.get('current_password', '')
+        new_password = body.get('new_password', '')
+        confirm_password = body.get('confirm_password', '')
+        
+        if not request.user.check_password(current_password):
+            return JsonResponse({'status': 'error', 'message': 'Current password is incorrect.'})
+            
+        if new_password != confirm_password:
+            return JsonResponse({'status': 'error', 'message': 'New passwords do not match.'})
+            
+        try:
+            validate_password(new_password, request.user)
+        except ValidationError as e:
+            return JsonResponse({'status': 'error', 'message': ' '.join(e.messages)})
+            
+        request.user.set_password(new_password)
+        request.user.save()
+        update_session_auth_hash(request, request.user)
+        
+        return JsonResponse({'status': 'success', 'message': 'Password changed successfully.'})
+    except Exception as e:
+        logger.error(f"Password change error for {request.user.username}: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': 'An error occurred while changing password.'})
