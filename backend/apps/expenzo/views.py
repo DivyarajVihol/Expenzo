@@ -92,36 +92,61 @@ def dashboard_view(request):
     cumulative_spend = sum(exp.amount for exp in all_past_and_current_expenses if exp.category != "Income")
     monthly_balance = cumulative_income - cumulative_spend
     
-    # Payment Method Stats
-    SUPPORTED_METHODS = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Account']
-    pm_stats = {method: {'income': 0.0, 'expense': 0.0, 'balance': 0.0} for method in SUPPORTED_METHODS}
-    pm_stats['Others'] = {'income': 0.0, 'expense': 0.0, 'balance': 0.0}
+    # Account & Payment Method Stats
+    SUPPORTED_ACCOUNTS = ['Cash', 'Bank Account', 'Credit Card']
+    SUPPORTED_METHODS = ['Cash', 'UPI', 'Debit Card', 'Credit Card', 'Bank Transfer']
+    
+    account_stats = {acc: {'income': 0.0, 'expense': 0.0, 'balance': 0.0} for acc in SUPPORTED_ACCOUNTS}
+    account_stats['Others'] = {'income': 0.0, 'expense': 0.0, 'balance': 0.0}
+    
+    pm_stats = {method: {'income': 0.0, 'expense': 0.0, 'count': 0} for method in SUPPORTED_METHODS}
+    pm_stats['Others'] = {'income': 0.0, 'expense': 0.0, 'count': 0}
     
     for exp in all_past_and_current_expenses:
-        pm = exp.payment_method
-        if pm == 'Net Banking':
-            pm = 'Bank Account'
+        # Account logic
+        acc = exp.account
+        if acc not in SUPPORTED_ACCOUNTS:
+            acc = 'Others'
             
+        # PM logic
+        pm = exp.payment_method
+        if pm == 'Net Banking' or pm == 'Bank Account':
+            pm = 'Bank Transfer'
         if pm not in SUPPORTED_METHODS:
             pm = 'Others'
             
         if exp.category == 'Income':
+            account_stats[acc]['income'] += exp.amount
+            account_stats[acc]['balance'] += exp.amount
             pm_stats[pm]['income'] += exp.amount
-            pm_stats[pm]['balance'] += exp.amount
+            pm_stats[pm]['count'] += 1
         else:
+            account_stats[acc]['expense'] += exp.amount
+            account_stats[acc]['balance'] -= exp.amount
             pm_stats[pm]['expense'] += exp.amount
-            pm_stats[pm]['balance'] -= exp.amount
+            pm_stats[pm]['count'] += 1
             
+    if account_stats['Others']['income'] == 0 and account_stats['Others']['expense'] == 0:
+        del account_stats['Others']
     if pm_stats['Others']['income'] == 0 and pm_stats['Others']['expense'] == 0:
         del pm_stats['Others']
         
-    payment_method_breakdown = []
-    for method, data in pm_stats.items():
-        payment_method_breakdown.append({
-            'name': method,
+    account_breakdown = []
+    for name, data in account_stats.items():
+        account_breakdown.append({
+            'name': name,
             'income': data['income'],
             'expense': data['expense'],
             'balance': data['balance']
+        })
+        
+    payment_method_breakdown = []
+    for name, data in pm_stats.items():
+        payment_method_breakdown.append({
+            'name': name,
+            'income': data['income'],
+            'expense': data['expense'],
+            'count': data['count']
         })
         
     pm_chart_base64 = generate_payment_method_bar_chart(pm_stats)
@@ -173,6 +198,7 @@ def dashboard_view(request):
         'category_breakdown': category_breakdown,
         'pie_chart': pie_chart_base64,
         'gauge_chart': gauge_chart_base64,
+        'account_breakdown': account_breakdown,
         'payment_method_breakdown': payment_method_breakdown,
         'pm_chart': pm_chart_base64,
         'filter_type': filter_type,
@@ -188,6 +214,7 @@ def history_view(request):
     # Get filters
     search_query = strip_tags(request.GET.get('search', '').strip())[:100]
     category_filter = strip_tags(request.GET.get('category', 'All').strip())[:50]
+    account_filter = strip_tags(request.GET.get('account', 'All').strip())[:50]
     payment_filter = strip_tags(request.GET.get('paymentMethod', 'All').strip())[:50]
     
     expenses = PersonalExpense.objects.filter(user=user).order_by('-date')
@@ -196,12 +223,15 @@ def history_view(request):
         expenses = expenses.filter(description__icontains=search_query)
     if category_filter != 'All':
         expenses = expenses.filter(category=category_filter)
+    if account_filter != 'All':
+        expenses = expenses.filter(account=account_filter)
     if payment_filter != 'All':
         expenses = expenses.filter(payment_method=payment_filter)
         
-    # Distinct categories and payment methods for dropdown filters
+    # Distinct categories, accounts, and payment methods for dropdown filters
     categories = ["Income", "Food", "Travel", "Shopping", "Entertainment", "Rent", "Utilities", "Health", "Education", "Investment", "Others"]
-    payment_methods = ["Cash", "UPI", "Credit Card", "Debit Card", "Bank Account"]
+    accounts = ["Cash", "Bank Account", "Credit Card"]
+    payment_methods = ["Cash", "UPI", "Debit Card", "Credit Card", "Bank Transfer"]
     
     # Group expenses by year and month
     from collections import defaultdict
@@ -257,9 +287,11 @@ def history_view(request):
     context = {
         'grouped_months': grouped_months,
         'categories': categories,
+        'accounts': accounts,
         'payment_methods': payment_methods,
         'search_query': search_query,
         'selected_category': category_filter,
+        'selected_account': account_filter,
         'selected_payment': payment_filter
     }
     return render(request, 'history.html', context)
@@ -635,6 +667,7 @@ def add_expense_api(request):
                 return JsonResponse({'error': 'Amount must be greater than zero.'}, status=400)
             category = strip_tags(body.get('category', ''))[:50]
             payment_method = strip_tags(body.get('paymentMethod', ''))[:50]
+            account = strip_tags(body.get('account', 'Bank Account'))[:50]
             description = strip_tags(body.get('description', ''))[:250]
             date_str = strip_tags(body.get('date', ''))[:20]
             
@@ -651,6 +684,7 @@ def add_expense_api(request):
                 amount=amount,
                 category=category,
                 payment_method=payment_method,
+                account=account,
                 description=description,
                 date=txn_date,
                 month=txn_date.month,
@@ -680,6 +714,7 @@ def edit_expense_api(request, expense_id):
                 return JsonResponse({'error': 'Amount must be greater than zero.'}, status=400)
             category = strip_tags(body.get('category', ''))[:50]
             payment_method = strip_tags(body.get('paymentMethod', ''))[:50]
+            account = strip_tags(body.get('account', 'Bank Account'))[:50]
             description = strip_tags(body.get('description', ''))[:250]
             date_str = strip_tags(body.get('date', ''))[:20]
             
@@ -689,6 +724,7 @@ def edit_expense_api(request, expense_id):
             expense.amount = amount
             expense.category = category
             expense.payment_method = payment_method
+            expense.account = account
             expense.description = description
             expense.date = txn_date
             expense.save()

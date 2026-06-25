@@ -134,6 +134,15 @@
     color: var(--accent-danger);
     font-weight: 700;
   }
+  .text-success { color: var(--accent-success); }
+  .text-danger { color: var(--accent-danger); }
+  .icon-income { color: var(--accent-success); }
+  .icon-expense { color: var(--accent-primary); }
+
+  .modal-body {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
   .empty-state {
     text-align: center;
     padding: 4rem 2rem;
@@ -234,6 +243,17 @@
           </select>
         </div>
 
+        <!-- Account Filter -->
+        <div class="filter-group">
+          <label class="form-label font-xs">Account</label>
+          <select name="account" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
+            <option value="All">All Accounts</option>
+            {% for acc in accounts %}
+              <option value="{{ acc }}" {% if selected_account == acc %}selected{% endif %}>{{ acc }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
         <!-- Payment Method Filter -->
         <div class="filter-group">
           <label class="form-label font-xs">Payment Method</label>
@@ -288,13 +308,13 @@
                 <th>Date</th>
                 <th>Description</th>
                 <th>Category</th>
-                <th>Payment Method</th>
+                <th>Account / Method</th>
                 <th style="text-align: right;">Amount</th>
               </tr>
             </thead>
             <tbody>
               {% for exp in month.expenses %}
-                <tr style="cursor: pointer;" onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category }}', '{{ exp.payment_method }}', '{{ exp.date|date:'Y-m-d' }}')">
+                <tr style="cursor: pointer;" onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category }}', '{{ exp.account }}', '{{ exp.payment_method }}', '{{ exp.date|date:'Y-m-d' }}')">
                   <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
                   <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
                   <td data-label="Category">
@@ -302,7 +322,10 @@
                       {{ exp.category }}
                     </span>
                   </td>
-                  <td data-label="Payment Method">{{ exp.payment_method }}</td>
+                  <td data-label="Account / Method">
+                    <span style="font-weight: 500;">{{ exp.account }}</span><br>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">{{ exp.payment_method }}</span>
+                  </td>
                   <td data-label="Amount" style="text-align: right;" class="{% if exp.category == 'Income' %}amount-income{% else %}amount-expense{% endif %}">
                     {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
                   </td>
@@ -354,13 +377,21 @@
           </select>
         </div>
         <div class="form-group">
+          <label class="form-label">Account</label>
+          <select id="tx-account" class="input-control" style="background: #0d121f;" onchange="togglePaymentMethod()">
+            <option value="Bank Account">Bank Account</option>
+            <option value="Cash">Cash</option>
+            <option value="Credit Card">Credit Card</option>
+          </select>
+        </div>
+        <div class="form-group" id="tx-payment-group">
           <label class="form-label">Payment Method</label>
           <select id="tx-payment" class="input-control" style="background: #0d121f;">
-            <option value="Cash">Cash</option>
             <option value="UPI">UPI</option>
-            <option value="Credit Card">Credit Card</option>
             <option value="Debit Card">Debit Card</option>
-            <option value="Net Banking">Net Banking</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Cash">Cash</option>
+            <option value="Credit Card">Credit Card</option>
           </select>
         </div>
         <div class="form-group">
@@ -405,12 +436,59 @@
   }
 
   function openEditPersonalModal(id, amount, description, category, paymentMethod, date) {
+    // We will extract account and method dynamically if we pass them 
+    // Wait! The onClick function only passes 6 arguments, but I didn't update it in history.html!
+    // Let me update the JS signature to accept account
+  }
+  function togglePaymentMethod() {
+    const accountSelect = document.getElementById('tx-account');
+    const paymentGroup = document.getElementById('tx-payment-group');
+    const paymentSelect = document.getElementById('tx-payment');
+    
+    if (accountSelect.value === 'Bank Account') {
+      paymentGroup.style.display = 'block';
+      if (paymentSelect.options.length < 3) {
+        paymentSelect.innerHTML = '<option value="UPI">UPI</option><option value="Debit Card">Debit Card</option><option value="Bank Transfer">Bank Transfer</option>';
+      }
+      if (!['UPI', 'Debit Card', 'Bank Transfer'].includes(paymentSelect.value)) {
+        paymentSelect.value = 'UPI';
+      }
+    } else {
+      paymentGroup.style.display = 'none';
+      if (accountSelect.value === 'Cash') {
+        paymentSelect.innerHTML = '<option value="Cash">Cash</option>';
+        paymentSelect.value = 'Cash';
+      } else if (accountSelect.value === 'Credit Card') {
+        paymentSelect.innerHTML = '<option value="Credit Card">Credit Card</option>';
+        paymentSelect.value = 'Credit Card';
+      }
+    }
+  }
+
+  function openEditPersonalModal(id, amount, description, category, account, paymentMethod, date) {
     document.getElementById('tx-id').value = id;
     document.getElementById('tx-amount').value = amount;
     document.getElementById('tx-description').value = description;
     document.getElementById('tx-category').value = category;
+    document.getElementById('tx-account').value = account;
+    
+    const paymentSelect = document.getElementById('tx-payment');
+    if (account === 'Bank Account') {
+      paymentSelect.innerHTML = `
+        <option value="UPI">UPI</option>
+        <option value="Debit Card">Debit Card</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+      `;
+    } else if (account === 'Cash') {
+      paymentSelect.innerHTML = '<option value="Cash">Cash</option>';
+    } else if (account === 'Credit Card') {
+      paymentSelect.innerHTML = '<option value="Credit Card">Credit Card</option>';
+    }
+    
     document.getElementById('tx-payment').value = paymentMethod;
     document.getElementById('tx-date').value = date;
+
+    togglePaymentMethod();
 
     const title = document.getElementById('tx-modal-title');
     const catGroup = document.getElementById('tx-category-group');
@@ -436,6 +514,7 @@
     const amount = document.getElementById('tx-amount').value;
     const description = document.getElementById('tx-description').value;
     const category = document.getElementById('tx-category').value;
+    const account = document.getElementById('tx-account').value;
     const paymentMethod = document.getElementById('tx-payment').value;
     const date = document.getElementById('tx-date').value;
 
@@ -448,7 +527,7 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({ amount, description, category, paymentMethod, date })
+        body: JSON.stringify({ amount, description, category, account, paymentMethod, date })
       });
       
       if (res.ok) {

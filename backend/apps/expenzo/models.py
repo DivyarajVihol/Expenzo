@@ -29,6 +29,7 @@ class PersonalExpense(models.Model):
     amount = models.FloatField()
     category = models.CharField(max_length=100)
     payment_method = models.CharField(max_length=100)
+    account = models.CharField(max_length=100, default='Bank Account')
     description = models.CharField(max_length=255)
     date = models.DateTimeField()
     month = models.IntegerField(null=True, blank=True)

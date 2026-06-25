@@ -14,6 +14,11 @@
   .icon-income { color: var(--accent-success); }
   .icon-expense { color: var(--accent-primary); }
 
+  .modal-body {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
   /* UNIVERSAL MOBILE OVERRIDE - AGGRESSIVE FIX */
   @media (max-width: 768px) {
     /* Force everything to never exceed screen width */
@@ -201,12 +206,49 @@
       </div>
     </div>
 
-    <!-- Payment Method Breakdown Block -->
+    <!-- Accounts Breakdown Block -->
     <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
       <div class="spending-card-header">
         <div>
-          <h3 class="spending-title">Payment Methods</h3>
-          <p class="spending-subtitle">Income vs Expense balance per method</p>
+          <h3 class="spending-title">Accounts</h3>
+          <p class="spending-subtitle">Current balances across your accounts</p>
+        </div>
+      </div>
+
+      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 1.5rem;">
+        {% if not account_breakdown %}
+          <div class="no-spending-text" style="text-align: center; padding: 2rem 0;">
+            No account data recorded.
+          </div>
+        {% else %}
+          <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
+            {% for acc in account_breakdown %}
+              <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; flex-direction: column;">
+                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ acc.name }}</strong>
+                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <span class="text-success">+₹{{ acc.income|floatformat:2 }}</span>
+                    <span class="text-danger">-₹{{ acc.expense|floatformat:2 }}</span>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center;">
+                  <span style="font-size: 1.1rem; font-weight: 700; color: {% if acc.balance >= 0 %}var(--accent-success){% else %}var(--accent-danger){% endif %};">
+                    {% if acc.balance >= 0 %}+{% endif %}₹{{ acc.balance|floatformat:2 }}
+                  </span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Payment Method Analytics Block -->
+    <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
+      <div class="spending-card-header">
+        <div>
+          <h3 class="spending-title">Payment Method Usage</h3>
+          <p class="spending-subtitle">Analytics for your transaction methods</p>
         </div>
       </div>
 
@@ -226,10 +268,8 @@
                     <span class="text-danger">-₹{{ pm.expense|floatformat:2 }}</span>
                   </div>
                 </div>
-                <div style="display: flex; align-items: center;">
-                  <span style="font-size: 1.1rem; font-weight: 700; color: {% if pm.balance >= 0 %}var(--accent-success){% else %}var(--accent-danger){% endif %};">
-                    {% if pm.balance >= 0 %}+{% endif %}₹{{ pm.balance|floatformat:2 }}
-                  </span>
+                <div style="display: flex; align-items: center; color: var(--text-muted); font-size: 0.85rem;">
+                  {{ pm.count }} txns
                 </div>
               </div>
             {% endfor %}
@@ -237,6 +277,8 @@
         {% endif %}
       </div>
     </div>
+
+
 
   </div>
 
@@ -270,8 +312,8 @@
           {% for exp in recent_transactions %}
             <div class="transaction-item-row" id="tx-row-{{ exp.id }}" style="cursor: pointer;" 
                  data-id="{{ exp.id }}" data-amount="{{ exp.amount }}" data-desc="{{ exp.description|escapejs }}" 
-                 data-category="{{ exp.category }}" data-method="{{ exp.payment_method }}" data-date="{{ exp.date|date:'Y-m-d' }}" 
-                 onclick="openEditPersonalModal(this.dataset.id, this.dataset.amount, this.dataset.desc, this.dataset.category, this.dataset.method, this.dataset.date)">
+                 data-category="{{ exp.category }}" data-account="{{ exp.account }}" data-method="{{ exp.payment_method }}" data-date="{{ exp.date|date:'Y-m-d' }}" 
+                 onclick="openEditPersonalModal(this.dataset.id, this.dataset.amount, this.dataset.desc, this.dataset.category, this.dataset.account, this.dataset.method, this.dataset.date)">
               <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
                 <div class="transaction-icon-box">
                   <i data-lucide="credit-card" class="transaction-icon {% if exp.category == 'Income' %}icon-income{% else %}icon-expense{% endif %}" style="width: 16px; height: 16px;"></i>
@@ -283,6 +325,8 @@
                   </div>
                   <div class="transaction-meta-row" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 0.5rem; align-items: center;">
                     <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ exp.category }}</span>
+                    <span>•</span>
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ exp.account }}</span>
                     <span>•</span>
                     <span style="white-space: nowrap;">{{ exp.date|date:"j M" }}</span>
                   </div>
@@ -413,13 +457,19 @@
           </select>
         </div>
         <div class="form-group">
+          <label class="form-label">Account</label>
+          <select id="tx-account" class="input-control" style="background: #0d121f;" onchange="togglePaymentMethod()">
+            <option value="Bank Account">Bank Account</option>
+            <option value="Cash">Cash</option>
+            <option value="Credit Card">Credit Card</option>
+          </select>
+        </div>
+        <div class="form-group" id="tx-payment-group">
           <label class="form-label">Payment Method</label>
           <select id="tx-payment" class="input-control" style="background: #0d121f;">
-            <option value="Cash">Cash</option>
             <option value="UPI">UPI</option>
-            <option value="Credit Card">Credit Card</option>
             <option value="Debit Card">Debit Card</option>
-            <option value="Bank Account">Bank Account</option>
+            <option value="Bank Transfer">Bank Transfer</option>
           </select>
         </div>
         <div class="form-group">
@@ -460,15 +510,50 @@
     document.getElementById('savings-modal').style.display = 'none';
   }
 
+  function togglePaymentMethod() {
+    const accountSelect = document.getElementById('tx-account');
+    const paymentGroup = document.getElementById('tx-payment-group');
+    const paymentSelect = document.getElementById('tx-payment');
+    
+    if (accountSelect.value === 'Bank Account') {
+      paymentGroup.style.display = 'block';
+      if (paymentSelect.options.length < 3) {
+        paymentSelect.innerHTML = '<option value="UPI">UPI</option><option value="Debit Card">Debit Card</option><option value="Bank Transfer">Bank Transfer</option>';
+      }
+      if (!['UPI', 'Debit Card', 'Bank Transfer'].includes(paymentSelect.value)) {
+        paymentSelect.value = 'UPI';
+      }
+    } else {
+      paymentGroup.style.display = 'none';
+      if (accountSelect.value === 'Cash') {
+        paymentSelect.innerHTML = '<option value="Cash">Cash</option>';
+        paymentSelect.value = 'Cash';
+      } else if (accountSelect.value === 'Credit Card') {
+        paymentSelect.innerHTML = '<option value="Credit Card">Credit Card</option>';
+        paymentSelect.value = 'Credit Card';
+      }
+    }
+  }
+
   function openTransactionModal(type, defaultCat) {
     const title = document.getElementById('tx-modal-title');
     const catGroup = document.getElementById('tx-category-group');
     const categorySelect = document.getElementById('tx-category');
+    const paymentSelect = document.getElementById('tx-payment');
     const modal = document.getElementById('transaction-modal');
     
     // Reset form
     document.getElementById('transaction-form').reset();
     document.getElementById('tx-id').value = "";
+    
+    // Reset payment options to Bank Account defaults initially
+    paymentSelect.innerHTML = `
+      <option value="UPI">UPI</option>
+      <option value="Debit Card">Debit Card</option>
+      <option value="Bank Transfer">Bank Transfer</option>
+    `;
+    document.getElementById('tx-account').value = 'Bank Account';
+    togglePaymentMethod();
 
     if (type === 'income') {
       title.innerText = 'Add Income';
@@ -484,13 +569,30 @@
     lucide.createIcons();
   }
 
-  function openEditPersonalModal(id, amount, description, category, paymentMethod, date) {
+  function openEditPersonalModal(id, amount, description, category, account, paymentMethod, date) {
     document.getElementById('tx-id').value = id;
     document.getElementById('tx-amount').value = amount;
     document.getElementById('tx-description').value = description;
     document.getElementById('tx-category').value = category;
+    document.getElementById('tx-account').value = account;
+    
+    const paymentSelect = document.getElementById('tx-payment');
+    if (account === 'Bank Account') {
+      paymentSelect.innerHTML = `
+        <option value="UPI">UPI</option>
+        <option value="Debit Card">Debit Card</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+      `;
+    } else if (account === 'Cash') {
+      paymentSelect.innerHTML = '<option value="Cash">Cash</option>';
+    } else if (account === 'Credit Card') {
+      paymentSelect.innerHTML = '<option value="Credit Card">Credit Card</option>';
+    }
+    
     document.getElementById('tx-payment').value = paymentMethod;
     document.getElementById('tx-date').value = date;
+
+    togglePaymentMethod();
 
     const title = document.getElementById('tx-modal-title');
     const catGroup = document.getElementById('tx-category-group');
@@ -542,6 +644,7 @@
     const amount = document.getElementById('tx-amount').value;
     const description = document.getElementById('tx-description').value;
     const category = document.getElementById('tx-category').value;
+    const account = document.getElementById('tx-account').value;
     const paymentMethod = document.getElementById('tx-payment').value;
     const date = document.getElementById('tx-date').value;
 
@@ -554,7 +657,7 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({ amount, description, category, paymentMethod, date })
+        body: JSON.stringify({ amount, description, category, account, paymentMethod, date })
       });
       
       if (res.ok) {
