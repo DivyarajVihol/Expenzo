@@ -186,7 +186,7 @@
           <div class="legend-grid">
             {% for cat in category_breakdown %}
               <div class="legend-item">
-                <span class="legend-dot" data-bg="{{ cat.color }}" style="background-color: var(--dynamic-color, #ccc);"></span>
+                <span class="legend-dot" style="background-color: {{ cat.color }};"></span>
                 <span class="legend-label">{{ cat.name }}</span>
                 <strong class="legend-value">₹{{ cat.value|floatformat:2 }} ({{ cat.percentage }}%)</strong>
               </div>
