@@ -632,9 +632,14 @@
                 placeholder="e.g. rent, lunch, grocery..."
                 class="input-control"
                 value="{{ search_query }}"
-                style="padding-left: 2.25rem; box-sizing: border-box; width: 100%;"
+                style="padding-left: 2.25rem; {% if search_query %}padding-right: 2.25rem;{% endif %} box-sizing: border-box; width: 100%;"
                 onchange="document.getElementById('filter-form').submit()"
               />
+              {% if search_query %}
+                <a href="javascript:void(0)" onclick="document.querySelector('input[name=search]').value=''; document.getElementById('filter-form').submit();" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
+                  <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                </a>
+              {% endif %}
             </div>
           </div>
 

@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone as django_timezone
+from django.db.models import Q
 from datetime import datetime, timedelta
 import json
 import logging
@@ -61,7 +62,7 @@ def dashboard_view(request):
     
     # Apply search filter
     if search_query:
-        expenses = expenses.filter(description__icontains=search_query)
+        expenses = expenses.filter(Q(description__icontains=search_query) | Q(category__icontains=search_query))
         
     # Apply date filter for recent transactions
     filtered_expenses = expenses
@@ -223,7 +224,7 @@ def history_view(request):
     expenses = PersonalExpense.objects.filter(user=user).order_by('-date')
     
     if search_query:
-        expenses = expenses.filter(description__icontains=search_query)
+        expenses = expenses.filter(Q(description__icontains=search_query) | Q(category__icontains=search_query))
     if category_filter != 'All':
         expenses = expenses.filter(category=category_filter)
     if account_filter != 'All':
@@ -564,7 +565,7 @@ def group_detail_view(request, group_id):
     category_filter = strip_tags(request.GET.get('category', 'All'))[:50]
 
     if search_query:
-        history_expenses = history_expenses.filter(description__icontains=search_query)
+        history_expenses = history_expenses.filter(Q(description__icontains=search_query) | Q(category__icontains=search_query))
     if category_filter != 'All':
         history_expenses = history_expenses.filter(category=category_filter)
 

@@ -89,8 +89,13 @@
           placeholder="Search transactions..."
           class="input-control search-input"
           value="{{ search_query }}"
-          style="padding-left: 2.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); width: 100%; box-sizing: border-box;"
+          style="padding-left: 2.75rem; {% if search_query %}padding-right: 2.75rem;{% endif %} border-radius: 12px; background: rgba(255, 255, 255, 0.03); width: 100%; box-sizing: border-box;"
         />
+        {% if search_query %}
+          <a href="{% url 'dashboard' %}?filter={{ filter_type }}" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
+            <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+          </a>
+        {% endif %}
       </div>
       <input type="hidden" name="filter" value="{{ filter_type }}">
     </form>
