@@ -53,25 +53,15 @@
 }
 
 .add-template-form-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: end;
 }
 
-.form-group-type {
+.add-template-form-row .form-group {
   margin: 0;
-  flex: 1 1 150px;
-}
-
-.form-group-desc {
-  margin: 0;
-  flex: 2 1 250px;
-}
-
-.form-group-amount {
-  margin: 0;
-  flex: 1 1 150px;
+  width: 100%;
 }
 
 .select-control-dark {
@@ -80,10 +70,12 @@
 
 .add-template-btn {
   padding: 0.75rem 1.25rem;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   height: 42px;
+  width: 100%;
 }
 
 .recurring-loading {

@@ -287,10 +287,10 @@
             <span class="month-label">{{ month.label }}</span>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               {% if month.total_income > 0 %}
-                <span class="month-total-spend" style="color: var(--accent-success); border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">Income: +₹{{ month.total_income|floatformat:2 }}</span>
+                <span class="month-total-spend" style="color: var(--accent-success); border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">Income: ₹{{ month.total_income|floatformat:2 }}</span>
               {% endif %}
               {% if month.total_spend > 0 or month.total_income == 0 %}
-                <span class="month-total-spend" style="color: var(--accent-danger); border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.05);">Spend: -₹{{ month.total_spend|floatformat:2 }}</span>
+                <span class="month-total-spend" style="color: var(--accent-danger); border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.05);">Spend: ₹{{ month.total_spend|floatformat:2 }}</span>
               {% endif %}
             </div>
           </div>

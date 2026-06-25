@@ -76,6 +76,24 @@
           />
         </div>
 
+        <div class="form-group">
+          <label class="form-label font-xs">Account</label>
+          <select name="account" id="tx-account" class="input-control" style="background: #0d121f;" onchange="togglePaymentMethod()">
+            <option value="Bank Account">Bank Account</option>
+            <option value="Cash">Cash</option>
+            <option value="Credit Card">Credit Card</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="tx-payment-group">
+          <label class="form-label font-xs">Payment Method</label>
+          <select name="paymentMethod" id="tx-payment" class="input-control" style="background: #0d121f;">
+            <option value="UPI">UPI</option>
+            <option value="Debit Card">Debit Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
+        </div>
+
         <button type="submit" class="btn btn-primary add-template-btn" style="border: none; cursor: pointer; font-weight: 600;">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
           Add Template
@@ -103,13 +121,19 @@
             <div class="recurring-item-row" id="item-row-income-{{ item.id }}">
               <!-- View Mode -->
               <div id="view-mode-income-{{ item.id }}" style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                <div>
-                  <strong class="item-info-name">{{ item.name }}</strong>
+                <div style="flex: 1;">
+                  <strong class="item-info-name" style="display: block;">{{ item.name }}</strong>
+                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <span><i data-lucide="wallet" style="width: 12px; height: 12px; vertical-align: middle;"></i> {{ item.account }}</span>
+                    <span><i data-lucide="credit-card" style="width: 12px; height: 12px; vertical-align: middle;"></i> {{ item.payment_method }}</span>
+                  </div>
+                </div>
+                <div style="margin-right: 1rem; text-align: right;">
                   <span class="item-info-amount-income">₹{{ item.amount|floatformat:2 }}</span>
                 </div>
                 <div class="item-actions-wrapper">
                   <button 
-                    onclick="startEdit('{{ item.id }}', 'income', '{{ item.name }}', '{{ item.amount }}')"
+                    onclick="startEdit('{{ item.id }}', 'income', '{{ item.name|escapejs }}', '{{ item.amount }}', '{{ item.account|escapejs }}', '{{ item.payment_method|escapejs }}')"
                     class="action-btn-secondary"
                     title="Edit"
                   >
@@ -126,11 +150,27 @@
               </div>
 
               <!-- Edit Mode (Initially Hidden) -->
-              <div id="edit-mode-income-{{ item.id }}" class="edit-mode-container" style="display: none; width: 100%;">
-                <input type="text" id="edit-name-income-{{ item.id }}" class="input-control edit-input-text">
-                <input type="number" id="edit-amount-income-{{ item.id }}" class="input-control edit-input-amount" step="0.01">
-                <button onclick="saveEdit('{{ item.id }}', 'income')" class="btn btn-primary edit-save-btn" style="border: none; cursor: pointer;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
-                <button onclick="cancelEdit('{{ item.id }}', 'income')" class="btn btn-secondary edit-cancel-btn" style="border: none; cursor: pointer;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+              <div id="edit-mode-income-{{ item.id }}" class="edit-mode-container" style="display: none; width: 100%; flex-wrap: wrap; gap: 0.5rem; background: rgba(255, 255, 255, 0.02); padding: 0.75rem; border-radius: 8px;">
+                <div style="display: flex; width: 100%; gap: 0.5rem;">
+                  <input type="text" id="edit-name-income-{{ item.id }}" class="input-control edit-input-text" style="flex: 2;">
+                  <input type="number" id="edit-amount-income-{{ item.id }}" class="input-control edit-input-amount" step="0.01" style="flex: 1;">
+                </div>
+                <div style="display: flex; width: 100%; gap: 0.5rem; margin-top: 0.25rem;">
+                  <select id="edit-account-income-{{ item.id }}" class="input-control" style="flex: 1; font-size: 0.8rem; padding: 0.4rem;" onchange="toggleEditPaymentMethod('{{ item.id }}', 'income')">
+                    <option value="Bank Account">Bank Account</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                  </select>
+                  <select id="edit-payment-income-{{ item.id }}" class="input-control" style="flex: 1; font-size: 0.8rem; padding: 0.4rem;">
+                    <option value="UPI">UPI</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                  </select>
+                  <div style="display: flex; gap: 0.25rem;">
+                    <button onclick="saveEdit('{{ item.id }}', 'income')" class="btn btn-primary edit-save-btn" style="border: none; cursor: pointer; padding: 0.4rem 0.75rem;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
+                    <button onclick="cancelEdit('{{ item.id }}', 'income')" class="btn btn-secondary edit-cancel-btn" style="border: none; cursor: pointer; padding: 0.4rem 0.75rem;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+                  </div>
+                </div>
               </div>
             </div>
           {% endfor %}
@@ -154,13 +194,19 @@
             <div class="recurring-item-row" id="item-row-expense-{{ item.id }}">
               <!-- View Mode -->
               <div id="view-mode-expense-{{ item.id }}" style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                <div>
-                  <strong class="item-info-name">{{ item.name }}</strong>
+                <div style="flex: 1;">
+                  <strong class="item-info-name" style="display: block;">{{ item.name }}</strong>
+                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <span><i data-lucide="wallet" style="width: 12px; height: 12px; vertical-align: middle;"></i> {{ item.account }}</span>
+                    <span><i data-lucide="credit-card" style="width: 12px; height: 12px; vertical-align: middle;"></i> {{ item.payment_method }}</span>
+                  </div>
+                </div>
+                <div style="margin-right: 1rem; text-align: right;">
                   <span class="item-info-amount-expense">₹{{ item.amount|floatformat:2 }}</span>
                 </div>
                 <div class="item-actions-wrapper">
                   <button 
-                    onclick="startEdit('{{ item.id }}', 'expense', '{{ item.name }}', '{{ item.amount }}')"
+                    onclick="startEdit('{{ item.id }}', 'expense', '{{ item.name|escapejs }}', '{{ item.amount }}', '{{ item.account|escapejs }}', '{{ item.payment_method|escapejs }}')"
                     class="action-btn-secondary"
                     title="Edit"
                   >
@@ -177,11 +223,27 @@
               </div>
 
               <!-- Edit Mode (Initially Hidden) -->
-              <div id="edit-mode-expense-{{ item.id }}" class="edit-mode-container" style="display: none; width: 100%;">
-                <input type="text" id="edit-name-expense-{{ item.id }}" class="input-control edit-input-text">
-                <input type="number" id="edit-amount-expense-{{ item.id }}" class="input-control edit-input-amount" step="0.01">
-                <button onclick="saveEdit('{{ item.id }}', 'expense')" class="btn btn-primary edit-save-btn" style="border: none; cursor: pointer;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
-                <button onclick="cancelEdit('{{ item.id }}', 'expense')" class="btn btn-secondary edit-cancel-btn" style="border: none; cursor: pointer;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+              <div id="edit-mode-expense-{{ item.id }}" class="edit-mode-container" style="display: none; width: 100%; flex-wrap: wrap; gap: 0.5rem; background: rgba(255, 255, 255, 0.02); padding: 0.75rem; border-radius: 8px;">
+                <div style="display: flex; width: 100%; gap: 0.5rem;">
+                  <input type="text" id="edit-name-expense-{{ item.id }}" class="input-control edit-input-text" style="flex: 2;">
+                  <input type="number" id="edit-amount-expense-{{ item.id }}" class="input-control edit-input-amount" step="0.01" style="flex: 1;">
+                </div>
+                <div style="display: flex; width: 100%; gap: 0.5rem; margin-top: 0.25rem;">
+                  <select id="edit-account-expense-{{ item.id }}" class="input-control" style="flex: 1; font-size: 0.8rem; padding: 0.4rem;" onchange="toggleEditPaymentMethod('{{ item.id }}', 'expense')">
+                    <option value="Bank Account">Bank Account</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                  </select>
+                  <select id="edit-payment-expense-{{ item.id }}" class="input-control" style="flex: 1; font-size: 0.8rem; padding: 0.4rem;">
+                    <option value="UPI">UPI</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                  </select>
+                  <div style="display: flex; gap: 0.25rem;">
+                    <button onclick="saveEdit('{{ item.id }}', 'expense')" class="btn btn-primary edit-save-btn" style="border: none; cursor: pointer; padding: 0.4rem 0.75rem;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
+                    <button onclick="cancelEdit('{{ item.id }}', 'expense')" class="btn btn-secondary edit-cancel-btn" style="border: none; cursor: pointer; padding: 0.4rem 0.75rem;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+                  </div>
+                </div>
               </div>
             </div>
           {% endfor %}
@@ -191,15 +253,83 @@
 
   </div>
 </div>
+
+<!-- Generic Delete Modal -->
+<div class="modal-overlay" id="delete-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div style="text-align: center;">
+      <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
+      <h3 id="delete-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Confirm Action</h3>
+      <p id="delete-modal-message" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+        Are you sure you want to proceed? This action cannot be undone.
+      </p>
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="flex: 1; background: var(--accent-danger); border-color: var(--accent-danger);">Delete</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  function startEdit(id, type, name, amount) {
+  function togglePaymentMethod() {
+    const account = document.getElementById('tx-account').value;
+    const paymentGroup = document.getElementById('tx-payment-group');
+    const paymentSelect = document.getElementById('tx-payment');
+    
+    if (account === 'Cash') {
+      paymentGroup.style.display = 'none';
+      paymentSelect.innerHTML = '<option value="Cash">Cash</option>';
+      paymentSelect.value = 'Cash';
+    } else if (account === 'Credit Card') {
+      paymentGroup.style.display = 'none';
+      paymentSelect.innerHTML = '<option value="Credit Card">Credit Card</option>';
+      paymentSelect.value = 'Credit Card';
+    } else {
+      paymentGroup.style.display = 'block';
+      paymentSelect.innerHTML = `
+        <option value="UPI">UPI</option>
+        <option value="Debit Card">Debit Card</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+      `;
+      paymentSelect.value = 'UPI';
+    }
+  }
+
+  function toggleEditPaymentMethod(id, type) {
+    const accountSelect = document.getElementById(`edit-account-${type}-${id}`);
+    const paymentSelect = document.getElementById(`edit-payment-${type}-${id}`);
+    if (!accountSelect || !paymentSelect) return;
+    
+    const account = accountSelect.value;
+    if (account === 'Cash') {
+      paymentSelect.innerHTML = '<option value="Cash">Cash</option>';
+      paymentSelect.value = 'Cash';
+    } else if (account === 'Credit Card') {
+      paymentSelect.innerHTML = '<option value="Credit Card">Credit Card</option>';
+      paymentSelect.value = 'Credit Card';
+    } else {
+      paymentSelect.innerHTML = `
+        <option value="UPI">UPI</option>
+        <option value="Debit Card">Debit Card</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+      `;
+      paymentSelect.value = 'UPI';
+    }
+  }
+  function startEdit(id, type, name, amount, account, paymentMethod) {
     document.getElementById(`view-mode-${type}-${id}`).style.display = 'none';
     document.getElementById(`edit-mode-${type}-${id}`).style.display = 'flex';
     document.getElementById(`edit-name-${type}-${id}`).value = name;
     document.getElementById(`edit-amount-${type}-${id}`).value = amount;
+    
+    const accountSelect = document.getElementById(`edit-account-${type}-${id}`);
+    const paymentSelect = document.getElementById(`edit-payment-${type}-${id}`);
+    if (accountSelect) accountSelect.value = account;
+    if (paymentSelect) paymentSelect.value = paymentMethod;
+
     lucide.createIcons();
   }
 
@@ -212,6 +342,8 @@
   async function saveEdit(id, type) {
     const name = document.getElementById(`edit-name-${type}-${id}`).value;
     const amount = document.getElementById(`edit-amount-${type}-${id}`).value;
+    const account = document.getElementById(`edit-account-${type}-${id}`).value;
+    const paymentMethod = document.getElementById(`edit-payment-${type}-${id}`).value;
 
     try {
       const res = await fetch(`/api/recurring/edit/${id}/${type}/`, {
@@ -220,7 +352,7 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({ name, amount })
+        body: JSON.stringify({ name, amount, account, paymentMethod })
       });
       if (res.ok) {
         window.location.reload();
@@ -233,25 +365,57 @@
     }
   }
 
-  async function deleteRecurring(id, type) {
-    if (!confirm('Are you sure you want to delete this template?')) return;
-    try {
-      const res = await fetch(`/api/recurring/delete/${id}/${type}/`, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': '{{ csrf_token }}'
+  let deleteActionCallback = null;
+
+  function openGenericDeleteModal(title, message, callback) {
+    document.getElementById('delete-modal-title').innerText = title;
+    document.getElementById('delete-modal-message').innerText = message;
+    deleteActionCallback = callback;
+    document.getElementById('delete-modal').style.display = 'flex';
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').style.display = 'none';
+    deleteActionCallback = null;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const confirmBtn = document.getElementById('confirm-delete-btn');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        if (deleteActionCallback) {
+          deleteActionCallback();
+          closeDeleteModal();
         }
       });
-      if (res.ok) {
-        document.getElementById(`item-row-${type}-${id}`).remove();
-        window.location.reload(); // Reload to sync calculations
-      } else {
-        alert('Failed to delete template');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error deleting template');
     }
+  });
+
+  function deleteRecurring(id, type) {
+    openGenericDeleteModal(
+      'Delete Template',
+      'Are you sure you want to delete this template?',
+      async () => {
+        try {
+          const res = await fetch(`/api/recurring/delete/${id}/${type}/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            }
+          });
+          if (res.ok) {
+            const row = document.getElementById(`item-row-${type}-${id}`);
+            if (row) row.remove();
+            window.location.reload(); // Reload to sync calculations
+          } else {
+            alert('Failed to delete template');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error deleting template');
+        }
+      }
+    );
   }
 </script>
 {% endblock %}

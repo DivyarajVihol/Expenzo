@@ -505,6 +505,40 @@
     </div>
   </div>
 </div>
+
+<!-- Negative Balance Warning Modal -->
+<div class="modal-overlay" id="negative-balance-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <div style="width: 64px; height: 64px; background: rgba(245, 158, 11, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+        <i data-lucide="alert-triangle" style="width: 32px; height: 32px; color: #f59e0b;"></i>
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">Insufficient Balance</h3>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;" id="negative-balance-message">
+        Warning message goes here.
+      </p>
+    </div>
+    <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <span>Current Balance:</span>
+        <strong style="color: var(--text-primary);" id="nb-current-balance">₹0</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <span>Expense Amount:</span>
+        <strong style="color: var(--accent-danger);" id="nb-expense-amount">₹0</strong>
+      </div>
+      <div style="border-top: 1px solid var(--border-color); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between;">
+        <span>New Balance:</span>
+        <strong style="color: var(--accent-danger);" id="nb-new-balance">₹0</strong>
+      </div>
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <button type="button" class="btn btn-secondary" onclick="cancelNegativeBalance()" style="flex: 1;">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="confirmNegativeBalance()" style="flex: 1; background: #f59e0b; border-color: #f59e0b; color: #fff;">Continue Anyway</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -660,8 +694,26 @@
     }
   }
 
+  const accountBalances = {
+    {% for acc in account_breakdown %}
+    "{{ acc.name|escapejs }}": {{ acc.balance }},
+    {% endfor %}
+  };
+
+  let pendingTransactionEvent = null;
+
+  function cancelNegativeBalance() {
+    document.getElementById('negative-balance-modal').style.display = 'none';
+    pendingTransactionEvent = null;
+  }
+
+  function confirmNegativeBalance() {
+    document.getElementById('negative-balance-modal').style.display = 'none';
+    saveTransaction(null); // passing null bypasses the check
+  }
+
   async function saveTransaction(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const id = document.getElementById('tx-id').value;
     const amount = document.getElementById('tx-amount').value;
     const description = document.getElementById('tx-description').value;
@@ -669,6 +721,25 @@
     const account = document.getElementById('tx-account').value;
     const paymentMethod = document.getElementById('tx-payment').value;
     const date = document.getElementById('tx-date').value;
+
+    const numAmount = parseFloat(amount);
+    
+    // Check for negative balance warning
+    if (e && category !== 'Income' && !isNaN(numAmount)) {
+      const balance = accountBalances[account] || 0;
+      if (numAmount > balance) {
+        document.getElementById('nb-current-balance').innerText = `₹${balance.toFixed(2)}`;
+        document.getElementById('nb-expense-amount').innerText = `₹${numAmount.toFixed(2)}`;
+        document.getElementById('nb-new-balance').innerText = `₹${(balance - numAmount).toFixed(2)}`;
+        
+        let methodName = account === 'Bank Account' ? paymentMethod : account;
+        document.getElementById('negative-balance-message').innerText = `This expense will make your ${methodName} balance negative. Do you want to continue?`;
+        
+        document.getElementById('negative-balance-modal').style.display = 'flex';
+        pendingTransactionEvent = e;
+        return; // Halt submission
+      }
+    }
 
     const endpoint = id ? `/api/expenses/edit/${id}/` : "{% url 'api_add_expense' %}";
 

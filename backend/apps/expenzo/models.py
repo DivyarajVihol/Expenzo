@@ -45,6 +45,8 @@ class RecurringIncome(models.Model):
     name = models.CharField(max_length=255)
     amount = models.FloatField()
     is_active = models.BooleanField(default=True)
+    account = models.CharField(max_length=100, default='Bank Account')
+    payment_method = models.CharField(max_length=100, default='Bank Transfer')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,6 +58,8 @@ class RecurringExpense(models.Model):
     name = models.CharField(max_length=255)
     amount = models.FloatField()
     is_active = models.BooleanField(default=True)
+    account = models.CharField(max_length=100, default='Bank Account')
+    payment_method = models.CharField(max_length=100, default='UPI')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

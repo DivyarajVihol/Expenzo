@@ -311,15 +311,17 @@ def recurring_view(request):
         if action == 'add':
             new_type = strip_tags(request.POST.get('type', ''))
             name = strip_tags(request.POST.get('name', ''))[:100]
+            account = strip_tags(request.POST.get('account', 'Bank Account'))[:100]
+            payment_method = strip_tags(request.POST.get('paymentMethod', 'Bank Transfer'))[:100]
             try:
                 amount = float(request.POST.get('amount', 0))
             except (ValueError, TypeError):
                 amount = 0.0
             if amount > 0:
                 if new_type == 'income':
-                    RecurringIncome.objects.create(user=user, name=name, amount=amount)
+                    RecurringIncome.objects.create(user=user, name=name, amount=amount, account=account, payment_method=payment_method)
                 elif new_type == 'expense':
-                    RecurringExpense.objects.create(user=user, name=name, amount=amount)
+                    RecurringExpense.objects.create(user=user, name=name, amount=amount, account=account, payment_method=payment_method)
             recalculate_current_month(user)
         elif action == 'recalculate':
             recalculate_current_month(user)
@@ -791,6 +793,8 @@ def edit_recurring_api(request, item_id, item_type):
         try:
             body = json.loads(request.body)
             name = strip_tags(body.get('name', ''))[:100]
+            account = strip_tags(body.get('account', 'Bank Account'))[:100]
+            payment_method = strip_tags(body.get('paymentMethod', 'Bank Transfer'))[:100]
             try:
                 amount = float(body.get('amount'))
             except (ValueError, TypeError):
@@ -805,6 +809,8 @@ def edit_recurring_api(request, item_id, item_type):
                 
             item.name = name
             item.amount = amount
+            item.account = account
+            item.payment_method = payment_method
             item.save()
             
             recalculate_current_month(request.user)

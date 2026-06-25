@@ -668,10 +668,10 @@
             <span class="month-label">{{ month.label }}</span>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               {% if month.total_income > 0 %}
-                <span class="month-total-spend" style="color: var(--accent-success); border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">Income: +₹{{ month.total_income|floatformat:2 }}</span>
+                <span class="month-total-spend" style="color: var(--accent-success); border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">Income: ₹{{ month.total_income|floatformat:2 }}</span>
               {% endif %}
               {% if month.total_spend > 0 or month.total_income == 0 %}
-                <span class="month-total-spend" style="color: var(--accent-danger); border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.05);">Spend: -₹{{ month.total_spend|floatformat:2 }}</span>
+                <span class="month-total-spend" style="color: var(--accent-danger); border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.05);">Spend: ₹{{ month.total_spend|floatformat:2 }}</span>
               {% endif %}
             </div>
           </div>
@@ -890,6 +890,23 @@
     </form>
   </div>
 </div>
+
+<!-- Generic Delete Modal -->
+<div class="modal-overlay" id="delete-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div style="text-align: center;">
+      <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
+      <h3 id="delete-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Confirm Action</h3>
+      <p id="delete-modal-message" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+        Are you sure you want to proceed? This action cannot be undone.
+      </p>
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="flex: 1; background: var(--accent-danger); border-color: var(--accent-danger);">Delete</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -927,7 +944,30 @@
     document.querySelectorAll('.color-bg-apply').forEach(el => {
       el.style.backgroundColor = el.getAttribute('data-color');
     });
+    const confirmBtn = document.getElementById('confirm-delete-btn');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        if (deleteActionCallback) {
+          deleteActionCallback();
+          closeDeleteModal();
+        }
+      });
+    }
   });
+
+  let deleteActionCallback = null;
+
+  function openGenericDeleteModal(title, message, callback) {
+    document.getElementById('delete-modal-title').innerText = title;
+    document.getElementById('delete-modal-message').innerText = message;
+    deleteActionCallback = callback;
+    document.getElementById('delete-modal').style.display = 'flex';
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').style.display = 'none';
+    deleteActionCallback = null;
+  }
 
   function openExpenseModal() {
     document.getElementById('expense-form').reset();
@@ -1199,91 +1239,107 @@
     }
   }
 
-  async function deleteGroup() {
-    if (!confirm('Are you sure you want to delete this group? All expenses, splits, and settlements will be permanently deleted.')) {
-      return;
-    }
-    try {
-      const res = await fetch("{% url 'api_delete_group' group_id=group.id %}", {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': '{{ csrf_token }}'
+  function deleteGroup() {
+    openGenericDeleteModal(
+      'Delete Group', 
+      'Are you sure you want to delete this group? All expenses, splits, and settlements will be permanently deleted.', 
+      async () => {
+        try {
+          const res = await fetch("{% url 'api_delete_group' group_id=group.id %}", {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            }
+          });
+          if (res.ok) {
+            window.location.href = "{% url 'groups' %}";
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete group');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error deleting group');
         }
-      });
-      if (res.ok) {
-        window.location.href = "{% url 'groups' %}";
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete group');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error deleting group');
-    }
+    );
   }
 
-  async function deleteGroupExpense(expenseId) {
-    if (!confirm('Are you sure you want to delete this expense? Split balances will be recalculated.')) {
-      return;
-    }
-    try {
-      const url = `{% url 'api_delete_group_expense' group_id=group.id expense_id=999999 %}`.replace('999999', expenseId);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': '{{ csrf_token }}'
+  function deleteGroupExpense(expenseId) {
+    openGenericDeleteModal(
+      'Delete Expense',
+      'Are you sure you want to delete this expense? Split balances will be recalculated.',
+      async () => {
+        try {
+          const url = `{% url 'api_delete_group_expense' group_id=group.id expense_id=999999 %}`.replace('999999', expenseId);
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            }
+          });
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete expense');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error deleting group expense');
         }
-      });
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete expense');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error deleting group expense');
-    }
+    );
   }
 
-  async function removeMember(memberId) {
-    if (!confirm('Are you sure you want to remove this member?')) return;
-    try {
-      const url = `{% url 'api_remove_member' group_id=group.id member_id=999999 %}`.replace('999999', memberId);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-      });
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to remove member');
+  function removeMember(memberId) {
+    openGenericDeleteModal(
+      'Remove Member',
+      'Are you sure you want to remove this member?',
+      async () => {
+        try {
+          const url = `{% url 'api_remove_member' group_id=group.id member_id=999999 %}`.replace('999999', memberId);
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+          });
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to remove member');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error removing member');
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error removing member');
-    }
+    );
   }
 
-  async function leaveGroup() {
-    if (!confirm('Are you sure you want to leave this group?')) return;
-    try {
-      const url = `{% url 'api_leave_group' group_id=group.id %}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-      });
-      if (res.ok) {
-        window.location.href = "{% url 'groups' %}";
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to leave group');
+  function leaveGroup() {
+    openGenericDeleteModal(
+      'Leave Group',
+      'Are you sure you want to leave this group?',
+      async () => {
+        try {
+          const url = `{% url 'api_leave_group' group_id=group.id %}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+          });
+          if (res.ok) {
+            window.location.href = "{% url 'groups' %}";
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to leave group');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error leaving group');
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error leaving group');
-    }
+    );
   }
 
   // Automatically expand the first month group on load

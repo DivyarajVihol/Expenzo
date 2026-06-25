@@ -50,7 +50,8 @@ def process_recurring_finance(user):
                         for inc in active_incomes:
                             PersonalExpense.objects.create(
                                 user=user, amount=inc.amount, category="Income",
-                                payment_method="Net Banking", description=f"Fixed Income: {inc.name}",
+                                payment_method=inc.payment_method, account=inc.account,
+                                description=f"Fixed Income: {inc.name}",
                                 date=process_date, month=m, year=y, is_recurring=True
                             )
 
@@ -58,7 +59,8 @@ def process_recurring_finance(user):
                         for exp in active_expenses:
                             PersonalExpense.objects.create(
                                 user=user, amount=exp.amount, category="Others",
-                                payment_method="Cash", description=f"Fixed Expense: {exp.name}",
+                                payment_method=exp.payment_method, account=exp.account,
+                                description=f"Fixed Expense: {exp.name}",
                                 date=process_date, month=m, year=y, is_recurring=True
                             )
                 except IntegrityError:
