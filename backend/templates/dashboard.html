@@ -196,7 +196,7 @@
           <div class="legend-grid">
             {% for cat in category_breakdown %}
               <div class="legend-item">
-                <span class="legend-dot" style="background-color: {{ cat.color }};"></span>
+                <span class="legend-dot color-apply" data-color="{{ cat.color|default:'#000' }}"></span>
                 <span class="legend-label">{{ cat.name }}</span>
                 <strong class="legend-value">₹{{ cat.value|floatformat:2 }} ({{ cat.percentage }}%)</strong>
               </div>
@@ -232,7 +232,7 @@
                   </div>
                 </div>
                 <div style="display: flex; align-items: center;">
-                  <span style="font-size: 1.1rem; font-weight: 700; color: {% if acc.balance >= 0 %}var(--accent-success){% else %}var(--accent-danger){% endif %};">
+                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if acc.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
                     {% if acc.balance >= 0 %}+{% endif %}₹{{ acc.balance|floatformat:2 }}
                   </span>
                 </div>
@@ -495,6 +495,12 @@
 <script>
   // Set default transaction date to today
   document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('.color-apply').forEach(el => {
+      el.style.backgroundColor = el.getAttribute('data-color');
+    });
+  });
 
   function changeFilter(val) {
     const url = new URL(window.location.href);

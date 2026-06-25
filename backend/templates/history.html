@@ -138,6 +138,9 @@
   .text-danger { color: var(--accent-danger); }
   .icon-income { color: var(--accent-success); }
   .icon-expense { color: var(--accent-primary); }
+  
+  .border-income { border: 1px solid var(--accent-success); }
+  .border-expense { border: 1px solid var(--accent-primary); }
 
   .modal-body {
     max-height: 55vh;
@@ -289,8 +292,8 @@
             <!-- Category Pills Breakdown -->
             <div class="month-breakdown-row" style="display: flex; gap: 0.5rem;">
               {% for break in month.category_breakdown %}
-                <span class="breakdown-pill" style="border: 1px solid {{ break.color }}; background: rgba(255,255,255,0.01);">
-                  <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: {{ break.color }};"></span>
+                <span class="breakdown-pill color-border-apply" data-color="{{ break.color|default:'#000' }}" style="background: rgba(255,255,255,0.01);">
+                  <span class="color-bg-apply" data-color="{{ break.color|default:'#000' }}" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%;"></span>
                   {{ break.name }}: ₹{{ break.amount|floatformat:0 }}
                 </span>
               {% endfor %}
@@ -318,7 +321,7 @@
                   <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
                   <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
                   <td data-label="Category">
-                    <span class="breakdown-pill" style="border: 1px solid {% if exp.category == 'Income' %}var(--accent-success){% else %}var(--accent-primary){% endif %}; width: fit-content; padding: 0.1rem 0.5rem;">
+                    <span class="breakdown-pill {% if exp.category == 'Income' %}border-income{% else %}border-expense{% endif %}" style="width: fit-content; padding: 0.1rem 0.5rem;">
                       {{ exp.category }}
                     </span>
                   </td>
@@ -418,6 +421,13 @@
         toggleMonth(firstKey);
       }
     {% endif %}
+
+    document.querySelectorAll('.color-border-apply').forEach(el => {
+      el.style.borderColor = el.getAttribute('data-color');
+    });
+    document.querySelectorAll('.color-bg-apply').forEach(el => {
+      el.style.backgroundColor = el.getAttribute('data-color');
+    });
   });
 
   function toggleMonth(key) {
