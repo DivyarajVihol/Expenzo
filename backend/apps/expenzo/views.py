@@ -1116,7 +1116,7 @@ def save_savings_goal_api(request):
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'POST required'}, status=405)
 
-@rate_limit(limit=3, window=600)
+@rate_limit(limit=10, window=60)
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
