@@ -341,7 +341,15 @@
             </thead>
             <tbody>
               {% for exp in month.expenses %}
-                <tr style="cursor: pointer;" onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category }}', '{{ exp.account }}', '{{ exp.payment_method }}', '{{ exp.date|date:\'Y-m-d\' }}')">
+                <tr style="cursor: pointer;" 
+                    data-id="{{ exp.id }}"
+                    data-amount="{{ exp.amount }}"
+                    data-desc="{{ exp.description }}"
+                    data-category="{{ exp.category }}"
+                    data-account="{{ exp.account }}"
+                    data-method="{{ exp.payment_method }}"
+                    data-date="{{ exp.date|date:'Y-m-d' }}"
+                    onclick="openEditPersonalModal(this.dataset.id, this.dataset.amount, this.dataset.desc, this.dataset.category, this.dataset.account, this.dataset.method, this.dataset.date)">
                   <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
                   <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
                   <td data-label="Category">
