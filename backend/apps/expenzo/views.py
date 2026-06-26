@@ -353,12 +353,13 @@ def groups_view(request):
         name = strip_tags(request.POST.get('name', ''))[:100]
         description = strip_tags(request.POST.get('description', ''))[:500]
         icon = strip_tags(request.POST.get('icon', 'users'))[:50]
+        icon_base64 = request.POST.get('icon_base64')
         
         if not name:
             return redirect('groups')
             
         # Create group and add creator as member
-        group = Group.objects.create(name=name, description=description, icon=icon, created_by=user)
+        group = Group.objects.create(name=name, description=description, icon=icon, created_by=user, icon_base64=icon_base64)
         GroupMember.objects.create(group=group, user=user, role='ADMIN')
         return redirect('group_detail', group_id=group.id)
         
@@ -552,7 +553,7 @@ def group_detail_view(request, group_id):
         net_val = round(net_balances[m.user.id], 2)
         profile_pic = None
         if hasattr(m.user, 'profile'):
-            profile_pic = m.user.profile.avatar
+            profile_pic = m.user.profile.avatar_base64 or m.user.profile.avatar
         extended_members.append({
             'id': m.user.id,
             'name': m.user.first_name if m.user.first_name else m.user.username,
@@ -661,6 +662,10 @@ def profile_view(request):
         selected_avatar = strip_tags(request.POST.get('avatar', ''))
         if selected_avatar and selected_avatar.startswith('avatar-'):
             profile.avatar = selected_avatar[:255]
+            
+        avatar_base64 = request.POST.get('avatar_base64')
+        if avatar_base64:
+            profile.avatar_base64 = avatar_base64
 
         profile.phone = strip_tags(request.POST.get('phone', ''))[:20]
         profile.bio = strip_tags(request.POST.get('bio', ''))[:500]
@@ -1232,6 +1237,9 @@ def edit_group_api(request, group_id):
                 body = json.loads(request.body)
                 name = strip_tags(body.get('name', '')).strip()[:100]
                 description = strip_tags(body.get('description', '')).strip()[:500]
+                icon_base64 = body.get('icon_base64')
+                if icon_base64:
+                    group.icon_base64 = icon_base64
             else:
                 name = strip_tags(request.POST.get('name', '')).strip()[:100]
                 description = strip_tags(request.POST.get('description', '')).strip()[:500]

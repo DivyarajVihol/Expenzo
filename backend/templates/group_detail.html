@@ -342,7 +342,9 @@
       </a>
       <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
         <div class="group-icon-display" style="width: 72px; height: 72px; border-radius: 16px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-          {% if '/' in group.icon %}
+          {% if group.icon_base64 %}
+            <img src="{{ group.icon_base64 }}" alt="{{ group.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+          {% elif '/' in group.icon %}
             <img src="{{ group.icon }}" alt="{{ group.name }}" style="width: 100%; height: 100%; object-fit: cover;">
           {% else %}
             <i data-lucide="{{ group.icon|default:'users' }}" style="width: 32px; height: 32px; color: var(--accent-primary);"></i>
@@ -575,6 +577,52 @@
           <div class="form-group">
             <label class="form-label">Description</label>
             <textarea id="edit-group-desc" class="input-control" rows="3" style="resize: none;">{{ group.description|default:'' }}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Group Icon</label>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="edit-icon" value="users" {% if group.icon == 'users' and not group.icon_base64 %}checked{% endif %} style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="users" style="width: 24px; height: 24px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="edit-icon" value="home" {% if group.icon == 'home' and not group.icon_base64 %}checked{% endif %} style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="home" style="width: 24px; height: 24px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="edit-icon" value="plane" {% if group.icon == 'plane' and not group.icon_base64 %}checked{% endif %} style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="plane" style="width: 24px; height: 24px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="edit-icon" value="briefcase" {% if group.icon == 'briefcase' and not group.icon_base64 %}checked{% endif %} style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="briefcase" style="width: 24px; height: 24px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="edit-icon" value="coffee" {% if group.icon == 'coffee' and not group.icon_base64 %}checked{% endif %} style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="coffee" style="width: 24px; height: 24px;"></i>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label class="form-label">Or Upload Custom Image</label>
+            <input type="hidden" id="edit-group-icon-base64" value="">
+            <input type="file" id="group_icon_file_input" accept="image/*" style="display: none;" onchange="handleGroupIconUpload(this)">
+            <button type="button" onclick="document.getElementById('group_icon_file_input').click()" class="btn btn-secondary" style="width: 100%; padding: 0.75rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+              <i data-lucide="upload" style="width: 18px; height: 18px;"></i>
+              Choose Custom Image
+            </button>
+            <img id="group-icon-preview" src="" style="width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 10px; display: none; margin-left: auto; margin-right: auto;">
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%;">Save Changes</button>
         </form>
@@ -869,45 +917,7 @@
   </div>
 </div>
 
-<!-- Edit Group Modal -->
-<div class="modal-overlay" id="edit-group-modal" style="display: none;">
-  <div class="modal-content" style="max-width: 400px;">
-    <div class="modal-header">
-      <h3 class="chart-card-title">Edit Group Details</h3>
-      <button onclick="closeEditGroupModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
-        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
-      </button>
-    </div>
-    <form id="edit-group-form" onsubmit="submitEditGroup(event)">
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Group Name</label>
-          <input
-            type="text"
-            id="edit-group-name"
-            class="input-control"
-            value="{{ group.name }}"
-            required
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Description</label>
-          <textarea
-            id="edit-group-desc"
-            class="input-control"
-            rows="3"
-            style="resize: none; background: #0d121f;"
-            placeholder="e.g. Shared flat bills, Trip expenses"
-          >{{ group.description|default:'' }}</textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeEditGroupModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-      </div>
-    </form>
-  </div>
-</div>
+
 
 <!-- Generic Delete Modal -->
 <div class="modal-overlay" id="delete-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
@@ -1227,6 +1237,54 @@
     document.getElementById('edit-group-modal').style.display = 'flex';
   }
 
+  function handleGroupIconUpload(input) {
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 250;
+          const MAX_HEIGHT = 250;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const dataUrl = canvas.toDataURL('image/webp', 0.8);
+          document.getElementById('edit-group-icon-base64').value = dataUrl;
+          
+          const previewImg = document.getElementById('group-icon-preview');
+          if (previewImg) {
+            previewImg.src = dataUrl;
+            previewImg.style.display = 'block';
+          }
+          
+          // Uncheck radios
+          const radios = document.querySelectorAll('input[name="edit-icon"]');
+          radios.forEach(r => r.checked = false);
+        }
+        img.src = e.target.result;
+      }
+      reader.readAsDataURL(file);
+    }
+  }
+
   function closeEditGroupModal() {
     document.getElementById('edit-group-modal').style.display = 'none';
   }
@@ -1235,6 +1293,9 @@
     e.preventDefault();
     const name = document.getElementById('edit-group-name').value;
     const description = document.getElementById('edit-group-desc').value;
+    const icon_base64 = document.getElementById('edit-group-icon-base64').value;
+    const iconRadio = document.querySelector('input[name="edit-icon"]:checked');
+    const icon = iconRadio ? iconRadio.value : '';
     
     try {
       const res = await fetch("{% url 'api_edit_group' group_id=group.id %}", {
@@ -1243,7 +1304,7 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({ name, description })
+        body: JSON.stringify({ name, description, icon_base64, icon })
       });
       if (res.ok) {
         window.location.reload();
