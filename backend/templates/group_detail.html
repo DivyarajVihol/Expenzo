@@ -576,11 +576,6 @@
             <label class="form-label">Description</label>
             <textarea id="edit-group-desc" class="input-control" rows="3" style="resize: none;">{{ group.description|default:'' }}</textarea>
           </div>
-          <div class="form-group">
-            <label class="form-label">Custom Group Icon (Optional)</label>
-            <input type="file" id="edit-group-icon" class="input-control" accept="image/png, image/jpeg, image/webp" />
-            <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">Upload an image (JPG, PNG, WEBP) to override the default icon. Max size: 5MB.</small>
-          </div>
           <button type="submit" class="btn btn-primary" style="width: 100%;">Save Changes</button>
         </form>
       </div>
@@ -1235,22 +1230,14 @@
     const name = document.getElementById('edit-group-name').value;
     const description = document.getElementById('edit-group-desc').value;
     
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('description', description);
-    
-    const iconFileInput = document.getElementById('edit-group-icon');
-    if (iconFileInput && iconFileInput.files[0]) {
-      formData.append('icon_file', iconFileInput.files[0]);
-    }
-
     try {
       const res = await fetch("{% url 'api_edit_group' group_id=group.id %}", {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: formData
+        body: JSON.stringify({ name, description })
       });
       if (res.ok) {
         window.location.reload();

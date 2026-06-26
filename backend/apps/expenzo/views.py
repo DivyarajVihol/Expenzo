@@ -659,20 +659,9 @@ def profile_view(request):
         if request.POST.get('remove_avatar') == 'true':
             profile.avatar = ''
             
-        # Handle avatar file upload
-        if 'avatar_file' in request.FILES:
-            avatar_file = request.FILES['avatar_file']
-            allowed_types = ['image/jpeg', 'image/png', 'image/webp']
-            if avatar_file.content_type in allowed_types and avatar_file.size <= 5 * 1024 * 1024:
-                fs = FileSystemStorage(location='media/avatars/')
-                ext = avatar_file.name.split('.')[-1]
-                filename = f"user_{user.id}_{int(django_timezone.now().timestamp())}.{ext}"
-                saved_name = fs.save(filename, avatar_file)
-                profile.avatar = f"/media/avatars/{saved_name}"
-        else:
-            selected_avatar = strip_tags(request.POST.get('avatar', ''))
-            if selected_avatar and selected_avatar.startswith('avatar-'):
-                profile.avatar = selected_avatar[:255]
+        selected_avatar = strip_tags(request.POST.get('avatar', ''))
+        if selected_avatar and selected_avatar.startswith('avatar-'):
+            profile.avatar = selected_avatar[:255]
 
         profile.phone = strip_tags(request.POST.get('phone', ''))[:20]
         profile.bio = strip_tags(request.POST.get('bio', ''))[:500]
@@ -1287,18 +1276,7 @@ def edit_group_api(request, group_id):
             group.name = name
             group.description = description
             
-            # Handle icon file upload
-            if 'icon_file' in request.FILES:
-                icon_file = request.FILES['icon_file']
-                allowed_types = ['image/jpeg', 'image/png', 'image/webp']
-                if icon_file.content_type in allowed_types and icon_file.size <= 5 * 1024 * 1024:
-                    from django.core.files.storage import FileSystemStorage
-                    import time
-                    fs = FileSystemStorage(location='media/group_icons/')
-                    ext = icon_file.name.split('.')[-1]
-                    filename = f"group_{group.id}_{int(time.time())}.{ext}"
-                    saved_name = fs.save(filename, icon_file)
-                    group.icon = f"/media/group_icons/{saved_name}"
+
 
             group.save()
             return JsonResponse({'status': 'success'})
