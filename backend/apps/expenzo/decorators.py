@@ -11,7 +11,12 @@ def rate_limit(limit=10, window=60):
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
-            ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(',')[0].strip()
+            else:
+                ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+            
             cache_key = f"rl_{view_func.__name__}_{ip}"
             
             count = cache.get(cache_key)
