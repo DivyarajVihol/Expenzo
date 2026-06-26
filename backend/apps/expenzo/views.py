@@ -710,10 +710,7 @@ def add_expense_api(request):
             txn_date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
             txn_date = django_timezone.make_aware(txn_date)
             
-            # Check month restriction
             now = django_timezone.now()
-            if txn_date.month != now.month or txn_date.year != now.year:
-                return JsonResponse({'error': 'You can only add transactions for the current month.'}, status=400)
                 
             expense = PersonalExpense.objects.create(
                 user=request.user,
