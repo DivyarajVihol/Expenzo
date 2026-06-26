@@ -713,6 +713,7 @@
                   <th>Category</th>
                   <th>Paid By</th>
                   <th style="text-align: right;">Amount</th>
+                  <th style="text-align: right; width: 50px;"></th>
                 </tr>
               </thead>
               <tbody>
@@ -736,6 +737,11 @@
                     </td>
                     <td data-label="Amount" style="text-align: right;" class="amount-expense">
                       ₹{{ exp.amount|floatformat:2 }}
+                    </td>
+                    <td data-label="Actions" style="text-align: right;">
+                      <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;">
+                        <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
+                      </button>
                     </td>
                   </tr>
                 {% endfor %}

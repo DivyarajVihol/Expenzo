@@ -1058,8 +1058,8 @@ def add_settlement_api(request, group_id):
                 return JsonResponse({'error': 'Unauthorized: You are not a member of this group'}, status=403)
             body = json.loads(request.body)
             
-            from_user_id = body.get('fromUserId')
-            to_user_id = body.get('toUserId')
+            from_user_id = int(body.get('fromUserId'))
+            to_user_id = int(body.get('toUserId'))
             try:
                 amount = float(body.get('amount'))
             except (ValueError, TypeError):
