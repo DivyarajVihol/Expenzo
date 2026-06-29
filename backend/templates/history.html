@@ -397,7 +397,7 @@
         </div>
         <div class="form-group" id="tx-category-group">
           <label class="form-label">Category</label>
-          <select id="tx-category" class="input-control" style="background: #0d121f;">
+          <select id="tx-category" class="input-control" style="background: #0d121f;" onchange="toggleCustomCategoryInput()">
             <option value="Food">Food</option>
             <option value="Travel">Travel</option>
             <option value="Shopping">Shopping</option>
@@ -409,7 +409,9 @@
             <option value="Investment">Investment</option>
             <option value="Others">Others</option>
             <option value="Income">Income</option>
+            <option value="__CUSTOM__">Custom Category...</option>
           </select>
+          <input type="text" id="tx-custom-category" class="input-control" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />
         </div>
         <div class="form-group">
           <label class="form-label">Account</label>
@@ -505,11 +507,39 @@
     }
   }
 
+  function toggleCustomCategoryInput() {
+    const categorySelect = document.getElementById('tx-category');
+    const customInput = document.getElementById('tx-custom-category');
+    if (categorySelect.value === '__CUSTOM__') {
+      customInput.style.display = 'block';
+      customInput.required = true;
+    } else {
+      customInput.style.display = 'none';
+      customInput.required = false;
+    }
+  }
+
   function openEditPersonalModal(id, amount, description, category, account, paymentMethod, date) {
     document.getElementById('tx-id').value = id;
     document.getElementById('tx-amount').value = amount;
     document.getElementById('tx-description').value = description;
-    document.getElementById('tx-category').value = category;
+    
+    const isStandardCategory = ["Food", "Travel", "Shopping", "Entertainment", "Rent", "Utilities", "Health", "Education", "Investment", "Others", "Income"].includes(category);
+    const categorySelect = document.getElementById('tx-category');
+    const customCategoryInput = document.getElementById('tx-custom-category');
+    
+    if (isStandardCategory) {
+      categorySelect.value = category;
+      customCategoryInput.style.display = 'none';
+      customCategoryInput.value = '';
+      customCategoryInput.required = false;
+    } else {
+      categorySelect.value = '__CUSTOM__';
+      customCategoryInput.style.display = 'block';
+      customCategoryInput.value = category;
+      customCategoryInput.required = true;
+    }
+    
     document.getElementById('tx-account').value = account;
     
     const paymentSelect = document.getElementById('tx-payment');
@@ -556,7 +586,10 @@
     const id = document.getElementById('tx-id').value;
     const amount = document.getElementById('tx-amount').value;
     const description = document.getElementById('tx-description').value;
-    const category = document.getElementById('tx-category').value;
+    let category = document.getElementById('tx-category').value;
+    if (category === '__CUSTOM__') {
+      category = document.getElementById('tx-custom-category').value.trim() || 'Others';
+    }
     const account = document.getElementById('tx-account').value;
     const paymentMethod = document.getElementById('tx-payment').value;
     const date = document.getElementById('tx-date').value;

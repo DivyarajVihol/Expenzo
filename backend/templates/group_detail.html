@@ -812,6 +812,7 @@
                         {
                           "amount": {{ exp.amount }},
                           "description": "{{ exp.description|escapejs }}",
+                          "category": "{{ exp.category|escapejs }}",
                           "date": "{{ exp.date|date:"Y-m-d" }}",
                           "payers": [
                             {% if exp.payments.all %}
@@ -909,6 +910,23 @@
           <label class="form-label">Date</label>
           <input type="date" id="exp-date" class="input-control" value="{% now 'Y-m-d' %}" required />
         </div>
+        <div class="form-group" id="group-category-group">
+          <label class="form-label">Category</label>
+          <select id="group-category" class="input-control" style="background: #0d121f;" required onchange="toggleGroupCustomCategoryInput()">
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Rent">Rent</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Health">Health</option>
+            <option value="Education">Education</option>
+            <option value="Investment">Investment</option>
+            <option value="Others" selected>Others</option>
+            <option value="__CUSTOM__">Custom Category...</option>
+          </select>
+          <input type="text" id="group-custom-category" class="input-control" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />
+        </div>
         <div class="form-group">
           <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
             Paid By
@@ -980,10 +998,39 @@
     </div>
   </div>
 </div>
+
+<!-- Custom Warning Modal -->
+<div class="modal-overlay" id="warning-modal" style="display: none; align-items: center; justify-content: center; z-index: 2000;">
+  <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div style="text-align: center;">
+      <i data-lucide="alert-circle" style="width: 48px; height: 48px; color: #fbbf24; margin-bottom: 1rem;"></i>
+      <h3 id="warning-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Warning</h3>
+      <p id="warning-modal-message" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+        Warning details.
+      </p>
+    </div>
+    <div style="display: flex; justify-content: center;">
+      <button type="button" class="btn btn-primary" onclick="closeWarningModal()" style="width: 100%;">OK</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+  function showWarningModal(title, message) {
+    const loader = document.getElementById('global-loader');
+    if (loader) loader.classList.remove('active');
+    
+    document.getElementById('warning-modal-title').innerText = title;
+    document.getElementById('warning-modal-message').innerText = message;
+    document.getElementById('warning-modal').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  function closeWarningModal() {
+    document.getElementById('warning-modal').style.display = 'none';
+  }
   function switchTab(tabName) {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
@@ -1042,9 +1089,24 @@
     deleteActionCallback = null;
   }
 
+  function toggleGroupCustomCategoryInput() {
+    const categorySelect = document.getElementById('group-category');
+    const customInput = document.getElementById('group-custom-category');
+    if (categorySelect.value === '__CUSTOM__') {
+      customInput.style.display = 'block';
+      customInput.required = true;
+    } else {
+      customInput.style.display = 'none';
+      customInput.required = false;
+    }
+  }
+
   function openExpenseModal() {
     document.getElementById('expense-form').reset();
     document.getElementById('exp-id').value = '';
+    document.getElementById('group-category').value = 'Others';
+    document.getElementById('group-custom-category').style.display = 'none';
+    document.getElementById('group-custom-category').value = '';
     document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
     if (document.getElementById('exp-date').customCalendar) {
       document.getElementById('exp-date').customCalendar.resetToOriginal();
@@ -1072,6 +1134,23 @@
     
     document.getElementById('exp-amount').value = data.amount;
     document.getElementById('exp-desc').value = data.description;
+    
+    const isStandardCategory = ["Food", "Travel", "Shopping", "Entertainment", "Rent", "Utilities", "Health", "Education", "Investment", "Others"].includes(data.category);
+    const categorySelect = document.getElementById('group-category');
+    const customCategoryInput = document.getElementById('group-custom-category');
+    
+    if (isStandardCategory) {
+      categorySelect.value = data.category || 'Others';
+      customCategoryInput.style.display = 'none';
+      customCategoryInput.value = '';
+      customCategoryInput.required = false;
+    } else {
+      categorySelect.value = '__CUSTOM__';
+      customCategoryInput.style.display = 'block';
+      customCategoryInput.value = data.category || '';
+      customCategoryInput.required = true;
+    }
+    
     document.getElementById('exp-date').value = data.date;
     if (document.getElementById('exp-date').customCalendar) {
       document.getElementById('exp-date').customCalendar.resetToOriginal();
@@ -1087,11 +1166,22 @@
     });
 
     const splitTypeSelect = document.getElementById('exp-split-type');
-    splitTypeSelect.value = 'EXACT';
-    toggleSplitInputs('EXACT');
+    splitTypeSelect.value = 'EQUAL';
+    toggleSplitInputs('EQUAL');
     
+    // Reset all split checkboxes
+    document.querySelectorAll('.split-member-checkbox').forEach(cb => {
+      cb.checked = false;
+    });
+
     document.querySelectorAll('.exact-input').forEach(i => i.value = '');
     data.splits.forEach(split => {
+      // Check the checkbox for this member
+      const cb = document.querySelector(`.split-member-checkbox[value="${split.userId}"]`);
+      if (cb) {
+        cb.checked = true;
+      }
+      
       const input = document.querySelector(`.exact-input[data-user-id="${split.userId}"]`);
       if (input) {
         input.value = split.amount;
@@ -1165,25 +1255,41 @@
     const description = document.getElementById('exp-desc').value;
     const date = document.getElementById('exp-date').value;
     const splitType = document.getElementById('exp-split-type').value;
+    let category = document.getElementById('group-category').value;
+    if (category === '__CUSTOM__') {
+      category = document.getElementById('group-custom-category').value.trim() || 'Others';
+    }
 
     let payers = [];
     let sumPayers = 0;
+    let missingPayerAmount = false;
     document.querySelectorAll('.payer-row').forEach(row => {
       const userId = row.querySelector('.payer-select').value;
       const payerAmt = parseFloat(row.querySelector('.payer-amount').value) || 0;
-      if (payerAmt > 0) {
-        payers.push({ userId, amount: payerAmt });
-        sumPayers += payerAmt;
+      if (payerAmt <= 0) {
+        missingPayerAmount = true;
       }
+      payers.push({ userId, amount: payerAmt });
+      sumPayers += payerAmt;
     });
 
     if (payers.length === 0) {
-      alert("Please enter at least one valid payment amount.");
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      showWarningModal("Payment Error", "Please enter at least one valid payment amount.");
+      return;
+    }
+    if (missingPayerAmount) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      showWarningModal("Payment Error", "Please enter a valid payment amount for all payers.");
       return;
     }
 
     if (Math.abs(sumPayers - amount) > 0.05) {
-      alert(`Sum of payments (₹${sumPayers.toFixed(2)}) must equal total amount (₹${amount.toFixed(2)})`);
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      showWarningModal("Amount Mismatch", `Sum of payments (₹${sumPayers.toFixed(2)}) does not match the total amount (₹${amount.toFixed(2)}). Please adjust the payment amounts.`);
       return;
     }
 
@@ -1191,7 +1297,9 @@
     if (splitType === 'EQUAL') {
       const checkedBoxes = document.querySelectorAll('.split-member-checkbox:checked');
       if (checkedBoxes.length === 0) {
-        alert('Please select at least one participating member.');
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showWarningModal("Split Error", 'Please select at least one participating member.');
         return;
       }
       checkedBoxes.forEach(cb => {
@@ -1199,28 +1307,56 @@
       });
     } else if (splitType === 'EXACT') {
       let sum = 0;
-      document.querySelectorAll('.exact-input').forEach(input => {
-        const val = parseFloat(input.value) || 0;
-        if (val > 0) {
-          splits.push({ userId: input.dataset.userId, amount: val });
+      let missingValue = false;
+      document.querySelectorAll('.split-member-checkbox:checked').forEach(cb => {
+        const userId = cb.value;
+        const input = document.querySelector(`.exact-input[data-user-id="${userId}"]`);
+        if (input) {
+          const val = parseFloat(input.value) || 0;
+          if (val <= 0) {
+            missingValue = true;
+          }
+          splits.push({ userId: userId, amount: val });
           sum += val;
         }
       });
+      if (missingValue) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showWarningModal("Split Error", "Please enter a valid amount for all selected split members.");
+        return;
+      }
       if (Math.abs(sum - amount) > 0.05) {
-        alert(`Sum of exact values (₹${sum}) must equal total amount (₹${amount})`);
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showWarningModal("Split Mismatch", `Sum of exact values (₹${sum.toFixed(2)}) does not match the total amount (₹${amount.toFixed(2)}). Please adjust the split amounts.`);
         return;
       }
     } else if (splitType === 'PERCENTAGE') {
       let sumPct = 0;
-      document.querySelectorAll('.pct-input').forEach(input => {
-        const val = parseFloat(input.value) || 0;
-        if (val > 0) {
-          splits.push({ userId: input.dataset.userId, percentage: val });
+      let missingValue = false;
+      document.querySelectorAll('.split-member-checkbox:checked').forEach(cb => {
+        const userId = cb.value;
+        const input = document.querySelector(`.pct-input[data-user-id="${userId}"]`);
+        if (input) {
+          const val = parseFloat(input.value) || 0;
+          if (val <= 0) {
+            missingValue = true;
+          }
+          splits.push({ userId: userId, percentage: val });
           sumPct += val;
         }
       });
+      if (missingValue) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showWarningModal("Split Error", "Please enter a valid percentage for all selected split members.");
+        return;
+      }
       if (Math.abs(sumPct - 100) > 0.05) {
-        alert(`Sum of percentages (${sumPct}%) must equal 100%`);
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showWarningModal("Split Mismatch", `Sum of percentages (${sumPct}%) does not match 100%. Please adjust the split percentages.`);
         return;
       }
     }
@@ -1236,7 +1372,7 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: JSON.stringify({ amount, description, payers, splitType, splits, date })
+        body: JSON.stringify({ amount, description, category, payers, splitType, splits, date })
       });
       if (res.ok) {
         window.location.reload();

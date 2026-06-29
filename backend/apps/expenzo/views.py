@@ -922,7 +922,7 @@ def add_group_expense_api(request, group_id):
                 paid_by=first_payer, # fallback for older records
                 amount=amount,
                 description=description,
-                category=guessed_category,
+                category=strip_tags(body.get('category', '')).strip() or guessed_category,
                 date=txn_date
             )
             
@@ -1022,6 +1022,26 @@ def edit_group_expense_api(request, group_id, expense_id):
             # Update expense object
             group_expense.amount = amount
             group_expense.description = description
+            
+            category = strip_tags(body.get('category', '')).strip()
+            if not category:
+                desc_lower = description.lower()
+                guessed_category = "Others"
+                if any(w in desc_lower for w in ["food", "grocery", "dinner", "lunch", "restaurant", "cafe"]):
+                    guessed_category = "Food"
+                elif any(w in desc_lower for w in ["travel", "cab", "trip", "fuel", "car", "flight"]):
+                    guessed_category = "Travel"
+                elif any(w in desc_lower for w in ["rent", "flat", "room"]):
+                    guessed_category = "Rent"
+                elif any(w in desc_lower for w in ["electricity", "bill", "water", "utility"]):
+                    guessed_category = "Utilities"
+                elif any(w in desc_lower for w in ["movie", "concert", "show", "party", "entertainment"]):
+                    guessed_category = "Entertainment"
+                elif any(w in desc_lower for w in ["shop", "clothes", "shoes", "mall"]):
+                    guessed_category = "Shopping"
+                category = guessed_category
+                
+            group_expense.category = category
             group_expense.date = txn_date
             group_expense.paid_by = first_payer
             group_expense.save()
