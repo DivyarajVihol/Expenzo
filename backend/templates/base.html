@@ -164,7 +164,7 @@
             document.querySelectorAll('a').forEach(link => {
                 link.addEventListener('click', (e) => {
                     const href = link.getAttribute('href');
-                    if (href && !href.startsWith('#') && !href.startsWith('javascript') && link.target !== '_blank') {
+                    if (href && !href.startsWith('#') && !href.startsWith('javascript') && link.target !== '_blank' && !link.hasAttribute('download')) {
                         // Prevent triggering if opening in new tab
                         if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
                             // Small timeout to prevent flashing on instant loads
