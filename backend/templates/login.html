@@ -1,85 +1,680 @@
-{% extends 'base.html' %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - EXPENZO</title>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-color: #09090B;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --primary-grad: linear-gradient(135deg, #6366F1, #8B5CF6);
+      --accent-color: #06B6D4;
+      --text-primary: #FFFFFF;
+      --text-secondary: #94A3B8;
+      --input-bg: rgba(15, 23, 42, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --success: #22C55E;
+      --error: #EF4444;
+    }
 
-{% block title %}Sign In - EXPENZO{% endblock %}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
 
-{% block content %}
-<div style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
-  <div class="glass-card" style="width: 100%; max-width: 450px; padding: 2.5rem;">
-    <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem;">
-      <div class="card-icon-wrapper" style="color: var(--accent-primary);">
-        <i data-lucide="wallet" style="width: 32px; height: 32px;"></i>
-      </div>
-      <h1 class="page-title" style="font-size: 1.75rem; margin-bottom: 0.25rem;">Welcome Back</h1>
-      <p class="page-subtitle">Login to access your financial dashboard</p>
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Immersive Fintech Background */
+    .bg-wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 20%, #1E1B4B 0%, #111827 50%, #09090B 100%);
+    }
+
+    /* Glowing Grid */
+    .bg-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: 50px 50px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      mask-image: radial-gradient(circle at 50% 40%, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at 50% 40%, black 30%, transparent 80%);
+      z-index: 2;
+    }
+
+    /* Floating Fintech Elements around edges */
+    .bg-icon-el {
+      position: absolute;
+      z-index: 3;
+      opacity: 0.16;
+      filter: blur(1px) drop-shadow(0 0 15px rgba(99, 102, 241, 0.45));
+      pointer-events: none;
+      animation: floatIcon 8s infinite ease-in-out;
+    }
+
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(2deg); }
+    }
+
+    .el-bank { top: 10%; left: 5%; width: 100px; height: 100px; }
+    .el-wallet { top: 45%; left: 4%; width: 90px; height: 90px; animation-delay: -2s; }
+    .el-card { bottom: 12%; left: 6%; width: 110px; height: 110px; animation-delay: -4s; }
+    .el-coins { bottom: 10%; right: 6%; width: 95px; height: 95px; animation-delay: -1s; }
+    .el-safe { top: 48%; right: 4%; width: 100px; height: 100px; animation-delay: -3s; }
+    .el-chart-bar { top: 12%; right: 5%; width: 100px; height: 100px; animation-delay: -5s; }
+
+    /* Screen Layout Overlay */
+    .screen-overlay {
+      position: relative;
+      z-index: 20;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem 2rem 1.5rem;
+    }
+
+    /* Top Branding */
+    .branding {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .logo-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon-wrapper {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8B5CF6;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .branding-name {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 4px;
+      background: linear-gradient(to right, #FFFFFF, #94A3B8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-top: 0.5rem;
+    }
+
+    .branding-tagline {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      margin-top: 0.25rem;
+    }
+
+    /* Center Isometric Illustration */
+    .center-illustration {
+      width: 100%;
+      max-width: 320px;
+      height: 180px;
+      margin-bottom: 1.5rem;
+      animation: float 7s infinite ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    /* Glassmorphic Card */
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 2.25rem 2rem;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      margin-bottom: 2rem;
+      animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Input Styling */
+    .form-group {
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 1.25rem;
+      color: var(--text-secondary);
+      pointer-events: none;
+      width: 18px;
+      height: 18px;
+      transition: color 0.3s;
+    }
+
+    .input-field {
+      width: 100%;
+      height: 52px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 0 1rem 0 3rem;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .input-field:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .input-field:focus + .input-icon {
+      color: var(--accent-color);
+    }
+
+    .input-field::placeholder {
+      color: #94A3B8;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    .input-field:focus::placeholder {
+      transform: translateY(-4px);
+      opacity: 0.5;
+    }
+
+    .toggle-pass-btn {
+      position: absolute;
+      right: 1.25rem;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .options-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: -0.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+
+    .checkbox-control {
+      accent-color: var(--accent-color);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .forgot-link:hover {
+      color: var(--accent-color);
+    }
+
+    /* Button Primary */
+    .btn-primary {
+      width: 100%;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--primary-grad);
+      border: none;
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0) scale(1);
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin: 1.5rem 0;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .divider:not(:empty)::before {
+      margin-right: 1rem;
+    }
+
+    .divider:not(:empty)::after {
+      margin-left: 1rem;
+    }
+
+    /* Social logins grid */
+    .social-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .btn-social {
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .btn-social:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-social svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Footer Navigation */
+    .auth-footer {
+      text-align: center;
+      margin-top: 1.75rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .auth-footer-link {
+      color: var(--accent-color);
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 0.25rem;
+      transition: text-shadow 0.2s;
+    }
+
+    .auth-footer-link:hover {
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    }
+
+    /* Feedback Alerts */
+    .alert {
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid transparent;
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: var(--error);
+    }
+
+    .alert-success {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+    }
+
+    /* Animated Digital Particles */
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      opacity: 0.5;
+      animation: floatParticle 6s infinite linear;
+    }
+
+    @keyframes floatParticle {
+      0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+      50% { opacity: 0.6; }
+      100% { transform: translateY(-10vh) translateX(50px); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Layer Wrapper -->
+  <div class="bg-wrapper">
+    <div class="bg-grid"></div>
+    <div id="particles-container" style="position: absolute; width: 100%; height: 100%; z-index: 2;"></div>
+
+    <!-- 1. Bank Icon (Top-Left) -->
+    <div class="bg-icon-el el-bank">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 35 L50 15 L85 35 Z" fill="none" stroke="#06B6D4" stroke-width="4"/>
+        <rect x="22" y="42" width="8" height="30" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <rect x="38" y="42" width="8" height="30" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <rect x="54" y="42" width="8" height="30" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <rect x="70" y="42" width="8" height="30" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <rect x="10" y="72" width="80" height="10" rx="3" fill="none" stroke="#06B6D4" stroke-width="4"/>
+      </svg>
     </div>
 
-    {% if error %}
-      <div style="background: rgba(244, 63, 94, 0.1); border: 1px solid var(--accent-danger); color: var(--accent-danger); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.9rem;">
-        {{ error|linebreaksbr }}
-      </div>
-    {% endif %}
-    {% if message %}
-      <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-success); color: var(--accent-success); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.9rem;">
-        {{ message|linebreaksbr }}
-      </div>
-    {% endif %}
+    <!-- 2. Wallet Icon (Middle-Left) -->
+    <div class="bg-icon-el el-wallet">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect x="15" y="25" width="70" height="50" rx="8" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <path d="M 55 25 L 55 75" stroke="#06B6D4" stroke-width="3" stroke-dasharray="6 4"/>
+        <circle cx="70" cy="50" r="7" fill="none" stroke="#6366F1" stroke-width="3"/>
+      </svg>
+    </div>
 
-    <form method="POST" action="{% url 'login' %}">
-      {% csrf_token %}
-      <div class="form-group">
-        <label class="form-label">Email Address</label>
-        <input
-          type="email"
-          name="email"
-          class="input-control"
-          placeholder="john@example.com"
-          required
-        />
-      </div>
+    <!-- 3. Credit Card Icon (Bottom-Left) -->
+    <div class="bg-icon-el el-card">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="25" width="80" height="50" rx="6" fill="none" stroke="#06B6D4" stroke-width="4"/>
+        <rect x="20" y="37" width="16" height="10" fill="#6366F1"/>
+        <line x1="20" y1="58" x2="60" y2="58" stroke="#6366F1" stroke-width="4" stroke-linecap="round"/>
+        <line x1="20" y1="66" x2="40" y2="66" stroke="#6366F1" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
 
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <div style="position: relative;">
-          <input
-            type="password"
-            name="password"
-            id="login-password"
-            class="input-control"
-            placeholder="••••••••"
-            required
-            style="padding-right: 2.5rem;"
-          />
-          <button type="button" onclick="togglePassword('login-password', this)" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0; display: flex;">
-            <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
-          </button>
-        </div>
-      </div>
+    <!-- 4. Coin Stack Icon (Bottom-Right) -->
+    <div class="bg-icon-el el-coins">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="50" cy="40" rx="28" ry="10" fill="none" stroke="#06B6D4" stroke-width="4"/>
+        <path d="M22 40 V52 C22 60 34 62 50 62 C66 62 78 60 78 52 V40" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <path d="M22 52 V64 C22 72 34 74 50 74 C66 74 78 72 78 64 V52" fill="none" stroke="#06B6D4" stroke-width="4"/>
+        <path d="M22 64 V76 C22 84 34 86 50 86 C66 86 78 84 78 76 V64" fill="none" stroke="#6366F1" stroke-width="4"/>
+      </svg>
+    </div>
 
-      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
-        <span>Sign In</span>
-      </button>
+    <!-- 5. Safe Vault Icon (Middle-Right) -->
+    <div class="bg-icon-el el-safe">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="60" height="60" rx="8" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <circle cx="50" cy="50" r="16" fill="none" stroke="#06B6D4" stroke-width="4"/>
+        <line x1="50" y1="34" x2="50" y2="40" stroke="#06B6D4" stroke-width="3"/>
+        <line x1="50" y1="60" x2="50" y2="66" stroke="#06B6D4" stroke-width="3"/>
+        <line x1="34" y1="50" x2="40" y2="50" stroke="#06B6D4" stroke-width="3"/>
+        <line x1="60" y1="50" x2="66" y2="50" stroke="#06B6D4" stroke-width="3"/>
+      </svg>
+    </div>
 
-      <p style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
-        Don't have an account? 
-        <a href="{% url 'register' %}" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">Sign up free</a>
-      </p>
-    </form>
+    <!-- 6. Bar Chart Icon (Top-Right) -->
+    <div class="bg-icon-el el-chart-bar">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <line x1="15" y1="85" x2="85" y2="85" stroke="#06B6D4" stroke-width="4" stroke-linecap="round"/>
+        <line x1="15" y1="15" x2="15" y2="85" stroke="#06B6D4" stroke-width="4" stroke-linecap="round"/>
+        <rect x="25" y="55" width="12" height="30" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <rect x="45" y="35" width="12" height="50" fill="none" stroke="#6366F1" stroke-width="4"/>
+        <rect x="65" y="20" width="12" height="65" fill="none" stroke="#6366F1" stroke-width="4"/>
+      </svg>
+    </div>
   </div>
-</div>
-<script>
-function togglePassword(inputId, btn) {
-  const input = document.getElementById(inputId);
-  if (input.type === 'password') {
-    input.type = 'text';
-    btn.innerHTML = '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i>';
-  } else {
-    input.type = 'password';
-    btn.innerHTML = '<i data-lucide="eye" style="width: 18px; height: 18px;"></i>';
-  }
-  if (window.lucide) {
+
+  <!-- Screen Content Overlay -->
+  <div class="screen-overlay">
+    <!-- Top Branding -->
+    <header class="branding">
+      <div class="logo-container">
+        <div class="logo-icon-wrapper">
+          <i data-lucide="trending-up" style="width: 24px; height: 24px;"></i>
+        </div>
+        <h1 class="branding-name">EXPENZO</h1>
+        <p class="branding-tagline">Track Smarter. Spend Better. Save More.</p>
+      </div>
+    </header>
+
+    <!-- Center Isometric Illustration -->
+    <div class="center-illustration">
+      <svg viewBox="0 0 320 180" width="100%" height="100%" style="overflow: visible;">
+        <!-- Glowing Shadow Base -->
+        <ellipse cx="160" cy="155" rx="90" ry="15" fill="rgba(99, 102, 241, 0.15)" filter="blur(15px)"/>
+        
+        <!-- Isometric Smartphone -->
+        <g transform="translate(110, 10) skewX(-20) rotate(10) scale(0.8)">
+          <!-- Phone Body -->
+          <rect x="0" y="0" width="110" height="180" rx="14" fill="#0F172A" stroke="#4F46E5" stroke-width="3" style="filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4));"/>
+          
+          <!-- Screen Display items -->
+          <rect x="8" y="12" width="94" height="20" rx="5" fill="rgba(255,255,255,0.04)"/>
+          <text x="14" y="25" fill="#94A3B8" font-size="8" font-weight="bold">Today: ₹1,560</text>
+          
+          <!-- Spend Bar Chart UI -->
+          <rect x="8" y="40" width="94" height="55" rx="5" fill="rgba(99, 102, 241, 0.08)"/>
+          <!-- Graph Line -->
+          <path d="M 12 85 L 30 65 L 50 75 L 70 50 L 92 60" fill="none" stroke="#06B6D4" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="70" cy="50" r="2.5" fill="#FFFFFF"/>
+
+          <!-- Monthly Budget List card -->
+          <rect x="8" y="102" width="94" height="22" rx="4" fill="rgba(34, 197, 94, 0.08)"/>
+          <text x="14" y="116" fill="#22C55E" font-size="7" font-weight="bold">Savings +18%</text>
+
+          <!-- Investment Grow bar -->
+          <rect x="8" y="130" width="94" height="38" rx="4" fill="rgba(139, 92, 246, 0.08)"/>
+          <text x="14" y="143" fill="#A855F7" font-size="7" font-weight="bold">Investments</text>
+          <rect x="14" y="152" width="60" height="4" rx="2" fill="rgba(255,255,255,0.1)"/>
+          <rect x="14" y="152" width="45" height="4" rx="2" fill="#A855F7"/>
+        </g>
+
+        <!-- Floating Isometric Elements around Phone -->
+        <!-- Floating Credit Card -->
+        <g transform="translate(45, 60) rotate(-15) scale(0.6)">
+          <rect x="0" y="0" width="70" height="45" rx="5" fill="#4F46E5" stroke="#FFFFFF" stroke-dasharray="100 100" stroke-width="0.5"/>
+          <circle cx="58" cy="35" r="5" fill="#EF4444" opacity="0.8"/>
+          <circle cx="52" cy="35" r="5" fill="#F59E0B" opacity="0.8"/>
+        </g>
+        
+        <!-- Floating Coins -->
+        <circle cx="230" cy="65" r="10" fill="#EAB308" stroke="#FFFFFF" stroke-width="0.5" style="filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.6));"/>
+        <text x="227" y="68" fill="#FFFFFF" font-size="9" font-weight="bold">₹</text>
+
+        <circle cx="215" cy="115" r="8" fill="#EAB308" stroke="#FFFFFF" stroke-width="0.5" style="filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.4));"/>
+        <text x="212" y="118" fill="#FFFFFF" font-size="7" font-weight="bold">₹</text>
+
+        <circle cx="85" cy="135" r="7" fill="#EAB308" stroke="#FFFFFF" stroke-width="0.5" style="filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.4));"/>
+
+        <!-- Flowing Arrow -->
+        <path d="M 80 40 Q 140 10 180 30" fill="none" stroke="rgba(6, 182, 212, 0.5)" stroke-width="2" stroke-dasharray="4 4"/>
+        <polygon points="180,30 172,26 174,34" fill="#06B6D4"/>
+      </svg>
+    </div>
+
+    <!-- Centered Login Card -->
+    <main class="auth-card">
+      {% if error %}
+        <div class="alert alert-error">
+          <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
+          <span>{{ error|linebreaksbr }}</span>
+        </div>
+      {% endif %}
+      {% if message %}
+        <div class="alert alert-success">
+          <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+          <span>{{ message|linebreaksbr }}</span>
+        </div>
+      {% endif %}
+
+      <form method="POST" action="{% url 'login' %}">
+        {% csrf_token %}
+        
+        <!-- Email Input -->
+        <div class="form-group">
+          <div class="input-wrapper">
+            <input
+              type="email"
+              name="email"
+              class="input-field"
+              placeholder="Email Address"
+              required
+            />
+            <i data-lucide="mail" class="input-icon"></i>
+          </div>
+        </div>
+
+        <!-- Password Input -->
+        <div class="form-group">
+          <div class="input-wrapper">
+            <input
+              type="password"
+              name="password"
+              id="login-password"
+              class="input-field"
+              placeholder="Password"
+              required
+            />
+            <i data-lucide="lock" class="input-icon"></i>
+            <button type="button" class="toggle-pass-btn" onclick="togglePassword('login-password', this)">
+              <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+            </button>
+          </div>
+        </div>
+
+
+
+        <!-- Primary Submit Button -->
+        <button type="submit" class="btn-primary">
+          <span>LOGIN</span>
+          <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+        </button>
+
+
+
+        <!-- Footer -->
+        <div class="auth-footer">
+          Don't have an account?
+          <a href="{% url 'register' %}" class="auth-footer-link">Create Account</a>
+        </div>
+      </form>
+    </main>
+
+    <!-- Footer Space -->
+    <div style="height: 20px;"></div>
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
     lucide.createIcons();
-  }
-}
-</script>
-{% endblock %}
+
+    // Password Toggle Functionality
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i>';
+      } else {
+        input.type = 'password';
+        btn.innerHTML = '<i data-lucide="eye" style="width: 18px; height: 18px;"></i>';
+      }
+      lucide.createIcons();
+    }
+
+    // Dynamic Digital Particles Generation
+    const particlesContainer = document.getElementById('particles-container');
+    const particleCount = 20;
+    for (let i = 0; i < particleCount; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.animationDelay = Math.random() * 5 + 's';
+      p.style.animationDuration = Math.random() * 4 + 4 + 's';
+      particlesContainer.appendChild(p);
+    }
+  </script>
+</body>
+</html>

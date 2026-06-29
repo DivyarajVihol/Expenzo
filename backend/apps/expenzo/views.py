@@ -1179,6 +1179,15 @@ def register_view(request):
         user.is_active = True # Bypass email activation on Render Free
         user.save()
         
+        # Save phone and avatar to user profile
+        phone = strip_tags(request.POST.get('phone', '')).strip()[:50]
+        avatar_base64 = request.POST.get('avatar_base64', '')
+        if phone:
+            user.profile.phone = phone
+        if avatar_base64:
+            user.profile.avatar_base64 = avatar_base64
+        user.profile.save()
+        
         login(request, user)
         return redirect('dashboard')
     return render(request, 'register.html')
