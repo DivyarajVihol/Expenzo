@@ -807,8 +807,32 @@
                     <td data-label="Amount" style="text-align: right;" class="amount-expense">
                       ₹{{ exp.amount|floatformat:2 }}
                     </td>
-                    <td data-label="Actions" style="text-align: right;">
-                      <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;">
+                    <td data-label="Actions" style="text-align: right; white-space: nowrap;">
+                      <script type="application/json" id="exp-data-{{ exp.id }}">
+                        {
+                          "amount": {{ exp.amount }},
+                          "description": "{{ exp.description|escapejs }}",
+                          "date": "{{ exp.date|date:"Y-m-d" }}",
+                          "payers": [
+                            {% if exp.payments.all %}
+                              {% for p in exp.payments.all %}
+                                {"userId": {{ p.user.id }}, "amount": {{ p.amount }}}{% if not forloop.last %},{% endif %}
+                              {% endfor %}
+                            {% else %}
+                              {"userId": {{ exp.paid_by.id }}, "amount": {{ exp.amount }}}
+                            {% endif %}
+                          ],
+                          "splits": [
+                            {% for s in exp.splits.all %}
+                              {"userId": {{ s.user.id }}, "amount": {{ s.amount }}}{% if not forloop.last %},{% endif %}
+                            {% endfor %}
+                          ]
+                        }
+                      </script>
+                      <button onclick="openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
+                        <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+                      </button>
+                      <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Expense">
                         <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
                       </button>
                     </td>
