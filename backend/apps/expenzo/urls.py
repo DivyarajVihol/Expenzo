@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/groups/<int:group_id>/expense/edit/<int:expense_id>/', views.edit_group_expense_api, name='api_edit_group_expense'),
     path('api/groups/<int:group_id>/expense/delete/<int:expense_id>/', views.delete_group_expense_api, name='api_delete_group_expense'),
     path('api/groups/<int:group_id>/settlement/add/', views.add_settlement_api, name='api_add_settlement'),
+    path('api/groups/<int:group_id>/settlement/delete/<int:settlement_id>/', views.delete_settlement_api, name='api_delete_settlement'),
     path('api/groups/<int:group_id>/delete/', views.delete_group_api, name='api_delete_group'),
     path('api/groups/<int:group_id>/edit/', views.edit_group_api, name='api_edit_group'),
     path('api/groups/<int:group_id>/member/<int:member_id>/remove/', views.api_remove_member, name='api_remove_member'),

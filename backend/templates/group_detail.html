@@ -989,57 +989,81 @@
               </thead>
               <tbody>
                 {% for exp in month.expenses %}
-                  <tr>
-                    <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
-                    <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
-                    <td data-label="Category">
-                      <span class="breakdown-pill" style="border: 1px solid var(--accent-primary); width: fit-content; padding: 0.1rem 0.5rem;">
-                        {{ exp.category }}
-                      </span>
-                    </td>
-                    <td data-label="Paid By">
-                      {% if exp.payments.count > 1 %}
-                        Multiple
-                      {% elif exp.payments.count == 1 %}
-                        {{ exp.payments.first.user.first_name|default:exp.payments.first.user.username }}
-                      {% else %}
-                        {{ exp.paid_by.first_name|default:exp.paid_by.username }}
-                      {% endif %}
-                    </td>
-                    <td data-label="Amount" style="text-align: right;" class="amount-expense">
-                      ₹{{ exp.amount|floatformat:2 }}
-                    </td>
-                    <td data-label="Actions" style="text-align: right; white-space: nowrap;">
-                      <script type="application/json" id="exp-data-{{ exp.id }}">
-                        {
-                          "amount": {{ exp.amount }},
-                          "description": "{{ exp.description|escapejs }}",
-                          "category": "{{ exp.category|escapejs }}",
-                          "date": "{{ exp.date|date:"Y-m-d" }}",
-                          "payers": [
-                            {% if exp.payments.all %}
-                              {% for p in exp.payments.all %}
-                                {"userId": {{ p.user.id }}, "amount": {{ p.amount }}}{% if not forloop.last %},{% endif %}
+                  {% if exp.is_settlement %}
+                    <tr style="background: rgba(16, 185, 129, 0.02); border-left: 3px solid #10b981;">
+                      <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
+                      <td data-label="Description" style="font-weight: 500; color: var(--text-primary);">
+                        <i data-lucide="check-circle" style="width: 14px; height: 14px; color: var(--accent-success); display: inline-block; vertical-align: middle; margin-right: 0.25rem;"></i>
+                        {{ exp.description }}
+                      </td>
+                      <td data-label="Category">
+                        <span class="breakdown-pill" style="border: 1px solid #10b981; color: #10b981; width: fit-content; padding: 0.1rem 0.5rem; background: rgba(16, 185, 129, 0.1);">
+                          Settlement
+                        </span>
+                      </td>
+                      <td data-label="Paid By">{{ exp.paid_by.first_name|default:exp.paid_by.username }}</td>
+                      <td data-label="Amount" style="text-align: right; color: var(--accent-success); font-weight: 600;">
+                        ₹{{ exp.amount|floatformat:2 }}
+                      </td>
+                      <td data-label="Actions" style="text-align: right; white-space: nowrap;">
+                        <button onclick="deleteSettlement('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Settlement">
+                          <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  {% else %}
+                    <tr>
+                      <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
+                      <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
+                      <td data-label="Category">
+                        <span class="breakdown-pill" style="border: 1px solid var(--accent-primary); width: fit-content; padding: 0.1rem 0.5rem;">
+                          {{ exp.category }}
+                        </span>
+                      </td>
+                      <td data-label="Paid By">
+                        {% if exp.payments.count > 1 %}
+                          Multiple
+                        {% elif exp.payments.count == 1 %}
+                          {{ exp.payments.first.user.first_name|default:exp.payments.first.user.username }}
+                        {% else %}
+                          {{ exp.paid_by.first_name|default:exp.paid_by.username }}
+                        {% endif %}
+                      </td>
+                      <td data-label="Amount" style="text-align: right;" class="amount-expense">
+                        ₹{{ exp.amount|floatformat:2 }}
+                      </td>
+                      <td data-label="Actions" style="text-align: right; white-space: nowrap;">
+                        <script type="application/json" id="exp-data-{{ exp.id }}">
+                          {
+                            "amount": {{ exp.amount }},
+                            "description": "{{ exp.description|escapejs }}",
+                            "category": "{{ exp.category|escapejs }}",
+                            "date": "{{ exp.date|date:"Y-m-d" }}",
+                            "payers": [
+                              {% if exp.payments.all %}
+                                {% for p in exp.payments.all %}
+                                  {"userId": {{ p.user.id }}, "amount": {{ p.amount }}}{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                              {% else %}
+                                {"userId": {{ exp.paid_by.id }}, "amount": {{ exp.amount }}}
+                              {% endif %}
+                            ],
+                            "splits": [
+                              {% for s in exp.splits.all %}
+                                {"userId": {{ s.user.id }}, "amount": {{ s.amount }}}{% if not forloop.last %},{% endif %}
                               {% endfor %}
-                            {% else %}
-                              {"userId": {{ exp.paid_by.id }}, "amount": {{ exp.amount }}}
-                            {% endif %}
-                          ],
-                          "splits": [
-                            {% for s in exp.splits.all %}
-                              {"userId": {{ s.user.id }}, "amount": {{ s.amount }}}{% if not forloop.last %},{% endif %}
-                            {% endfor %}
-                          ]
-                        }
-                      </script>
-                      <button onclick="openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
-                        <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
-                      </button>
-                      <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Expense">
-                        <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
-                      </button>
-                    </td>
-                  </tr>
+                            ]
+                          }
+                        </script>
+                        <button onclick="openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
+                          <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+                        </button>
+                        <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Expense">
+                          <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  {% endif %}
                 {% endfor %}
               </tbody>
             </table>
@@ -2218,18 +2242,59 @@
           const res = await fetch(url, {
             method: 'POST',
             headers: {
-              'X-CSRFToken': '{{ csrf_token }}'
+              'X-CSRFToken': '{{ csrf_token }}',
+              'Accept': 'application/json'
             }
           });
           if (res.ok) {
             window.location.reload();
           } else {
-            const data = await res.json();
-            alert(data.error || 'Failed to delete expense');
+            let errorMsg = 'Failed to delete expense';
+            try {
+              const data = await res.json();
+              errorMsg = data.error || errorMsg;
+            } catch (jsonErr) {
+              errorMsg = `Server error: ${res.status} ${res.statusText}`;
+            }
+            alert(errorMsg);
           }
         } catch (err) {
           console.error(err);
-          alert('Error deleting group expense');
+          alert('Network or browser error occurred while deleting the expense.');
+        }
+      }
+    );
+  }
+
+  function deleteSettlement(settlementId) {
+    openGenericDeleteModal(
+      'Delete Settlement',
+      'Are you sure you want to delete this settlement? Split balances will be recalculated.',
+      async () => {
+        try {
+          const url = `{% url 'api_delete_settlement' group_id=group.id settlement_id=999999 %}`.replace('999999', settlementId);
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}',
+              'Accept': 'application/json'
+            }
+          });
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            let errorMsg = 'Failed to delete settlement';
+            try {
+              const data = await res.json();
+              errorMsg = data.error || errorMsg;
+            } catch (jsonErr) {
+              errorMsg = `Server error: ${res.status} ${res.statusText}`;
+            }
+            alert(errorMsg);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Network or browser error occurred while deleting the settlement.');
         }
       }
     );
