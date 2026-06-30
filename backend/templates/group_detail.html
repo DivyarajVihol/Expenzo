@@ -1509,7 +1509,7 @@
     document.getElementById('expense-form').reset();
     document.getElementById('exp-id').value = id;
     
-    document.getElementById('exp-amount').value = data.amount;
+    document.getElementById('exp-amount').value = parseFloat(data.amount).toFixed(2);
     document.getElementById('exp-desc').value = data.description;
     
     const isStandardCategory = ["Food", "Travel", "Shopping", "Entertainment", "Rent", "Utilities", "Health", "Education", "Investment", "Others"].includes(data.category);
@@ -1539,7 +1539,7 @@
       addPayerRow();
       const row = payersContainer.children[idx];
       row.querySelector('.payer-select').value = payer.userId;
-      row.querySelector('.payer-amount').value = payer.amount;
+      row.querySelector('.payer-amount').value = parseFloat(payer.amount).toFixed(2);
     });
 
     const splitTypeSelect = document.getElementById('exp-split-type');
@@ -1564,7 +1564,7 @@
       
       const exactInput = document.querySelector(`.exact-input[data-user-id="${split.userId}"]`);
       if (exactInput) {
-        exactInput.value = split.amount;
+        exactInput.value = parseFloat(split.amount).toFixed(2);
       }
       
       const pctInput = document.querySelector(`.pct-input[data-user-id="${split.userId}"]`);
