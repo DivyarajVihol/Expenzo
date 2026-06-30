@@ -989,81 +989,57 @@
               </thead>
               <tbody>
                 {% for exp in month.expenses %}
-                  {% if exp.is_settlement %}
-                    <tr style="background: rgba(16, 185, 129, 0.02); border-left: 3px solid #10b981;">
-                      <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
-                      <td data-label="Description" style="font-weight: 500; color: var(--text-primary);">
-                        <i data-lucide="check-circle" style="width: 14px; height: 14px; color: var(--accent-success); display: inline-block; vertical-align: middle; margin-right: 0.25rem;"></i>
-                        {{ exp.description }}
-                      </td>
-                      <td data-label="Category">
-                        <span class="breakdown-pill" style="border: 1px solid #10b981; color: #10b981; width: fit-content; padding: 0.1rem 0.5rem; background: rgba(16, 185, 129, 0.1);">
-                          Settlement
-                        </span>
-                      </td>
-                      <td data-label="Paid By">{{ exp.paid_by.first_name|default:exp.paid_by.username }}</td>
-                      <td data-label="Amount" style="text-align: right; color: var(--accent-success); font-weight: 600;">
-                        ₹{{ exp.amount|floatformat:2 }}
-                      </td>
-                      <td data-label="Actions" style="text-align: right; white-space: nowrap;">
-                        <button onclick="deleteSettlement('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Settlement">
-                          <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  {% else %}
-                    <tr>
-                      <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
-                      <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
-                      <td data-label="Category">
-                        <span class="breakdown-pill" style="border: 1px solid var(--accent-primary); width: fit-content; padding: 0.1rem 0.5rem;">
-                          {{ exp.category }}
-                        </span>
-                      </td>
-                      <td data-label="Paid By">
-                        {% if exp.payments.count > 1 %}
-                          Multiple
-                        {% elif exp.payments.count == 1 %}
-                          {{ exp.payments.first.user.first_name|default:exp.payments.first.user.username }}
-                        {% else %}
-                          {{ exp.paid_by.first_name|default:exp.paid_by.username }}
-                        {% endif %}
-                      </td>
-                      <td data-label="Amount" style="text-align: right;" class="amount-expense">
-                        ₹{{ exp.amount|floatformat:2 }}
-                      </td>
-                      <td data-label="Actions" style="text-align: right; white-space: nowrap;">
-                        <script type="application/json" id="exp-data-{{ exp.id }}">
-                          {
-                            "amount": {{ exp.amount }},
-                            "description": "{{ exp.description|escapejs }}",
-                            "category": "{{ exp.category|escapejs }}",
-                            "date": "{{ exp.date|date:"Y-m-d" }}",
-                            "payers": [
-                              {% if exp.payments.all %}
-                                {% for p in exp.payments.all %}
-                                  {"userId": {{ p.user.id }}, "amount": {{ p.amount }}}{% if not forloop.last %},{% endif %}
-                                {% endfor %}
-                              {% else %}
-                                {"userId": {{ exp.paid_by.id }}, "amount": {{ exp.amount }}}
-                              {% endif %}
-                            ],
-                            "splits": [
-                              {% for s in exp.splits.all %}
-                                {"userId": {{ s.user.id }}, "amount": {{ s.amount }}}{% if not forloop.last %},{% endif %}
+                  <tr>
+                    <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
+                    <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
+                    <td data-label="Category">
+                      <span class="breakdown-pill" style="border: 1px solid var(--accent-primary); width: fit-content; padding: 0.1rem 0.5rem;">
+                        {{ exp.category }}
+                      </span>
+                    </td>
+                    <td data-label="Paid By">
+                      {% if exp.payments.count > 1 %}
+                        Multiple
+                      {% elif exp.payments.count == 1 %}
+                        {{ exp.payments.first.user.first_name|default:exp.payments.first.user.username }}
+                      {% else %}
+                        {{ exp.paid_by.first_name|default:exp.paid_by.username }}
+                      {% endif %}
+                    </td>
+                    <td data-label="Amount" style="text-align: right;" class="amount-expense">
+                      ₹{{ exp.amount|floatformat:2 }}
+                    </td>
+                    <td data-label="Actions" style="text-align: right; white-space: nowrap;">
+                      <script type="application/json" id="exp-data-{{ exp.id }}">
+                        {
+                          "amount": {{ exp.amount }},
+                          "description": "{{ exp.description|escapejs }}",
+                          "category": "{{ exp.category|escapejs }}",
+                          "date": "{{ exp.date|date:"Y-m-d" }}",
+                          "payers": [
+                            {% if exp.payments.all %}
+                              {% for p in exp.payments.all %}
+                                {"userId": {{ p.user.id }}, "amount": {{ p.amount }}}{% if not forloop.last %},{% endif %}
                               {% endfor %}
-                            ]
-                          }
-                        </script>
-                        <button onclick="openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
-                          <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
-                        </button>
-                        <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Expense">
-                          <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  {% endif %}
+                            {% else %}
+                              {"userId": {{ exp.paid_by.id }}, "amount": {{ exp.amount }}}
+                            {% endif %}
+                          ],
+                          "splits": [
+                            {% for s in exp.splits.all %}
+                              {"userId": {{ s.user.id }}, "amount": {{ s.amount }}}{% if not forloop.last %},{% endif %}
+                            {% endfor %}
+                          ]
+                        }
+                      </script>
+                      <button onclick="openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
+                        <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+                      </button>
+                      <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Expense">
+                        <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
+                      </button>
+                    </td>
+                  </tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -1486,6 +1462,13 @@
     const splitTypeSelect = document.getElementById('exp-split-type');
     splitTypeSelect.value = 'EQUAL';
     toggleSplitInputs('EQUAL');
+
+    // Reset split checkboxes and inputs
+    document.querySelectorAll('.split-member-checkbox').forEach(cb => {
+      cb.checked = true;
+    });
+    document.querySelectorAll('.exact-input').forEach(i => i.value = '');
+    document.querySelectorAll('.pct-input').forEach(i => i.value = '');
 
     document.getElementById('expense-modal').style.display = 'flex';
   }

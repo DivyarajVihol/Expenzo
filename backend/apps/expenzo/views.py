@@ -597,33 +597,8 @@ def group_detail_view(request, group_id):
     from datetime import datetime
     grouped_data = defaultdict(list)
     for exp in history_expenses:
-        exp.is_settlement = False
         key = exp.date.strftime("%Y-%m")
         grouped_data[key].append(exp)
-
-    # Merge settlements into transaction history
-    for setl in settlements:
-        if search_query:
-            q = search_query.lower()
-            from_name = (setl.from_user.first_name or setl.from_user.username).lower()
-            to_name = (setl.to_user.first_name or setl.to_user.username).lower()
-            if q not in from_name and q not in to_name:
-                continue
-        if category_filter != 'All' and category_filter != 'Settlement':
-            continue
-
-        class SettlementTransaction:
-            def __init__(self, s):
-                self.id = s.id
-                self.is_settlement = True
-                self.date = s.date
-                self.amount = s.amount
-                self.description = f"{s.from_user.first_name or s.from_user.username} settled with {s.to_user.first_name or s.to_user.username}"
-                self.category = "Settlement"
-                self.paid_by = s.from_user
-
-        key = setl.date.strftime("%Y-%m")
-        grouped_data[key].append(SettlementTransaction(setl))
 
     grouped_months = []
     CATEGORY_COLORS = {
@@ -635,16 +610,15 @@ def group_detail_view(request, group_id):
 
     for key in sorted(grouped_data.keys(), reverse=True):
         exps = grouped_data[key]
-        exps.sort(key=lambda x: x.date, reverse=True)
         year, month = map(int, key.split('-'))
         label = datetime(year, month, 1).strftime("%B %Y")
         
-        total_month_spend = sum(e.amount for e in exps if getattr(e, 'is_settlement', False) is False and e.category != "Income")
-        total_month_income = sum(e.amount for e in exps if getattr(e, 'is_settlement', False) is False and e.category == "Income")
+        total_month_spend = sum(e.amount for e in exps if e.category != "Income")
+        total_month_income = sum(e.amount for e in exps if e.category == "Income")
         
         category_sums = {}
         for e in exps:
-            if getattr(e, 'is_settlement', False) is False and e.category != "Income":
+            if e.category != "Income":
                 category_sums[e.category] = category_sums.get(e.category, 0) + e.amount
                 
         breakdown = []
@@ -1361,6 +1335,8 @@ def delete_group_expense_api(request, group_id, expense_id):
             return JsonResponse({'error': 'Unauthorized'}, status=403)
         expense = get_object_or_404(GroupExpense, id=expense_id, group=group)
         expense.delete()
+        if not GroupExpense.objects.filter(group=group).exists():
+            Settlement.objects.filter(group=group).delete()
         return JsonResponse({'status': 'success'})
     return JsonResponse({'error': 'POST or DELETE required'}, status=405)
 
