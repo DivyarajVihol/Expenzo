@@ -1641,3 +1641,256 @@ def export_expenses_excel(request):
     response['Content-Disposition'] = f'attachment; filename="expenzo_history_{request.user.username}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
     wb.save(response)
     return response
+
+@login_required
+def export_group_pdf(request, group_id):
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404
+    
+    group = get_object_or_404(Group, id=group_id)
+    if not group.members.filter(user=request.user).exists():
+        return HttpResponse("Unauthorized", status=403)
+        
+    expenses = group.expenses.all().order_by('date')
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="expenzo_group_{group.name}_{datetime.now().strftime("%Y%m%d")}.pdf"'
+    
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    story = []
+    
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'DocTitle',
+        parent=styles['Title'],
+        fontName='Helvetica-Bold',
+        fontSize=20,
+        leading=24,
+        textColor=colors.HexColor('#4F46E5'),
+        alignment=0,
+        spaceAfter=6
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'DocSubtitle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=14,
+        textColor=colors.HexColor('#4B5563'),
+        spaceAfter=15
+    )
+    
+    header_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=12,
+        textColor=colors.white
+    )
+    
+    cell_style = ParagraphStyle(
+        'TableCell',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=11,
+        textColor=colors.HexColor('#374151')
+    )
+    
+    total_style = ParagraphStyle(
+        'TableTotal',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=12,
+        textColor=colors.HexColor('#111827')
+    )
+    
+    story.append(Paragraph(f"EXPENZO - {group.name}", title_style))
+    story.append(Paragraph(f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Total expenses in the group splits.", subtitle_style))
+    story.append(Spacer(1, 10))
+    
+    table_data = [[
+        Paragraph('Date', header_style),
+        Paragraph('Description', header_style),
+        Paragraph('Category', header_style),
+        Paragraph('Paid By', header_style),
+        Paragraph('Amount', header_style)
+    ]]
+    
+    total_amount = 0.0
+    for exp in expenses:
+        date_str = exp.date.strftime("%Y-%m-%d %H:%M")
+        amount = exp.amount
+        paid_by_str = exp.paid_by.username if exp.paid_by else "System"
+        
+        table_data.append([
+            Paragraph(date_str, cell_style),
+            Paragraph(exp.description, cell_style),
+            Paragraph(exp.category, cell_style),
+            Paragraph(paid_by_str, cell_style),
+            Paragraph(f"INR {amount:.2f}", cell_style)
+        ])
+        total_amount += amount
+        
+    table_data.append([
+        Paragraph('Total Spends', total_style),
+        Paragraph('', total_style),
+        Paragraph('', total_style),
+        Paragraph('', total_style),
+        Paragraph(f"INR {total_amount:.2f}", total_style)
+    ])
+    
+    col_widths = [110, 160, 90, 90, 90]
+    t = Table(table_data, colWidths=col_widths)
+    t_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#E5E7EB')),
+        ('SPAN', (0, -1), (3, -1)),
+        ('ALIGN', (4, 0), (4, -1), 'RIGHT'),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1F2937')),
+        ('LINEBELOW', (0, -1), (-1, -1), 1.5, colors.HexColor('#1F2937')),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 8),
+        ('TOPPADDING', (0, -1), (-1, -1), 8),
+    ])
+    
+    for i in range(1, len(table_data) - 1):
+        if i % 2 == 0:
+            t_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F9FAFB'))
+            
+    t.setStyle(t_style)
+    story.append(t)
+    
+    doc.build(story)
+    return response
+
+@login_required
+def export_group_excel(request, group_id):
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404
+    
+    group = get_object_or_404(Group, id=group_id)
+    if not group.members.filter(user=request.user).exists():
+        return HttpResponse("Unauthorized", status=403)
+        
+    expenses = group.expenses.all().order_by('date')
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Group Splits"
+    ws.views.sheetView[0].showGridLines = True
+    
+    font_family = "Segoe UI"
+    title_font = Font(name=font_family, size=16, bold=True, color="1F2937")
+    header_font = Font(name=font_family, size=11, bold=True, color="FFFFFF")
+    data_font = Font(name=font_family, size=11, color="374151")
+    total_font = Font(name=font_family, size=11, bold=True, color="1F2937")
+    
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    zebra_fill = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
+    
+    thin_border = Border(
+        left=Side(style='thin', color='E5E7EB'),
+        right=Side(style='thin', color='E5E7EB'),
+        top=Side(style='thin', color='E5E7EB'),
+        bottom=Side(style='thin', color='E5E7EB')
+    )
+    double_bottom_border = Border(
+        top=Side(style='thin', color='1F2937'),
+        bottom=Side(style='double', color='1F2937')
+    )
+    
+    headers = ["Date", "Description", "Category", "Paid By", "Amount"]
+    
+    ws.append([])
+    ws.append([f"Expenzo Group splits - {group.name}"])
+    ws.cell(row=2, column=1).font = title_font
+    ws.append([])
+    
+    ws.append(headers)
+    header_row = 4
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=header_row, column=col_idx)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center" if header != "Description" else "left", vertical="center")
+        cell.border = thin_border
+    
+    total_amount = 0.0
+    current_row = 5
+    for idx, exp in enumerate(expenses):
+        date_str = exp.date.strftime("%Y-%m-%d %H:%M")
+        amount = exp.amount
+        paid_by_str = exp.paid_by.username if exp.paid_by else "System"
+        
+        ws.append([
+            date_str,
+            exp.description,
+            exp.category,
+            paid_by_str,
+            amount
+        ])
+        
+        row_fill = zebra_fill if idx % 2 == 1 else None
+        
+        for col_idx in range(1, 6):
+            cell = ws.cell(row=current_row, column=col_idx)
+            cell.font = data_font
+            cell.border = thin_border
+            if row_fill:
+                cell.fill = row_fill
+            
+            if col_idx == 1:
+                cell.alignment = Alignment(horizontal="center")
+            elif col_idx == 5:
+                cell.alignment = Alignment(horizontal="right")
+                cell.number_format = '#,##0.00'
+                total_amount += amount
+            else:
+                cell.alignment = Alignment(horizontal="left")
+                
+        current_row += 1
+        
+    ws.append([])
+    ws.append(["Total Spends", "", "", "", total_amount])
+    total_row = current_row + 1
+    
+    ws.merge_cells(start_row=total_row, start_column=1, end_row=total_row, end_column=4)
+    total_label_cell = ws.cell(row=total_row, column=1)
+    total_label_cell.font = total_font
+    total_label_cell.alignment = Alignment(horizontal="right")
+    
+    total_val_cell = ws.cell(row=total_row, column=5)
+    total_val_cell.font = total_font
+    total_val_cell.alignment = Alignment(horizontal="right")
+    total_val_cell.number_format = '#,##0.00'
+    total_val_cell.border = double_bottom_border
+    
+    for col in ws.columns:
+        max_len = 0
+        col_letter = openpyxl.utils.get_column_letter(col[0].column)
+        for cell in col:
+            val = str(cell.value or '')
+            if cell.row == 2:
+                continue
+            if len(val) > max_len:
+                max_len = len(val)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+        
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response['Content-Disposition'] = f'attachment; filename="expenzo_group_{group.name}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+    wb.save(response)
+    return response

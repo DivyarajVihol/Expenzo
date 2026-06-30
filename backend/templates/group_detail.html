@@ -733,6 +733,24 @@
       </form>
     </div>
 
+    <!-- Export Group History -->
+    <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">Export Group History</h3>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+        Download a complete statement of this group's expense history.
+      </p>
+      <div style="display: flex; gap: 1rem;">
+        <a href="{% url 'export_group_pdf' group_id=group.id %}" download class="btn btn-secondary" style="flex: 1; padding: 0.75rem; border-radius: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color);">
+          <i data-lucide="file-text" style="width: 18px; height: 18px; color: var(--accent-primary);"></i>
+          Download PDF
+        </a>
+        <a href="{% url 'export_group_excel' group_id=group.id %}" download class="btn btn-secondary" style="flex: 1; padding: 0.75rem; border-radius: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color);">
+          <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px; color: #10b981;"></i>
+          Download Excel
+        </a>
+      </div>
+    </div>
+
     <!-- History Groups Lists -->
     {% if not grouped_months %}
       <div class="glass-card empty-state">

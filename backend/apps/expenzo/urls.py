@@ -39,4 +39,6 @@ urlpatterns = [
     path('api/savings/save/', views.save_savings_goal_api, name='api_save_savings_goal'),
     path('profile/export/pdf/', views.export_expenses_pdf, name='export_expenses_pdf'),
     path('profile/export/excel/', views.export_expenses_excel, name='export_expenses_excel'),
+    path('groups/<int:group_id>/export/pdf/', views.export_group_pdf, name='export_group_pdf'),
+    path('groups/<int:group_id>/export/excel/', views.export_group_excel, name='export_group_excel'),
 ]
