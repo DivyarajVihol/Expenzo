@@ -784,6 +784,8 @@ def edit_expense_api(request, expense_id):
             expense.account = account
             expense.description = description
             expense.date = txn_date
+            expense.month = txn_date.month
+            expense.year = txn_date.year
             expense.save()
             
             recalculate_current_month(request.user)
