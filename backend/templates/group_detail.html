@@ -1185,7 +1185,7 @@
         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
       </button>
     </div>
-    <form id="expense-form" onsubmit="submitExpense(event)">
+    <form id="expense-form">
       <input type="hidden" id="exp-id" value="">
       <div class="modal-body" style="max-height: 420px; overflow-y: auto;">
         <div class="form-group">
@@ -1264,7 +1264,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Add Expense</button>
+        <button type="button" id="submit-expense-btn" class="btn btn-primary" onclick="submitExpense(event)">Add Expense</button>
       </div>
     </form>
   </div>
@@ -1470,7 +1470,8 @@
       document.getElementById('exp-date').customCalendar.resetToOriginal();
     }
     document.querySelector('#expense-modal .chart-card-title').innerText = 'Add Group Expense';
-    document.querySelector('#expense-modal button[type="submit"]').innerText = 'Add Expense';
+    const btn = document.getElementById('submit-expense-btn');
+    if (btn) btn.innerText = 'Add Expense';
     
     const payersContainer = document.getElementById('payers-container');
     payersContainer.innerHTML = '';
@@ -1563,7 +1564,8 @@
     });
 
     document.querySelector('#expense-modal .chart-card-title').innerText = 'Edit Group Expense';
-    document.querySelector('#expense-modal button[type="submit"]').innerText = 'Save Changes';
+    const btn = document.getElementById('submit-expense-btn');
+    if (btn) btn.innerText = 'Save Changes';
     document.getElementById('expense-modal').style.display = 'flex';
     lucide.createIcons();
   }
@@ -1615,8 +1617,12 @@
     btn.closest('.payer-row').remove();
   }
 
-  async function submitExpense(e) {
-    e.preventDefault();
+  async function submitExpense() {
+    const form = document.getElementById('expense-form');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
     try {
       const expId = document.getElementById('exp-id').value;
       const amountInput = document.getElementById('exp-amount');
@@ -1732,7 +1738,7 @@
       });
 
       if (res.ok) {
-        window.location.reload();
+        window.location.href = window.location.pathname;
       } else {
         let errorMsg = 'Failed to save expense';
         try {
