@@ -1118,3 +1118,14 @@ select option {
   font-family: 'Manrope', sans-serif !important;
   font-weight: 800 !important;
 }
+
+/* Remove number input spin buttons */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}

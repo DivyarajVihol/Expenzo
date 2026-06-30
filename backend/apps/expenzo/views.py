@@ -986,9 +986,14 @@ def add_group_expense_api(request, group_id):
                     logger.warning(f"SECURITY: IDOR blocked! User {request.user.id} attempted to link non-members to a transaction.")
                     return JsonResponse({'error': 'One or more users involved in this transaction are not members of the group.'}, status=400)
                     
-            total_paid = sum(float(p['amount']) for p in payers)
-            if abs(total_paid - amount) > 0.01:
-                return JsonResponse({'error': f'Sum of payments ({total_paid}) must equal total amount ({amount}).'}, status=400)
+            total_paid_cents = sum(round(float(p['amount']) * 100) for p in payers)
+            amount_cents = round(amount * 100)
+            
+            if abs(total_paid_cents - amount_cents) > 5:
+                return JsonResponse({'error': f'Sum of payments must equal total amount.'}, status=400)
+            elif total_paid_cents != amount_cents and len(payers) > 0:
+                diff_cents = amount_cents - total_paid_cents
+                payers[0]['amount'] = float(round(float(payers[0]['amount']) * 100) + diff_cents) / 100.0
             
             txn_date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
             txn_date = django_timezone.make_aware(txn_date)
@@ -1031,16 +1036,25 @@ def add_group_expense_api(request, group_id):
             
             # Create splits
             if split_type == 'EQUAL':
-                # splits_data is list of {userId}
-                share = amount / len(splits_data)
-                for s in splits_data:
+                allocated_cents = 0
+                for i, s in enumerate(splits_data):
                     u = get_object_or_404(User, id=s['userId'])
+                    if i == len(splits_data) - 1:
+                        share_cents = amount_cents - allocated_cents
+                    else:
+                        share_cents = round(amount_cents / len(splits_data))
+                        allocated_cents += share_cents
                     GroupExpenseSplit.objects.create(
                         group_expense=group_expense,
                         user=u,
-                        amount=share
+                        amount=share_cents / 100.0
                     )
             elif split_type == 'EXACT':
+                total_split_cents = sum(round(float(s['amount']) * 100) for s in splits_data)
+                if abs(total_split_cents - amount_cents) <= 5 and total_split_cents != amount_cents and len(splits_data) > 0:
+                    diff_cents = amount_cents - total_split_cents
+                    splits_data[0]['amount'] = float(round(float(splits_data[0]['amount']) * 100) + diff_cents) / 100.0
+                
                 for s in splits_data:
                     u = get_object_or_404(User, id=s['userId'])
                     GroupExpenseSplit.objects.create(
@@ -1049,13 +1063,18 @@ def add_group_expense_api(request, group_id):
                         amount=float(s['amount'])
                     )
             elif split_type == 'PERCENTAGE':
-                for s in splits_data:
+                allocated_cents = 0
+                for i, s in enumerate(splits_data):
                     u = get_object_or_404(User, id=s['userId'])
-                    share = (float(s['percentage']) / 100) * amount
+                    if i == len(splits_data) - 1:
+                        share_cents = amount_cents - allocated_cents
+                    else:
+                        share_cents = round((float(s['percentage']) / 100.0) * amount_cents)
+                        allocated_cents += share_cents
                     GroupExpenseSplit.objects.create(
                         group_expense=group_expense,
                         user=u,
-                        amount=share
+                        amount=share_cents / 100.0
                     )
                     
             return JsonResponse({'status': 'success'}, status=201)
@@ -1104,9 +1123,14 @@ def edit_group_expense_api(request, group_id, expense_id):
                     logger.warning(f"SECURITY: IDOR blocked! User {request.user.id} attempted to link non-members to a transaction.")
                     return JsonResponse({'error': 'One or more users involved in this transaction are not members of the group.'}, status=400)
                     
-            total_paid = sum(float(p['amount']) for p in payers)
-            if abs(total_paid - amount) > 0.01:
-                return JsonResponse({'error': f'Sum of payments ({total_paid}) must equal total amount ({amount}).'}, status=400)
+            total_paid_cents = sum(round(float(p['amount']) * 100) for p in payers)
+            amount_cents = round(amount * 100)
+            
+            if abs(total_paid_cents - amount_cents) > 5:
+                return JsonResponse({'error': f'Sum of payments must equal total amount.'}, status=400)
+            elif total_paid_cents != amount_cents and len(payers) > 0:
+                diff_cents = amount_cents - total_paid_cents
+                payers[0]['amount'] = float(round(float(payers[0]['amount']) * 100) + diff_cents) / 100.0
             
             txn_date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
             txn_date = django_timezone.make_aware(txn_date)
@@ -1155,19 +1179,33 @@ def edit_group_expense_api(request, group_id, expense_id):
             
             # Create new splits
             if split_type == 'EQUAL':
-                share = amount / len(splits_data)
-                for s in splits_data:
+                allocated_cents = 0
+                for i, s in enumerate(splits_data):
                     u = get_object_or_404(User, id=s['userId'])
-                    GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=share)
+                    if i == len(splits_data) - 1:
+                        share_cents = amount_cents - allocated_cents
+                    else:
+                        share_cents = round(amount_cents / len(splits_data))
+                        allocated_cents += share_cents
+                    GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=share_cents / 100.0)
             elif split_type == 'EXACT':
+                total_split_cents = sum(round(float(s['amount']) * 100) for s in splits_data)
+                if abs(total_split_cents - amount_cents) <= 5 and total_split_cents != amount_cents and len(splits_data) > 0:
+                    diff_cents = amount_cents - total_split_cents
+                    splits_data[0]['amount'] = float(round(float(splits_data[0]['amount']) * 100) + diff_cents) / 100.0
                 for s in splits_data:
                     u = get_object_or_404(User, id=s['userId'])
                     GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=float(s['amount']))
             elif split_type == 'PERCENTAGE':
-                for s in splits_data:
+                allocated_cents = 0
+                for i, s in enumerate(splits_data):
                     u = get_object_or_404(User, id=s['userId'])
-                    share = (float(s['percentage']) / 100) * amount
-                    GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=share)
+                    if i == len(splits_data) - 1:
+                        share_cents = amount_cents - allocated_cents
+                    else:
+                        share_cents = round((float(s['percentage']) / 100.0) * amount_cents)
+                        allocated_cents += share_cents
+                    GroupExpenseSplit.objects.create(group_expense=group_expense, user=u, amount=share_cents / 100.0)
                     
             return JsonResponse({'status': 'success'})
         except json.JSONDecodeError:
