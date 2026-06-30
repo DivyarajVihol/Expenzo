@@ -991,7 +991,7 @@
               </thead>
               <tbody>
                   {% for exp in month.expenses %}
-                    <tr style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'" onclick="openEditGroupExpenseModal('{{ exp.id }}')">
+                    <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
                       <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
                     <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
                     <td data-label="Category">
@@ -1035,6 +1035,9 @@
                             "splitType": "{{ exp.split_type }}"
                           }
                         </script>
+                        <button onclick="event.stopPropagation(); openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
+                          <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
+                        </button>
                         <button onclick="event.stopPropagation(); deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Expense">
                           <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
                         </button>

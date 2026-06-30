@@ -6,6 +6,92 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.4">
 <style>
+  /* --- Transaction Row Grid Design --- */
+  .transaction-row-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s ease, transform 0.2s ease;
+    border-radius: 8px;
+  }
+  .transaction-row-grid:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .tx-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+  }
+  .tx-icon-wrapper svg {
+    margin: auto;
+    display: block;
+  }
+
+  .tx-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .tx-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .tx-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tx-method {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .tx-amount {
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .tx-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  @media (max-width: 480px) {
+    .transaction-row-grid {
+      grid-template-columns: auto 1fr auto;
+      grid-template-rows: auto auto;
+      row-gap: 0.5rem;
+    }
+    .tx-actions {
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+      padding-top: 0.5rem;
+      border-top: 1px dashed rgba(255,255,255,0.1);
+    }
+  }
+  /* ----------------------------------- */
+
   /* Refactored Classes for VS Code Syntax Fixes */
   .positive-balance { color: var(--accent-success); background: rgba(16, 185, 129, 0.1); }
   .negative-balance { color: var(--accent-danger); background: rgba(244, 63, 94, 0.1); }
@@ -325,40 +411,44 @@
       {% else %}
         <div class="transaction-list-container">
           {% for exp in recent_transactions %}
-            <div class="transaction-item-row" id="tx-row-{{ exp.id }}" style="cursor: pointer;" 
+            <div class="transaction-row-grid transaction-item-row" id="tx-row-{{ exp.id }}"
                  data-id="{{ exp.id }}" data-amount="{{ exp.amount }}" data-desc="{{ exp.description|escapejs }}" 
-                 data-category="{{ exp.category }}" data-account="{{ exp.account }}" data-method="{{ exp.payment_method }}" data-date="{{ exp.date|date:'Y-m-d' }}" 
-                 onclick="openEditPersonalModal(this.dataset.id, this.dataset.amount, this.dataset.desc, this.dataset.category, this.dataset.account, this.dataset.method, this.dataset.date)">
-              <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
-                <div class="transaction-icon-box">
-                  <i data-lucide="credit-card" class="transaction-icon {% if exp.category == 'Income' %}icon-income{% else %}icon-expense{% endif %}" style="width: 16px; height: 16px;"></i>
-                </div>
-                
-                <div style="min-width: 0; flex-grow: 1;">
-                  <div class="transaction-title-desc" style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    {{ exp.description }}
-                  </div>
-                  <div class="transaction-meta-row" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 0.5rem; align-items: center;">
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ exp.category }}</span>
-                    <span>•</span>
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ exp.account }}</span>
-                    <span>•</span>
-                    <span style="white-space: nowrap;">{{ exp.date|date:"j M" }}</span>
-                  </div>
-                </div>
+                 data-category="{{ exp.category }}" data-account="{{ exp.account }}" data-method="{{ exp.payment_method }}" data-date="{{ exp.date|date:'Y-m-d' }}">
+              
+              <!-- Column 1: Icon -->
+              <div class="tx-icon-wrapper">
+                <i data-lucide="credit-card" class="{% if exp.category == 'Income' %}icon-income{% else %}icon-expense{% endif %}" style="width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;"></i>
+              </div>
+              
+              <!-- Column 2: Content -->
+              <div class="tx-content">
+                <span class="tx-date">{{ exp.date|date:"j M Y" }}</span>
+                <span class="tx-title" title="{{ exp.description }}">{{ exp.description }}</span>
+                <span class="tx-method">{{ exp.payment_method }}</span>
               </div>
 
-              <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-                <span class="transaction-value-amount {% if exp.category == 'Income' %}text-success{% else %}text-danger{% endif %}" style="font-weight: 700; font-size: 0.9rem;">
-                  {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
-                </span>
-                
+              <!-- Column 3: Amount -->
+              <div class="tx-amount {% if exp.category == 'Income' %}text-success{% else %}text-danger{% endif %}">
+                {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+              </div>
+
+              <!-- Column 4: Actions -->
+              <div class="tx-actions">
+                <button
+                  onclick="event.stopPropagation(); const row = this.closest('.transaction-item-row'); openEditPersonalModal(row.dataset.id, row.dataset.amount, row.dataset.desc, row.dataset.category, row.dataset.account, row.dataset.method, row.dataset.date)"
+                  class="btn-edit-item-action"
+                  style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center;"
+                  title="Edit Transaction"
+                >
+                  <i data-lucide="pencil" style="width: 16px; height: 16px;"></i>
+                </button>
                 <button
                   onclick="event.stopPropagation(); deleteTransaction('{{ exp.id }}')"
                   class="btn-delete-item-action"
                   style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center;"
+                  title="Delete Transaction"
                 >
-                  <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                  <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
                 </button>
               </div>
             </div>

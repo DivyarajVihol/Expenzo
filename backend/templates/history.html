@@ -355,19 +355,18 @@
                 <th>Category</th>
                 <th>Account / Method</th>
                 <th style="text-align: right;">Amount</th>
+                <th style="text-align: right; width: 50px;"></th>
               </tr>
             </thead>
             <tbody>
               {% for exp in month.expenses %}
-                <tr style="cursor: pointer;" 
-                    data-id="{{ exp.id }}"
+                <tr data-id="{{ exp.id }}"
                     data-amount="{{ exp.amount }}"
                     data-desc="{{ exp.description }}"
                     data-category="{{ exp.category }}"
                     data-account="{{ exp.account }}"
                     data-method="{{ exp.payment_method }}"
-                    data-date="{{ exp.date|date:'Y-m-d' }}"
-                    onclick="openEditPersonalModal(this.dataset.id, this.dataset.amount, this.dataset.desc, this.dataset.category, this.dataset.account, this.dataset.method, this.dataset.date)">
+                    data-date="{{ exp.date|date:'Y-m-d' }}">
                   <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
                   <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
                   <td data-label="Category">
@@ -381,6 +380,15 @@
                   </td>
                   <td data-label="Amount" style="text-align: right;" class="{% if exp.category == 'Income' %}amount-income{% else %}amount-expense{% endif %}">
                     {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+                  </td>
+                  <td data-label="Actions" style="text-align: right;">
+                    <button
+                      onclick="event.stopPropagation(); const row = this.closest('tr'); openEditPersonalModal(row.dataset.id, row.dataset.amount, row.dataset.desc, row.dataset.category, row.dataset.account, row.dataset.method, row.dataset.date)"
+                      style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem;"
+                      title="Edit Transaction"
+                    >
+                      <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
+                    </button>
                   </td>
                 </tr>
               {% endfor %}
