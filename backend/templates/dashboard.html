@@ -674,6 +674,8 @@
   }
 
   function openEditPersonalModal(id, amount, description, category, account, paymentMethod, date) {
+    currentEditOriginalAmount = parseFloat(amount) || 0;
+    currentEditOriginalAccount = account;
     document.getElementById('tx-id').value = id;
     document.getElementById('tx-amount').value = amount;
     document.getElementById('tx-description').value = description;
@@ -764,6 +766,8 @@
   const accountBalances = JSON.parse('{{ account_balances_json|escapejs }}' || '{}');
 
   let pendingTransactionEvent = null;
+  let currentEditOriginalAmount = 0;
+  let currentEditOriginalAccount = '';
 
   function cancelNegativeBalance() {
     document.getElementById('negative-balance-modal').style.display = 'none';
@@ -792,7 +796,13 @@
     
     // Check for negative balance warning
     if (e && category !== 'Income' && !isNaN(numAmount)) {
-      const balance = accountBalances[account] || 0;
+      let balance = accountBalances[account] || 0;
+      
+      // Add back original amount if editing and account is unchanged
+      if (id && account === currentEditOriginalAccount) {
+          balance += currentEditOriginalAmount;
+      }
+
       if (numAmount > balance) {
         document.getElementById('nb-current-balance').innerText = `₹${balance.toFixed(2)}`;
         document.getElementById('nb-expense-amount').innerText = `₹${numAmount.toFixed(2)}`;
