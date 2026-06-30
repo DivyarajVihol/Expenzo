@@ -1449,11 +1449,13 @@
     document.getElementById('group-category').value = 'Others';
     document.getElementById('group-custom-category').style.display = 'none';
     document.getElementById('group-custom-category').value = '';
+    document.getElementById('group-custom-category').required = false;
     document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
     if (document.getElementById('exp-date').customCalendar) {
       document.getElementById('exp-date').customCalendar.resetToOriginal();
     }
     document.querySelector('#expense-modal .chart-card-title').innerText = 'Add Group Expense';
+    document.querySelector('#expense-modal button[type="submit"]').innerText = 'Add Expense';
     
     const payersContainer = document.getElementById('payers-container');
     payersContainer.innerHTML = '';
@@ -1538,6 +1540,7 @@
     });
 
     document.querySelector('#expense-modal .chart-card-title').innerText = 'Edit Group Expense';
+    document.querySelector('#expense-modal button[type="submit"]').innerText = 'Save Changes';
     document.getElementById('expense-modal').style.display = 'flex';
     lucide.createIcons();
   }
