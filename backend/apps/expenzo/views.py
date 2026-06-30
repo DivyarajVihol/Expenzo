@@ -1134,6 +1134,7 @@ def edit_group_expense_api(request, group_id, expense_id):
                 category = guessed_category
                 
             group_expense.category = category
+            group_expense.split_type = split_type
             group_expense.date = txn_date
             group_expense.paid_by = first_payer
             group_expense.save()

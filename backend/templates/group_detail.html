@@ -1029,7 +1029,8 @@
                             {% for s in exp.splits.all %}
                               {"userId": {{ s.user.id }}, "amount": {{ s.amount }}}{% if not forloop.last %},{% endif %}
                             {% endfor %}
-                          ]
+                          ],
+                          "splitType": "{{ exp.split_type }}"
                         }
                       </script>
                       <button onclick="openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
@@ -1531,8 +1532,9 @@
     });
 
     const splitTypeSelect = document.getElementById('exp-split-type');
-    splitTypeSelect.value = 'EQUAL';
-    toggleSplitInputs('EQUAL');
+    const splitType = data.splitType || 'EQUAL';
+    splitTypeSelect.value = splitType;
+    toggleSplitInputs(splitType);
     
     // Reset all split checkboxes
     document.querySelectorAll('.split-member-checkbox').forEach(cb => {
@@ -1540,6 +1542,8 @@
     });
 
     document.querySelectorAll('.exact-input').forEach(i => i.value = '');
+    document.querySelectorAll('.pct-input').forEach(i => i.value = '');
+    
     data.splits.forEach(split => {
       // Check the checkbox for this member
       const cb = document.querySelector(`.split-member-checkbox[value="${split.userId}"]`);
@@ -1547,9 +1551,14 @@
         cb.checked = true;
       }
       
-      const input = document.querySelector(`.exact-input[data-user-id="${split.userId}"]`);
-      if (input) {
-        input.value = split.amount;
+      const exactInput = document.querySelector(`.exact-input[data-user-id="${split.userId}"]`);
+      if (exactInput) {
+        exactInput.value = split.amount;
+      }
+      
+      const pctInput = document.querySelector(`.pct-input[data-user-id="${split.userId}"]`);
+      if (pctInput && data.amount > 0) {
+        pctInput.value = ((split.amount / data.amount) * 100).toFixed(2);
       }
     });
 
