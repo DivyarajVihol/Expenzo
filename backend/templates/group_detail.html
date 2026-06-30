@@ -1607,132 +1607,117 @@
   function addPayerRow() {
     const container = document.getElementById('payers-container');
     const template = document.getElementById('payer-row-template');
-    const clone = template.content.cloneNode(true);
-    container.appendChild(clone);
-  }
-
   function removePayerRow(btn) {
     btn.closest('.payer-row').remove();
   }
 
   async function submitExpense(e) {
     e.preventDefault();
-    const expId = document.getElementById('exp-id').value;
-    const amount = parseFloat(document.getElementById('exp-amount').value);
-    const description = document.getElementById('exp-desc').value;
-    const date = document.getElementById('exp-date').value;
-    const splitType = document.getElementById('exp-split-type').value;
-    let category = document.getElementById('group-category').value;
-    if (category === '__CUSTOM__') {
-      category = document.getElementById('group-custom-category').value.trim() || 'Others';
-    }
-
-    let payers = [];
-    let sumPayers = 0;
-    let missingPayerAmount = false;
-    document.querySelectorAll('.payer-row').forEach(row => {
-      const userId = row.querySelector('.payer-select').value;
-      const payerAmt = parseFloat(row.querySelector('.payer-amount').value) || 0;
-      if (payerAmt <= 0) {
-        missingPayerAmount = true;
-      }
-      payers.push({ userId, amount: payerAmt });
-      sumPayers += payerAmt;
-    });
-
-    if (payers.length === 0) {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      showWarningModal("Payment Error", "Please enter at least one valid payment amount.");
-      return;
-    }
-    if (missingPayerAmount) {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      showWarningModal("Payment Error", "Please enter a valid payment amount for all payers.");
-      return;
-    }
-
-    if (Math.abs(sumPayers - amount) > 0.05) {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      showWarningModal("Amount Mismatch", `Sum of payments (₹${sumPayers.toFixed(2)}) does not match the total amount (₹${amount.toFixed(2)}). Please adjust the payment amounts.`);
-      return;
-    }
-
-    let splits = [];
-    if (splitType === 'EQUAL') {
-      const checkedBoxes = document.querySelectorAll('.split-member-checkbox:checked');
-      if (checkedBoxes.length === 0) {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        showWarningModal("Split Error", 'Please select at least one participating member.');
-        return;
-      }
-      checkedBoxes.forEach(cb => {
-        splits.push({ userId: cb.value });
-      });
-    } else if (splitType === 'EXACT') {
-      let sum = 0;
-      let missingValue = false;
-      document.querySelectorAll('.split-member-checkbox:checked').forEach(cb => {
-        const userId = cb.value;
-        const input = document.querySelector(`.exact-input[data-user-id="${userId}"]`);
-        if (input) {
-          const val = parseFloat(input.value) || 0;
-          if (val <= 0) {
-            missingValue = true;
-          }
-          splits.push({ userId: userId, amount: val });
-          sum += val;
-        }
-      });
-      if (missingValue) {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        showWarningModal("Split Error", "Please enter a valid amount for all selected split members.");
-        return;
-      }
-      if (Math.abs(sum - amount) > 0.05) {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        showWarningModal("Split Mismatch", `Sum of exact values (₹${sum.toFixed(2)}) does not match the total amount (₹${amount.toFixed(2)}). Please adjust the split amounts.`);
-        return;
-      }
-    } else if (splitType === 'PERCENTAGE') {
-      let sumPct = 0;
-      let missingValue = false;
-      document.querySelectorAll('.split-member-checkbox:checked').forEach(cb => {
-        const userId = cb.value;
-        const input = document.querySelector(`.pct-input[data-user-id="${userId}"]`);
-        if (input) {
-          const val = parseFloat(input.value) || 0;
-          if (val <= 0) {
-            missingValue = true;
-          }
-          splits.push({ userId: userId, percentage: val });
-          sumPct += val;
-        }
-      });
-      if (missingValue) {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        showWarningModal("Split Error", "Please enter a valid percentage for all selected split members.");
-        return;
-      }
-      if (Math.abs(sumPct - 100) > 0.05) {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        showWarningModal("Split Mismatch", `Sum of percentages (${sumPct}%) does not match 100%. Please adjust the split percentages.`);
-        return;
-      }
-    }
-
-    const endpoint = expId 
-      ? `{% url 'api_edit_group_expense' group_id=group.id expense_id=999999 %}`.replace('999999', expId)
-      : `{% url 'api_add_group_expense' group_id=group.id %}`;
-
     try {
+      const expId = document.getElementById('exp-id').value;
+      const amountInput = document.getElementById('exp-amount');
+      const amount = parseFloat(amountInput.value);
+      if (isNaN(amount) || amount <= 0) {
+        showWarningModal("Invalid Amount", "Please enter a valid expense amount greater than 0.");
+        return;
+      }
+      const description = document.getElementById('exp-desc').value;
+      const date = document.getElementById('exp-date').value;
+      const splitType = document.getElementById('exp-split-type').value;
+      
+      let category = document.getElementById('group-category').value;
+      if (category === '__CUSTOM__') {
+        category = document.getElementById('group-custom-category').value.trim() || 'Others';
+      }
+
+      let payers = [];
+      let sumPayers = 0;
+      let missingPayerAmount = false;
+      document.querySelectorAll('.payer-row').forEach(row => {
+        const select = row.querySelector('.payer-select');
+        const input = row.querySelector('.payer-amount');
+        if (select && input) {
+          const userId = select.value;
+          const payerAmt = parseFloat(input.value) || 0;
+          if (payerAmt <= 0) {
+            missingPayerAmount = true;
+          }
+          payers.push({ userId, amount: payerAmt });
+          sumPayers += payerAmt;
+        }
+      });
+
+      if (payers.length === 0) {
+        showWarningModal("Payment Error", "Please enter at least one valid payment amount.");
+        return;
+      }
+      if (missingPayerAmount) {
+        showWarningModal("Payment Error", "Please enter a valid payment amount for all payers.");
+        return;
+      }
+      if (Math.abs(sumPayers - amount) > 0.05) {
+        showWarningModal("Amount Mismatch", `Sum of payments (₹${sumPayers.toFixed(2)}) does not match the total amount (₹${amount.toFixed(2)}). Please adjust the payment amounts.`);
+        return;
+      }
+
+      let splits = [];
+      if (splitType === 'EQUAL') {
+        const checkedBoxes = document.querySelectorAll('.split-member-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+          showWarningModal("Split Error", 'Please select at least one participating member.');
+          return;
+        }
+        checkedBoxes.forEach(cb => {
+          splits.push({ userId: cb.value });
+        });
+      } else if (splitType === 'EXACT') {
+        let sum = 0;
+        let missingValue = false;
+        document.querySelectorAll('.split-member-checkbox:checked').forEach(cb => {
+          const userId = cb.value;
+          const input = document.querySelector(`.exact-input[data-user-id="${userId}"]`);
+          if (input) {
+            const val = parseFloat(input.value) || 0;
+            if (val <= 0) missingValue = true;
+            splits.push({ userId: userId, amount: val });
+            sum += val;
+          }
+        });
+        if (missingValue) {
+          showWarningModal("Split Error", "Please enter a valid amount for all selected split members.");
+          return;
+        }
+        if (Math.abs(sum - amount) > 0.05) {
+          showWarningModal("Split Mismatch", `Sum of exact values (₹${sum.toFixed(2)}) does not match the total amount (₹${amount.toFixed(2)}). Please adjust the split amounts.`);
+          return;
+        }
+      } else if (splitType === 'PERCENTAGE') {
+        let sumPct = 0;
+        let missingValue = false;
+        document.querySelectorAll('.split-member-checkbox:checked').forEach(cb => {
+          const userId = cb.value;
+          const input = document.querySelector(`.pct-input[data-user-id="${userId}"]`);
+          if (input) {
+            const val = parseFloat(input.value) || 0;
+            if (val <= 0) missingValue = true;
+            splits.push({ userId: userId, percentage: val });
+            sumPct += val;
+          }
+        });
+        if (missingValue) {
+          showWarningModal("Split Error", "Please enter a valid percentage for all selected split members.");
+          return;
+        }
+        if (Math.abs(sumPct - 100) > 0.05) {
+          showWarningModal("Split Mismatch", `Sum of percentages (${sumPct}%) does not match 100%. Please adjust the split percentages.`);
+          return;
+        }
+      }
+
+      const endpoint = expId 
+        ? `{% url 'api_edit_group_expense' group_id=group.id expense_id=999999 %}`.replace('999999', expId)
+        : `{% url 'api_add_group_expense' group_id=group.id %}`;
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -1741,6 +1726,7 @@
         },
         body: JSON.stringify({ amount, description, category, payers, splitType, splits, date })
       });
+
       if (res.ok) {
         window.location.reload();
       } else {
@@ -1751,11 +1737,11 @@
         } catch (jsonErr) {
           errorMsg = `Server error: ${res.status} ${res.statusText}`;
         }
-        alert(errorMsg);
+        showWarningModal("Save Failed", errorMsg);
       }
     } catch (err) {
       console.error(err);
-      alert('Network or browser error occurred while saving the expense.');
+      showWarningModal("Error", "An unexpected error occurred while saving. Please try again.");
     }
   }
 
