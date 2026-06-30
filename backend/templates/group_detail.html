@@ -1607,6 +1607,10 @@
   function addPayerRow() {
     const container = document.getElementById('payers-container');
     const template = document.getElementById('payer-row-template');
+    const clone = template.content.cloneNode(true);
+    container.appendChild(clone);
+  }
+
   function removePayerRow(btn) {
     btn.closest('.payer-row').remove();
   }
