@@ -1010,32 +1010,6 @@
                       ₹{{ exp.amount|floatformat:2 }}
                     </td>
                     <td data-label="Actions" style="text-align: right; white-space: nowrap;">
-                      <script type="application/json" id="exp-data-{{ exp.id }}">
-                        {
-                          "amount": {{ exp.amount }},
-                          "description": "{{ exp.description|escapejs }}",
-                          "category": "{{ exp.category|escapejs }}",
-                          "date": "{{ exp.date|date:"Y-m-d" }}",
-                          "payers": [
-                            {% if exp.payments.all %}
-                              {% for p in exp.payments.all %}
-                                {"userId": {{ p.user.id }}, "amount": {{ p.amount }}}{% if not forloop.last %},{% endif %}
-                              {% endfor %}
-                            {% else %}
-                              {"userId": {{ exp.paid_by.id }}, "amount": {{ exp.amount }}}
-                            {% endif %}
-                          ],
-                          "splits": [
-                            {% for s in exp.splits.all %}
-                              {"userId": {{ s.user.id }}, "amount": {{ s.amount }}}{% if not forloop.last %},{% endif %}
-                            {% endfor %}
-                          ],
-                          "splitType": "{{ exp.split_type }}"
-                        }
-                      </script>
-                      <button onclick="openEditGroupExpenseModal('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Edit Expense">
-                        <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
-                      </button>
                       <button onclick="deleteGroupExpense('{{ exp.id }}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;" title="Delete Expense">
                         <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
                       </button>
@@ -1489,85 +1463,6 @@
     document.querySelectorAll('.pct-input').forEach(i => i.value = '');
 
     document.getElementById('expense-modal').style.display = 'flex';
-  }
-
-  function openEditGroupExpenseModal(id) {
-    const dataNode = document.getElementById('exp-data-' + id);
-    if (!dataNode) return;
-    const data = JSON.parse(dataNode.textContent);
-    
-    document.getElementById('expense-form').reset();
-    document.getElementById('exp-id').value = id;
-    
-    document.getElementById('exp-amount').value = data.amount;
-    document.getElementById('exp-desc').value = data.description;
-    
-    const isStandardCategory = ["Food", "Travel", "Shopping", "Entertainment", "Rent", "Utilities", "Health", "Education", "Investment", "Others"].includes(data.category);
-    const categorySelect = document.getElementById('group-category');
-    const customCategoryInput = document.getElementById('group-custom-category');
-    
-    if (isStandardCategory) {
-      categorySelect.value = data.category || 'Others';
-      customCategoryInput.style.display = 'none';
-      customCategoryInput.value = '';
-      customCategoryInput.required = false;
-    } else {
-      categorySelect.value = '__CUSTOM__';
-      customCategoryInput.style.display = 'block';
-      customCategoryInput.value = data.category || '';
-      customCategoryInput.required = true;
-    }
-    
-    document.getElementById('exp-date').value = data.date;
-    if (document.getElementById('exp-date').customCalendar) {
-      document.getElementById('exp-date').customCalendar.resetToOriginal();
-    }
-    
-    const payersContainer = document.getElementById('payers-container');
-    payersContainer.innerHTML = '';
-    data.payers.forEach((payer, idx) => {
-      addPayerRow();
-      const row = payersContainer.children[idx];
-      row.querySelector('.payer-select').value = payer.userId;
-      row.querySelector('.payer-amount').value = payer.amount;
-    });
-
-    const splitTypeSelect = document.getElementById('exp-split-type');
-    const splitType = data.splitType || 'EQUAL';
-    splitTypeSelect.value = splitType;
-    toggleSplitInputs(splitType);
-    
-    // Reset all split checkboxes
-    document.querySelectorAll('.split-member-checkbox').forEach(cb => {
-      cb.checked = false;
-    });
-
-    document.querySelectorAll('.exact-input').forEach(i => i.value = '');
-    document.querySelectorAll('.pct-input').forEach(i => i.value = '');
-    
-    data.splits.forEach(split => {
-      // Check the checkbox for this member
-      const cb = document.querySelector(`.split-member-checkbox[value="${split.userId}"]`);
-      if (cb) {
-        cb.checked = true;
-      }
-      
-      const exactInput = document.querySelector(`.exact-input[data-user-id="${split.userId}"]`);
-      if (exactInput) {
-        exactInput.value = split.amount;
-      }
-      
-      const pctInput = document.querySelector(`.pct-input[data-user-id="${split.userId}"]`);
-      if (pctInput && data.amount > 0) {
-        pctInput.value = ((split.amount / data.amount) * 100).toFixed(2);
-      }
-    });
-
-    document.querySelector('#expense-modal .chart-card-title').innerText = 'Edit Group Expense';
-    const btn = document.getElementById('submit-expense-btn');
-    if (btn) btn.innerText = 'Save Changes';
-    document.getElementById('expense-modal').style.display = 'flex';
-    lucide.createIcons();
   }
 
   function closeExpenseModal() {
