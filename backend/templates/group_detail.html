@@ -1800,6 +1800,14 @@
     const cards = document.querySelectorAll('.payment-method-card');
     cards.forEach(card => card.classList.remove('selected'));
     element.classList.add('selected');
+
+    // Reset button states back to Continue to Pay because method changed
+    document.getElementById('btn-pay-action').style.display = 'inline-flex';
+    document.getElementById('btn-payment-done').style.display = 'none';
+
+    // Hide old QR code container
+    document.getElementById('payment-qr-container').style.display = 'none';
+    document.getElementById('payment-qr-code').innerHTML = '';
   }
 
   function processUpiPayment() {
