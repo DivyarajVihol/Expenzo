@@ -1737,7 +1737,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ amount, description, category, payers, splitType, splits, date })
       });
@@ -1882,7 +1882,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ fromUserId, toUserId, amount })
       });
@@ -2057,7 +2057,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ upi_id: upiId, nickname })
       });
@@ -2088,7 +2088,7 @@
       const res = await fetch(`/api/upi/set-active/${id}/`, {
         method: 'POST',
         headers: {
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         }
       });
       if (res.ok) {
@@ -2108,7 +2108,7 @@
       const res = await fetch(`/api/upi/delete/${id}/`, {
         method: 'POST',
         headers: {
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         }
       });
       if (res.ok) {
@@ -2201,7 +2201,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ name, description, icon_base64, icon, remove_icon })
       });
@@ -2226,7 +2226,7 @@
           const res = await fetch("{% url 'api_delete_group' group_id=group.id %}", {
             method: 'POST',
             headers: {
-              'X-CSRFToken': '{{ csrf_token }}'
+              'X-CSRFToken': getCookie('csrftoken')
             }
           });
           if (res.ok) {
@@ -2253,7 +2253,7 @@
           const res = await fetch(url, {
             method: 'POST',
             headers: {
-              'X-CSRFToken': '{{ csrf_token }}',
+              'X-CSRFToken': getCookie('csrftoken'),
               'Accept': 'application/json'
             }
           });
@@ -2287,7 +2287,7 @@
           const res = await fetch(url, {
             method: 'POST',
             headers: {
-              'X-CSRFToken': '{{ csrf_token }}',
+              'X-CSRFToken': getCookie('csrftoken'),
               'Accept': 'application/json'
             }
           });
@@ -2320,7 +2320,7 @@
           const url = `{% url 'api_remove_member' group_id=group.id member_id=999999 %}`.replace('999999', memberId);
           const res = await fetch(url, {
             method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
           });
           if (res.ok) {
             window.location.reload();
@@ -2345,7 +2345,7 @@
           const url = `{% url 'api_leave_group' group_id=group.id %}`;
           const res = await fetch(url, {
             method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
           });
           if (res.ok) {
             window.location.href = "{% url 'groups' %}";

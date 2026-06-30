@@ -374,7 +374,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ name, amount, account, paymentMethod, executionDay })
       });
@@ -424,7 +424,7 @@
           const res = await fetch(`/api/recurring/delete/${id}/${type}/`, {
             method: 'POST',
             headers: {
-              'X-CSRFToken': '{{ csrf_token }}'
+              'X-CSRFToken': getCookie('csrftoken')
             }
           });
           if (res.ok) {

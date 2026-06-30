@@ -245,7 +245,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({
           current_password: current,
@@ -305,7 +305,7 @@
           const response = await fetch('{% url "api_delete_account" %}', {
             method: 'POST',
             headers: {
-              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+              'X-CSRFToken': getCookie('csrftoken')
             }
           });
           

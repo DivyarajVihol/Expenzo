@@ -176,21 +176,41 @@
                 });
             });
 
-            // Show loader on form submits
+            // Show loader on form submits (only if not prevented by AJAX)
             document.querySelectorAll('form').forEach(form => {
-                form.addEventListener('submit', () => {
-                    loader.classList.add('active');
+                form.addEventListener('submit', (e) => {
+                    setTimeout(() => {
+                        if (!e.defaultPrevented) {
+                            loader.classList.add('active');
+                        }
+                    }, 0);
                 });
             });
             
-            // Hide loader when navigating back via browser history
-            window.addEventListener('pageshow', (e) => {
-                if (e.persisted) {
-                    loader.classList.remove('active');
-                }
-            });
+        // Hide loader when navigating back via browser history
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) {
+                loader.classList.remove('active');
+            }
         });
-    </script>
-    {% block extra_js %}{% endblock %}
+    });
+
+    // Helper to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

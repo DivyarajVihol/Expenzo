@@ -745,7 +745,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ target, current })
       });
@@ -814,7 +814,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ amount, description, category, account, paymentMethod, date })
       });
@@ -850,7 +850,7 @@
       const res = await fetch(`/api/expenses/delete/${txToDelete}/`, {
         method: 'POST',
         headers: {
-          'X-CSRFToken': '{{ csrf_token }}'
+          'X-CSRFToken': getCookie('csrftoken')
         }
       });
       if (res.ok) {
