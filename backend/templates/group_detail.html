@@ -714,15 +714,17 @@
                   Joined: {{ member.joined_at|date:"M d, Y" }}
                 </div>
                 <div style="margin-top: 0.35rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                  <span style="font-size: 0.8rem; color: {% if member.active_upi %}var(--accent-success){% else %}var(--text-muted){% endif %}; font-weight: 500; display: inline-flex; align-items: center;">
-                    {% if member.active_upi %}
+                  {% if member.active_upi %}
+                  <span style="font-size: 0.8rem; color: var(--accent-success); font-weight: 500; display: inline-flex; align-items: center;">
                       <i data-lucide="check-circle" style="width: 12px; height: 12px; color: var(--accent-success); margin-right: 0.25rem;"></i>
                       {{ member.active_upi }}
-                    {% else %}
+                  </span>
+                  {% else %}
+                  <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; display: inline-flex; align-items: center;">
                       <i data-lucide="help-circle" style="width: 12px; height: 12px; color: var(--text-muted); margin-right: 0.25rem;"></i>
                       No UPI ID Added
-                    {% endif %}
                   </span>
+                  {% endif %}
                   {% if member.id == user.id %}
                     <button onclick="openManageUpiModal()" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: #818cf8; cursor: pointer; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.25rem;">
                       <i data-lucide="settings" style="width: 12px; height: 12px;"></i>
@@ -892,7 +894,7 @@
                 placeholder="e.g. rent, lunch, grocery..."
                 class="input-control"
                 value="{{ search_query }}"
-                style="padding-left: 2.25rem; {% if search_query %}padding-right: 2.25rem;{% endif %} box-sizing: border-box; width: 100%;"
+                {% if search_query %}style="padding-left: 2.25rem; padding-right: 2.25rem; box-sizing: border-box; width: 100%;"{% else %}style="padding-left: 2.25rem; box-sizing: border-box; width: 100%;"{% endif %}
                 onchange="document.getElementById('filter-form').submit()"
               />
               {% if search_query %}
@@ -1253,8 +1255,8 @@
                 <span>{{ m.first_name|default:m.username }}</span>
               </label>
               <!-- Exact / Percentage inputs (hidden by default) -->
-              <input type="number" class="input-control split-custom-input exact-input" placeholder="₹" style="width: 80px; display: none; padding: 0.25rem 0.5rem; font-size: 0.85rem;" data-user-id="{{ m.id }}">
-              <input type="number" class="input-control split-custom-input pct-input" placeholder="%" style="width: 80px; display: none; padding: 0.25rem 0.5rem; font-size: 0.85rem;" data-user-id="{{ m.id }}">
+              <input type="number" class="input-control split-custom-input exact-input" placeholder="₹" style="width: 80px; display: none; padding: 0.25rem 0.5rem; font-size: 0.85rem;" data-user-id="{{ m.id }}" step="0.01">
+              <input type="number" class="input-control split-custom-input pct-input" placeholder="%" style="width: 80px; display: none; padding: 0.25rem 0.5rem; font-size: 0.85rem;" data-user-id="{{ m.id }}" step="0.01">
             </div>
           {% endfor %}
         </div>
