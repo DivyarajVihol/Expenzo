@@ -1545,6 +1545,10 @@
 
   function closeSettleModal() {
     document.getElementById('settle-modal').style.display = 'none';
+    document.getElementById('payment-qr-container').style.display = 'none';
+    document.getElementById('payment-qr-code').innerHTML = '';
+    document.getElementById('btn-pay-action').style.display = 'inline-flex';
+    document.getElementById('btn-payment-done').style.display = 'none';
   }
 
   function toggleSplitInputs(type) {
@@ -1786,7 +1790,23 @@
       localStorage.setItem('saved_upi_' + toId, upiId);
     }
 
-    const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(toName)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(reason)}`;
+    // Determine deep link prefix based on the chosen payment method
+    let scheme = 'upi://';
+    const selectedCard = document.querySelector('.payment-method-card.selected');
+    if (selectedCard) {
+      const app = selectedCard.getAttribute('data-app');
+      if (app === 'gpay') {
+        scheme = 'tez://upi/';
+      } else if (app === 'phonepe') {
+        scheme = 'phonepe://';
+      } else if (app === 'paytm') {
+        scheme = 'paytmmp://';
+      } else if (app === 'bhim') {
+        scheme = 'bhim://';
+      }
+    }
+
+    const upiLink = `${scheme}pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(toName)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(reason)}`;
 
     // Swap buttons to show Payment Done
     document.getElementById('btn-pay-action').style.display = 'none';
