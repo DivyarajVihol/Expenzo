@@ -2,9 +2,165 @@
 {% load static %}
 
 {% block title %}{{ group.name }} - EXPENZO{% endblock %}
-
 {% block extra_css %}
 <style>
+  /* Premium Settle Up Button */
+  .btn-settle-up {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #6366F1, #8B5CF6);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    height: 44px;
+    padding: 0 1.25rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, filter 0.25s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  }
+  .btn-settle-up:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    filter: brightness(1.1);
+  }
+
+  /* Premium Settle Modal Design */
+  .premium-settle-modal {
+    background: rgba(17, 24, 39, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 20px !important;
+    width: 450px !important;
+    max-width: 90vw !important;
+    box-shadow: 0 20px 50px rgba(139, 92, 246, 0.15) !important;
+    animation: modalFadeIn 0.25s ease-out;
+  }
+
+  @keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .payment-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem auto;
+    color: #818cf8;
+    box-shadow: 0 0 15px rgba(129, 140, 248, 0.2);
+  }
+
+  .payment-details-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    transition: box-shadow 0.25s ease;
+  }
+  .payment-details-card:hover {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.03);
+  }
+  .payment-details-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .payment-details-label-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+  }
+  .payment-details-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .payment-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .payment-method-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .payment-method-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+  }
+  .payment-method-card.selected {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: #818cf8;
+    box-shadow: 0 0 12px rgba(129, 140, 248, 0.25);
+  }
+  .payment-method-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .btn-continue-pay {
+    background: linear-gradient(135deg, #6366F1, #8B5CF6);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    height: 48px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  }
+  .btn-continue-pay:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+  }
+
+  .qr-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 1rem;
+    animation: modalFadeIn 0.3s ease-out;
+  }
+
   /* Custom Toggle Switch */
   .custom-toggle {
     display: flex;
@@ -500,9 +656,20 @@
                     ₹{{ d.amount|floatformat:2 }}
                   </span>
                 </div>
-                <button class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="triggerSettleUp('{{ d.fromUserId }}', '{{ d.toUserId }}', '{{ d.amount }}')">
-                  Settle Up
-                </button>
+                {% if d.toUserActiveUpi %}
+                  <button class="btn-settle-up" onclick="triggerSettleUp('{{ d.fromUserId }}', '{{ d.toUserId }}', '{{ d.amount }}', '{{ d.fromUserName|escapejs }}', '{{ d.toUserName|escapejs }}', '{{ d.toUserActiveUpi|escapejs }}')">
+                    <i data-lucide="wallet" style="width: 16px; height: 16px;"></i>
+                    Settle Up
+                  </button>
+                {% else %}
+                  <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
+                    <button class="btn-settle-up" disabled style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border-color); cursor: not-allowed; box-shadow: none; filter: none;">
+                      <i data-lucide="wallet" style="width: 16px; height: 16px;"></i>
+                      Settle Up
+                    </button>
+                    <span style="font-size: 0.75rem; color: var(--accent-danger); font-weight: 500;">This member has not added a UPI ID yet.</span>
+                  </div>
+                {% endif %}
               </div>
             {% endfor %}
           </div>
@@ -545,6 +712,23 @@
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
                   Joined: {{ member.joined_at|date:"M d, Y" }}
+                </div>
+                <div style="margin-top: 0.35rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <span style="font-size: 0.8rem; color: {% if member.active_upi %}var(--accent-success){% else %}var(--text-muted){% endif %}; font-weight: 500; display: inline-flex; align-items: center;">
+                    {% if member.active_upi %}
+                      <i data-lucide="check-circle" style="width: 12px; height: 12px; color: var(--accent-success); margin-right: 0.25rem;"></i>
+                      {{ member.active_upi }}
+                    {% else %}
+                      <i data-lucide="help-circle" style="width: 12px; height: 12px; color: var(--text-muted); margin-right: 0.25rem;"></i>
+                      No UPI ID Added
+                    {% endif %}
+                  </span>
+                  {% if member.id == user.id %}
+                    <button onclick="openManageUpiModal()" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: #818cf8; cursor: pointer; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.25rem;">
+                      <i data-lucide="settings" style="width: 12px; height: 12px;"></i>
+                      Manage UPI IDs
+                    </button>
+                  {% endif %}
                 </div>
               </div>
             </div>
@@ -863,44 +1047,131 @@
         </div>
       {% endfor %}
     {% endif %}
-
   </div>
-
 </div>
 
-<!-- Settle Up Modal -->
-<div class="modal-overlay" id="settle-modal" style="display: none;">
-  <div class="modal-content" style="max-width: 420px;">
-    <div class="modal-header">
-      <h3 class="chart-card-title">Settle Up Payment</h3>
-      <button onclick="closeSettleModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+  <!-- Settle Up Modal -->
+<div class="modal-overlay" id="settle-modal" style="display: none; align-items: flex-start; justify-content: center; z-index: 1000; overflow-y: auto; padding: 2rem 1rem;">
+  <div class="modal-content premium-settle-modal">
+    <div class="modal-header" style="border-bottom: none; padding-bottom: 0.5rem;">
+      <h3 style="display: none;">Settle Up</h3>
+      <button onclick="closeSettleModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
       </button>
     </div>
-    <form id="settle-form" onsubmit="submitSettlement(event)">
-      <div class="modal-body">
-        <input type="hidden" id="settle-from-id">
-        <input type="hidden" id="settle-to-id">
-        <p style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-primary);">
-          Record cash/bank settlement transfer payment:
-        </p>
-        <div class="form-group">
-          <label class="form-label">Settle Amount (₹)</label>
-          <input
-            type="number"
-            id="settle-amount"
-            class="input-control"
-            required
-            min="0.01"
-            step="0.01"
-          />
+    
+    <div class="modal-body" style="padding-top: 0; padding-bottom: 1.5rem;">
+      <input type="hidden" id="settle-from-id">
+      <input type="hidden" id="settle-to-id">
+      <input type="hidden" id="settle-from-name">
+      <input type="hidden" id="settle-to-name">
+      <input type="hidden" id="settle-amount">
+
+      <!-- Top Section -->
+      <div class="payment-icon-wrapper">
+        <i data-lucide="shield-check" style="width: 28px; height: 28px;"></i>
+      </div>
+      <h3 style="text-align: center; font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">Settle Up Payment</h3>
+      <p style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Review the payment details before continuing.</p>
+
+      <!-- Elegant Details Card -->
+      <div class="payment-details-card">
+        <div class="payment-details-row">
+          <div class="payment-details-label-group">
+            <i data-lucide="user" style="width: 14px; height: 14px;"></i>
+            <span>Pay To</span>
+          </div>
+          <span class="payment-details-value" id="detail-pay-to">-</span>
+        </div>
+        <div class="payment-details-row" style="align-items: center;">
+          <div class="payment-details-label-group">
+            <i data-lucide="hash" style="width: 14px; height: 14px;"></i>
+            <span>UPI ID</span>
+          </div>
+          <input type="text" id="detail-upi-input" class="input-control" style="width: 180px; padding: 0.25rem 0.5rem; font-size: 0.85rem; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: var(--text-primary); text-align: right;" placeholder="username@oksbi">
+        </div>
+        <div id="use-saved-upi-container" style="display: none; align-items: center; justify-content: flex-end; gap: 0.5rem; margin-top: -0.25rem; margin-bottom: 0.5rem;">
+          <input type="checkbox" id="use-saved-upi-checkbox" checked style="cursor: pointer; width: 14px; height: 14px;">
+          <label for="use-saved-upi-checkbox" style="font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+            Use saved: <span id="saved-upi-display" style="color: var(--accent-primary); font-weight: 600;"></span>?
+          </label>
+        </div>
+        <div class="payment-details-row">
+          <div class="payment-details-label-group">
+            <i data-lucide="indian-rupee" style="width: 14px; height: 14px;"></i>
+            <span>Amount</span>
+          </div>
+          <span class="payment-details-value" style="color: var(--accent-success); font-size: 1.1rem; font-weight: 700;" id="detail-amount">₹0.00</span>
+        </div>
+        <div class="payment-details-row">
+          <div class="payment-details-label-group">
+            <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+            <span>Reason</span>
+          </div>
+          <span class="payment-details-value" id="detail-reason">Dinner Split</span>
+        </div>
+        <div class="payment-details-row">
+          <div class="payment-details-label-group">
+            <i data-lucide="users" style="width: 14px; height: 14px;"></i>
+            <span>Group</span>
+          </div>
+          <span class="payment-details-value" id="detail-group">{{ group.name }}</span>
+        </div>
+        <div class="payment-details-row">
+          <div class="payment-details-label-group">
+            <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+            <span>Status</span>
+          </div>
+          <span class="payment-details-value" style="color: var(--accent-warning); background: rgba(251, 191, 36, 0.1); padding: 0.15rem 0.5rem; border-radius: 20px; font-size: 0.75rem;">Pending</span>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeSettleModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Record Payment</button>
+
+      <!-- Payment Method Selection -->
+      <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; margin-top: 1rem;">Choose Payment Method</h4>
+      <div class="payment-methods-grid">
+        <div class="payment-method-card" data-app="gpay" onclick="selectPaymentMethod(this)">
+          <div class="payment-method-icon" style="background: rgba(66, 133, 244, 0.15); color: #4285F4;">G</div>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);">Google Pay</span>
+        </div>
+        <div class="payment-method-card" data-app="phonepe" onclick="selectPaymentMethod(this)">
+          <div class="payment-method-icon" style="background: rgba(95, 37, 159, 0.15); color: #ab47bc;">P</div>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);">PhonePe</span>
+        </div>
+        <div class="payment-method-card" data-app="paytm" onclick="selectPaymentMethod(this)">
+          <div class="payment-method-icon" style="background: rgba(0, 186, 242, 0.15); color: #00baf2;">Py</div>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);">Paytm</span>
+        </div>
+        <div class="payment-method-card" data-app="bhim" onclick="selectPaymentMethod(this)">
+          <div class="payment-method-icon" style="background: rgba(224, 92, 20, 0.15); color: #e05c14;">B</div>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);">BHIM</span>
+        </div>
+        <div class="payment-method-card selected" data-app="upi" onclick="selectPaymentMethod(this)" style="grid-column: span 2;">
+          <div class="payment-method-icon" style="background: rgba(129, 140, 248, 0.15); color: #818cf8;">
+            <i data-lucide="smartphone" style="width: 14px; height: 14px;"></i>
+          </div>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);">Any UPI App</span>
+        </div>
       </div>
-    </form>
+
+      <!-- QR Code Section (Hidden by Default) -->
+      <div class="qr-container" id="payment-qr-container" style="display: none; margin-bottom: 1rem;">
+        <div id="payment-qr-code" style="display: inline-block; padding: 0.5rem; background: #ffffff; border-radius: 8px; margin-bottom: 0.75rem;"></div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Scan using any UPI app to complete payment.</p>
+        <strong style="font-size: 1rem; color: var(--accent-success);" id="qr-payment-amount">₹0.00</strong>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="border-top: none; gap: 0.75rem; padding-top: 0;">
+      <button type="button" class="btn btn-secondary" onclick="closeSettleModal()" style="flex: 1; border-radius: 14px; height: 48px; font-weight: 600;">Cancel</button>
+      <button type="button" id="btn-pay-action" class="btn-continue-pay" onclick="processUpiPayment()" style="flex: 1;">
+        <i data-lucide="wallet" style="width: 16px; height: 16px;"></i>
+        <span>Continue to Pay</span>
+      </button>
+      <button type="button" id="btn-payment-done" class="btn-continue-pay" onclick="submitRealSettlement()" style="flex: 1; display: none; background: linear-gradient(135deg, #10B981, #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+        <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+        <span>Payment Done</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -999,6 +1270,59 @@
 </div>
 
 
+
+<!-- Manage UPI IDs Modal -->
+<div class="modal-overlay" id="manage-upi-modal" style="display: none; align-items: flex-start; justify-content: center; z-index: 1000; overflow-y: auto; padding: 2rem 1rem;">
+  <div class="modal-content premium-settle-modal" style="width: 480px; max-width: 95vw;">
+    <div class="modal-header" style="border-bottom: none; padding-bottom: 0.5rem;">
+      <h3 style="display: none;">Manage UPI IDs</h3>
+      <button onclick="closeManageUpiModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body" style="padding-top: 0; padding-bottom: 1.5rem;">
+      <div class="payment-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">
+        <i data-lucide="credit-card" style="width: 28px; height: 28px;"></i>
+      </div>
+      <h3 style="text-align: center; font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">Manage UPI IDs</h3>
+      <p style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Store multiple UPI IDs and choose one active payment address.</p>
+
+      <!-- UPI IDs Stack List -->
+      <div id="upi-stack-container" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+        <!-- Dynamically loaded -->
+      </div>
+
+      <!-- Add New UPI ID Button / Trigger -->
+      <div id="add-upi-trigger" style="text-align: center;">
+        <button onclick="expandAddUpiForm()" class="btn btn-secondary" style="width: 100%; border-radius: 12px; height: 44px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-primary);">
+          <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+          Add New UPI ID
+        </button>
+      </div>
+
+      <!-- Add New UPI ID Form (Hidden by Default) -->
+      <div id="add-upi-form-container" style="display: none; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 1.25rem; margin-top: 1rem; animation: modalFadeIn 0.2s ease-out;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-top: 0; margin-bottom: 1rem;">Add New UPI ID</h4>
+        <form id="new-upi-form" onsubmit="submitNewUpiId(event)">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label font-xs">UPI ID (VPA)</label>
+            <input type="text" id="new-upi-id" class="input-control" placeholder="e.g. shivam@oksbi" required style="background: rgba(0,0,0,0.2);">
+            <div id="new-upi-validation-msg" style="display: none; color: var(--accent-danger); font-size: 0.75rem; margin-top: 0.25rem;"></div>
+          </div>
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label class="form-label font-xs">Nickname (Optional)</label>
+            <input type="text" id="new-upi-nickname" class="input-control" placeholder="e.g. Personal, Business" style="background: rgba(0,0,0,0.2);">
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="collapseAddUpiForm()" style="flex: 1; border-radius: 10px; height: 38px;">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1; border-radius: 10px; height: 38px; background: var(--accent-primary);">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Generic Delete Modal -->
 <div class="modal-overlay" id="delete-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
@@ -1404,15 +1728,96 @@
     }
   }
 
-  function triggerSettleUp(fromId, toId, amount) {
+  function triggerSettleUp(fromId, toId, amount, fromName, toName, activeUpi) {
     document.getElementById('settle-from-id').value = fromId;
     document.getElementById('settle-to-id').value = toId;
-    document.getElementById('settle-amount').value = amount;
+    document.getElementById('settle-from-name').value = fromName;
+    document.getElementById('settle-to-name').value = toName;
+    
+    const numericAmount = parseFloat(amount);
+    document.getElementById('settle-amount').value = numericAmount;
+
+    // Reset button actions visibility
+    document.getElementById('btn-pay-action').style.display = 'inline-flex';
+    document.getElementById('btn-payment-done').style.display = 'none';
+
+    // Set UI details
+    document.getElementById('detail-pay-to').innerText = toName;
+    
+    const upiInput = document.getElementById('detail-upi-input');
+    const savedUpiContainer = document.getElementById('use-saved-upi-container');
+    
+    if (activeUpi) {
+      upiInput.value = activeUpi;
+      upiInput.placeholder = activeUpi;
+      savedUpiContainer.style.display = 'none';
+    } else {
+      const cleanName = (toName || '').toLowerCase().trim().split(/\s+/)[0].replace(/[^a-z0-9]/g, '');
+      const defaultUpiId = cleanName ? `${cleanName}@oksbi` : 'payment@oksbi';
+      upiInput.value = defaultUpiId;
+      upiInput.placeholder = defaultUpiId;
+      savedUpiContainer.style.display = 'none';
+    }
+
+    document.getElementById('detail-amount').innerText = `₹${numericAmount.toFixed(2)}`;
+    
+    // Hide QR container initially
+    document.getElementById('payment-qr-container').style.display = 'none';
+    document.getElementById('payment-qr-code').innerHTML = '';
+
     openSettleModal();
   }
 
-  async function submitSettlement(e) {
-    e.preventDefault();
+  function selectPaymentMethod(element) {
+    const cards = document.querySelectorAll('.payment-method-card');
+    cards.forEach(card => card.classList.remove('selected'));
+    element.classList.add('selected');
+  }
+
+  function processUpiPayment() {
+    const toId = document.getElementById('settle-to-id').value;
+    const toName = document.getElementById('settle-to-name').value;
+    const amount = parseFloat(document.getElementById('settle-amount').value);
+    const upiId = document.getElementById('detail-upi-input').value.trim() || document.getElementById('detail-upi-input').placeholder;
+    const reason = `${document.getElementById('detail-group').innerText} Split`;
+
+    // Save UPI ID for future use
+    if (upiId) {
+      localStorage.setItem('saved_upi_' + toId, upiId);
+    }
+
+    const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(toName)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(reason)}`;
+
+    // Swap buttons to show Payment Done
+    document.getElementById('btn-pay-action').style.display = 'none';
+    document.getElementById('btn-payment-done').style.display = 'inline-flex';
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      window.location.href = upiLink;
+    } else {
+      // Desktop: Show QR code
+      const qrContainer = document.getElementById('payment-qr-container');
+      const qrCodeDiv = document.getElementById('payment-qr-code');
+      const qrAmountSpan = document.getElementById('qr-payment-amount');
+
+      qrCodeDiv.innerHTML = '';
+      qrAmountSpan.innerText = `₹${amount.toFixed(2)}`;
+
+      const qrImg = document.createElement('img');
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiLink)}`;
+      qrImg.alt = "UPI QR Code";
+      qrImg.style.width = "180px";
+      qrImg.style.height = "180px";
+      qrCodeDiv.appendChild(qrImg);
+
+      qrContainer.style.display = 'block';
+      qrContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }
+
+  async function submitRealSettlement() {
     const fromUserId = document.getElementById('settle-from-id').value;
     const toUserId = document.getElementById('settle-to-id').value;
     const amount = parseFloat(document.getElementById('settle-amount').value);
@@ -1435,6 +1840,230 @@
     } catch (err) {
       console.error(err);
       alert('Error recording settlement payment');
+    }
+  }
+
+  // Manage UPI IDs Modal Logic
+  function openManageUpiModal() {
+    document.getElementById('manage-upi-modal').style.display = 'flex';
+    fetchAndRenderUpiIds();
+  }
+
+  function closeManageUpiModal() {
+    document.getElementById('manage-upi-modal').style.display = 'none';
+    collapseAddUpiForm();
+  }
+
+  async function fetchAndRenderUpiIds() {
+    const container = document.getElementById('upi-stack-container');
+    container.innerHTML = '<div style="text-align: center; padding: 1.5rem; color: var(--text-secondary);"><i data-lucide="loader" class="spin" style="width: 24px; height: 24px; margin: 0 auto 0.5rem;"></i>Loading...</div>';
+    if (window.lucide) lucide.createIcons();
+
+    try {
+      const res = await fetch("{% url 'api_get_upi_ids' %}");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      
+      container.innerHTML = "";
+      if (data.upi_ids.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 2rem 1.5rem; background: rgba(255,255,255,0.01); border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px; color: var(--text-secondary);">
+            <i data-lucide="info" style="width: 32px; height: 32px; color: var(--text-muted); margin: 0 auto 0.75rem;"></i>
+            <p style="font-size: 0.85rem; margin: 0;">No UPI IDs saved yet. Add one to receive payments.</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      data.upi_ids.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "payment-method-card";
+        card.style.display = "flex";
+        card.style.alignItems = "center";
+        card.style.justifyContent = "space-between";
+        card.style.padding = "0.85rem 1rem";
+        card.style.border = item.is_active ? "1px solid rgba(139, 92, 246, 0.4)" : "1px solid rgba(255,255,255,0.08)";
+        card.style.background = item.is_active ? "rgba(139, 92, 246, 0.08)" : "rgba(255,255,255,0.02)";
+        card.style.borderRadius = "12px";
+        card.style.cursor = "pointer";
+        card.style.transition = "all 0.2s";
+
+        // Click on card sets it active
+        card.onclick = (e) => {
+          if (e.target.closest('button') || e.target.closest('input[type="radio"]')) return;
+          setActiveUpiId(item.id);
+        };
+
+        const leftGroup = document.createElement('div');
+        leftGroup.style.display = "flex";
+        leftGroup.style.alignItems = "center";
+        leftGroup.style.gap = "0.75rem";
+
+        const radio = document.createElement('input');
+        radio.type = "radio";
+        radio.name = "active_upi_radio";
+        radio.checked = item.is_active;
+        radio.style.cursor = "pointer";
+        radio.onchange = () => setActiveUpiId(item.id);
+        leftGroup.appendChild(radio);
+
+        const details = document.createElement('div');
+        details.style.display = "flex";
+        details.style.flexDirection = "column";
+
+        const upiSpan = document.createElement('span');
+        upiSpan.innerText = item.upi_id;
+        upiSpan.style.fontSize = "0.95rem";
+        upiSpan.style.fontWeight = "600";
+        upiSpan.style.color = "var(--text-primary)";
+        details.appendChild(upiSpan);
+
+        if (item.nickname) {
+          const nickSpan = document.createElement('span');
+          nickSpan.innerText = item.nickname;
+          nickSpan.style.fontSize = "0.75rem";
+          nickSpan.style.color = "var(--text-secondary)";
+          nickSpan.style.marginTop = "0.15rem";
+          details.appendChild(nickSpan);
+        }
+        leftGroup.appendChild(details);
+        card.appendChild(leftGroup);
+
+        const rightGroup = document.createElement('div');
+        rightGroup.style.display = "flex";
+        rightGroup.style.alignItems = "center";
+        rightGroup.style.gap = "0.5rem";
+
+        if (item.is_active) {
+          const badge = document.createElement('span');
+          badge.innerText = "Active";
+          badge.style.fontSize = "0.7rem";
+          badge.style.background = "rgba(16, 185, 129, 0.15)";
+          badge.style.color = "#10b981";
+          badge.style.padding = "0.15rem 0.5rem";
+          badge.style.borderRadius = "20px";
+          badge.style.fontWeight = "600";
+          rightGroup.appendChild(badge);
+        }
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>';
+        deleteBtn.style.background = "rgba(239, 68, 68, 0.1)";
+        deleteBtn.style.border = "1px solid rgba(239, 68, 68, 0.2)";
+        deleteBtn.style.color = "var(--accent-danger)";
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.style.padding = "0.35rem";
+        deleteBtn.style.borderRadius = "8px";
+        deleteBtn.onclick = () => deleteUpiId(item.id);
+        rightGroup.appendChild(deleteBtn);
+
+        card.appendChild(rightGroup);
+        container.appendChild(card);
+      });
+
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      console.error(e);
+      container.innerHTML = '<div style="color: var(--accent-danger); text-align: center; padding: 1rem;">Failed to load saved UPI IDs.</div>';
+    }
+  }
+
+  function expandAddUpiForm() {
+    document.getElementById('add-upi-form-container').style.display = 'block';
+    document.getElementById('add-upi-trigger').style.display = 'none';
+  }
+
+  function collapseAddUpiForm() {
+    document.getElementById('add-upi-form-container').style.display = 'none';
+    document.getElementById('add-upi-trigger').style.display = 'block';
+    document.getElementById('new-upi-id').value = '';
+    document.getElementById('new-upi-nickname').value = '';
+    document.getElementById('new-upi-validation-msg').style.display = 'none';
+  }
+
+  async function submitNewUpiId(event) {
+    event.preventDefault();
+    const upiId = document.getElementById('new-upi-id').value.trim();
+    const nickname = document.getElementById('new-upi-nickname').value.trim();
+    const validationMsg = document.getElementById('new-upi-validation-msg');
+
+    // Validation
+    const regex = /^[\w.\-_]+@[\w]+$/;
+    if (!regex.test(upiId)) {
+      validationMsg.innerText = "Please enter a valid UPI format (e.g. name@oksbi, name@ybl).";
+      validationMsg.style.display = "block";
+      return;
+    }
+    validationMsg.style.display = "none";
+
+    try {
+      const res = await fetch("{% url 'api_add_upi_id' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ upi_id: upiId, nickname })
+      });
+      if (res.ok) {
+        // Success animation effect & reload
+        const formContainer = document.getElementById('add-upi-form-container');
+        formContainer.style.boxShadow = "0 0 20px rgba(16, 185, 129, 0.4)";
+        formContainer.style.borderColor = "#10b981";
+        
+        setTimeout(() => {
+          collapseAddUpiForm();
+          window.location.reload();
+        }, 800);
+      } else {
+        const data = await res.json();
+        validationMsg.innerText = data.error || 'Failed to save UPI ID';
+        validationMsg.style.display = "block";
+      }
+    } catch (e) {
+      console.error(e);
+      validationMsg.innerText = 'Server error occurred.';
+      validationMsg.style.display = "block";
+    }
+  }
+
+  async function setActiveUpiId(id) {
+    try {
+      const res = await fetch(`/api/upi/set-active/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("Failed to set active UPI ID");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to set active UPI ID");
+    }
+  }
+
+  async function deleteUpiId(id) {
+    if (!confirm("Are you sure you want to delete this UPI ID?")) return;
+    try {
+      const res = await fetch(`/api/upi/delete/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("Failed to delete UPI ID");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete UPI ID");
     }
   }
 

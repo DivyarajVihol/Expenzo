@@ -27,7 +27,7 @@ from django.core.files.storage import FileSystemStorage
 from .models import (
     UserProfile, PersonalExpense, RecurringIncome, RecurringExpense,
     MonthlyRecurringProcessing, Group, GroupMember, GroupExpense,
-    GroupExpenseSplit, Settlement, GroupExpensePayment
+    GroupExpenseSplit, Settlement, GroupExpensePayment, MemberUpiId
 )
 from .recurring_processor import process_recurring_finance, recalculate_current_month
 from .charts import (
@@ -469,12 +469,17 @@ def group_detail_view(request, group_id):
         
         settled_amount = min(debt_amount, credit_amount)
         
+        creditor_user = User.objects.filter(id=creditor['userId']).first()
+        creditor_active_upi = MemberUpiId.objects.filter(user=creditor_user, is_active=True).first()
+        creditor_upi_str = creditor_active_upi.upi_id if creditor_active_upi else ""
+
         simplified_debts.append({
             'fromUserId': debtor['userId'],
             'fromUserName': debtor['name'],
             'toUserId': creditor['userId'],
             'toUserName': creditor['name'],
-            'amount': round(settled_amount, 2)
+            'amount': round(settled_amount, 2),
+            'toUserActiveUpi': creditor_upi_str
         })
         
         debtor['net'] += settled_amount
@@ -561,6 +566,9 @@ def group_detail_view(request, group_id):
         profile_pic = None
         if hasattr(m.user, 'profile'):
             profile_pic = m.user.profile.avatar_base64 or m.user.profile.avatar
+        active_upi = MemberUpiId.objects.filter(user=m.user, is_active=True).first()
+        active_upi_str = active_upi.upi_id if active_upi else ""
+
         extended_members.append({
             'id': m.user.id,
             'name': m.user.first_name if m.user.first_name else m.user.username,
@@ -569,7 +577,8 @@ def group_detail_view(request, group_id):
             'joined_at': m.joined_at,
             'net': net_val,
             'abs_net': abs(net_val),
-            'profile_pic': profile_pic
+            'profile_pic': profile_pic,
+            'active_upi': active_upi_str
         })
         
     # --- Expense History Logic ---
@@ -853,6 +862,89 @@ def edit_recurring_api(request, item_id, item_type):
             logger.error(f"SECURITY: API Exception in {request.path} by user {request.user.id if request.user.is_authenticated else 'Anonymous'}: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'POST required'}, status=405)
+
+@rate_limit(limit=30, window=60)
+@login_required
+def get_upi_ids_api(request):
+    upi_ids = MemberUpiId.objects.filter(user=request.user)
+    data = []
+    for item in upi_ids:
+        data.append({
+            'id': item.id,
+            'upi_id': item.upi_id,
+            'nickname': item.nickname or '',
+            'is_active': item.is_active
+        })
+    return JsonResponse({'upi_ids': data})
+
+@rate_limit(limit=30, window=60)
+@login_required
+def add_upi_id_api(request):
+    if request.method == 'POST':
+        try:
+            payload = json.loads(request.body)
+            upi_id = strip_tags(payload.get('upi_id', '')).strip()
+            nickname = strip_tags(payload.get('nickname', '')).strip()
+
+            # Format validation
+            import re
+            if not re.match(r'^[\w.\-_]+@[\w]+$', upi_id):
+                return JsonResponse({'error': 'Invalid UPI ID format. E.g. example@oksbi, example@ybl'}, status=400)
+
+            count = MemberUpiId.objects.filter(user=request.user).count()
+            is_active = (count == 0)
+
+            new_upi = MemberUpiId.objects.create(
+                user=request.user,
+                upi_id=upi_id,
+                nickname=nickname,
+                is_active=is_active
+            )
+            return JsonResponse({'status': 'success', 'upi_id': {
+                'id': new_upi.id,
+                'upi_id': new_upi.upi_id,
+                'nickname': new_upi.nickname or '',
+                'is_active': new_upi.is_active
+            }})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+@rate_limit(limit=30, window=60)
+@login_required
+def set_active_upi_api(request, upi_id):
+    if request.method == 'POST':
+        try:
+            target = get_object_or_404(MemberUpiId, id=upi_id, user=request.user)
+            MemberUpiId.objects.filter(user=request.user).update(is_active=False)
+            target.is_active = True
+            target.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+@rate_limit(limit=30, window=60)
+@login_required
+def delete_upi_api(request, upi_id):
+    if request.method == 'POST' or request.method == 'DELETE':
+        try:
+            target = get_object_or_404(MemberUpiId, id=upi_id, user=request.user)
+            was_active = target.is_active
+            target.delete()
+
+            if was_active:
+                next_upi = MemberUpiId.objects.filter(user=request.user).first()
+                if next_upi:
+                    next_upi.is_active = True
+                    next_upi.save()
+
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'POST/DELETE required'}, status=405)
 
 @rate_limit(limit=30, window=60)
 @login_required

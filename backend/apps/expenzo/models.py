@@ -152,3 +152,16 @@ class Settlement(models.Model):
 
     def __str__(self):
         return f"Settlement {self.from_user.username} -> {self.to_user.username} ({self.amount})"
+
+class MemberUpiId(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='upi_ids')
+    upi_id = models.CharField(max_length=150)
+    nickname = models.CharField(max_length=100, null=True, blank=True)
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_active', '-created_at']
+
+    def __str__(self):
+        return f"{self.user.username}: {self.upi_id} ({self.nickname or 'No Nickname'})"
