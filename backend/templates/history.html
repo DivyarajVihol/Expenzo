@@ -378,7 +378,7 @@
                     <span style="font-weight: 500;">{{ exp.account }}</span><br>
                     <span style="font-size: 0.75rem; color: var(--text-muted);">{{ exp.payment_method }}</span>
                   </td>
-                  <td data-label="Amount" style="text-align: right;" class="{% if exp.category == 'Income' %}amount-income{% else %}amount-expense{% endif %}">
+                  <td data-label="Amount" style="text-align: right; white-space: nowrap;" class="{% if exp.category == 'Income' %}amount-income{% else %}amount-expense{% endif %}">
                     {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
                   </td>
                   <td data-label="Actions" style="text-align: right;">
