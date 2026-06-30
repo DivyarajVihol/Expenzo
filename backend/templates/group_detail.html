@@ -1735,12 +1735,18 @@
       if (res.ok) {
         window.location.reload();
       } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to save expense');
+        let errorMsg = 'Failed to save expense';
+        try {
+          const data = await res.json();
+          errorMsg = data.error || errorMsg;
+        } catch (jsonErr) {
+          errorMsg = `Server error: ${res.status} ${res.statusText}`;
+        }
+        alert(errorMsg);
       }
     } catch (err) {
       console.error(err);
-      alert('Error saving group expense');
+      alert('Network or browser error occurred while saving the expense.');
     }
   }
 
