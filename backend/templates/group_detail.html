@@ -676,6 +676,40 @@
         {% endif %}
       </div>
     </div>
+
+      <!-- Expense Heatmap Card -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h3 class="spending-title" style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 700;">Expense Heatmap</h3>
+            <p class="spending-subtitle" style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Visualize your daily spending activity throughout the year.</p>
+          </div>
+          <div>
+            <select id="heatmap-year" class="recent-transactions-select" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;">
+              <!-- Years populated dynamically via JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Scrollable wrapper for responsive grid -->
+        <div style="overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 8px;">
+          <div id="heatmap-container" style="min-width: 760px; padding: 0.5rem 0; opacity: 0; transition: opacity 0.4s ease;">
+            <!-- Generated Calendar Grid -->
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: var(--text-muted); margin-top: 1rem;">
+          <span>Less</span>
+          <div style="width: 10px; height: 10px; border-radius: 2px; background: #1e293b;" title="No Expense"></div>
+          <div style="width: 10px; height: 10px; border-radius: 2px; background: #d8b4fe;" title="₹1 - ₹500"></div>
+          <div style="width: 10px; height: 10px; border-radius: 2px; background: #c084fc;" title="₹501 - ₹1000"></div>
+          <div style="width: 10px; height: 10px; border-radius: 2px; background: #a855f7;" title="₹1001 - ₹2500"></div>
+          <div style="width: 10px; height: 10px; border-radius: 2px; background: #8b5cf6;" title="Above ₹2500"></div>
+          <span>More</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 3. ANALYTICS MERGED INTO LEDGER -->
@@ -991,7 +1025,7 @@
               </thead>
               <tbody>
                   {% for exp in month.expenses %}
-                    <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                    <tr data-date="{{ exp.date|date:'Y-m-d' }}" style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
                       <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
                     <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
                     <td data-label="Category">
@@ -1377,6 +1411,15 @@
 
 {% block extra_js %}
 <script>
+  const allExpenses = [
+    {% for exp in expenses %}
+      {
+        date: "{{ exp.date|date:'Y-m-d' }}",
+        amount: {{ exp.amount|stringformat:".2f" }}
+      }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
   function showWarningModal(title, message) {
     const loader = document.getElementById('global-loader');
     if (loader) loader.classList.remove('active');
@@ -2378,6 +2421,81 @@
     if (firstKey && firstKey.trim() !== '') {
       toggleMonth(firstKey);
     }
+
+    // Set up heatmap selector and render initial heatmap
+    const heatmapYearSelect = document.getElementById('heatmap-year');
+    if (heatmapYearSelect) {
+      const years = [...new Set(allExpenses.map(exp => exp.date ? exp.date.split('-')[0] : null))].filter(Boolean);
+      const currentYear = new Date().getFullYear().toString();
+      if (!years.includes(currentYear)) {
+        years.push(currentYear);
+      }
+      years.sort((a, b) => b - a);
+
+      years.forEach(yr => {
+        const opt = document.createElement('option');
+        opt.value = yr;
+        opt.textContent = yr;
+        heatmapYearSelect.appendChild(opt);
+      });
+
+      heatmapYearSelect.value = currentYear;
+      heatmapYearSelect.addEventListener('change', () => {
+        renderHeatmap(heatmapYearSelect.value);
+      });
+
+      renderHeatmap(currentYear);
+    }
+
+    // Client-side date query parameter filtering for Group splits history tab
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterDate = urlParams.get('date');
+    if (filterDate) {
+      // Direct user to history tab
+      switchTab('history');
+
+      document.querySelectorAll('#tab-content-history tbody tr').forEach(row => {
+        if (row.getAttribute('data-date') !== filterDate) {
+          row.style.display = 'none';
+        }
+      });
+
+      document.querySelectorAll('#tab-content-history .month-group-card').forEach(card => {
+        const visibleRows = card.querySelectorAll('tbody tr:not([style*="display: none"])');
+        if (visibleRows.length === 0) {
+          card.style.display = 'none';
+        } else {
+          card.style.display = 'block';
+          const content = card.querySelector('.month-expenses-content');
+          if (content) content.style.display = 'block';
+          const arrow = card.querySelector('.month-group-header i');
+          if (arrow) arrow.setAttribute('data-lucide', 'chevron-up');
+        }
+      });
+
+      const tabContent = document.getElementById('tab-content-history');
+      if (tabContent) {
+        const banner = document.createElement('div');
+        banner.className = 'glass-card';
+        banner.style.cssText = 'padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--accent-primary); border-radius: var(--radius-md);';
+        
+        const dateParts = filterDate.split('-');
+        let formattedDate = filterDate;
+        if (dateParts.length === 3) {
+          formattedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]).toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        
+        banner.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="filter" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+            <span style="font-size: 0.9rem; color: var(--text-primary);">Showing transactions for <strong>${formattedDate}</strong></span>
+          </div>
+          <a href="?tab=history" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; height: auto; display: inline-flex; align-items: center; text-decoration: none;">Clear Filter</a>
+        `;
+        tabContent.insertBefore(banner, tabContent.querySelector('.filters-card'));
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
   });
 
   function toggleMonth(key) {
@@ -2393,6 +2511,183 @@
     }
     
     lucide.createIcons();
+  }
+
+  // Create shared floating tooltip on body level
+  const tooltip = (() => {
+    let el = document.getElementById('heatmap-tooltip');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'heatmap-tooltip';
+      el.style.cssText = 'position: fixed; display: none; background: #0f172a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 2000; pointer-events: none; line-height: 1.4; transition: opacity 0.15s ease; opacity: 0;';
+      document.body.appendChild(el);
+    }
+    return el;
+  })();
+
+  function showTooltip(e, dateStr, amount, count) {
+    tooltip.innerHTML = `
+      <div style="font-weight: 600; margin-bottom: 0.2rem;">${dateStr}</div>
+      <div style="color: var(--accent-primary); font-weight: 700; margin-bottom: 0.1rem;">₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+      <div style="color: var(--text-secondary); font-size: 0.7rem;">${count} Transaction${count === 1 ? '' : 's'}</div>
+    `;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 12) + 'px';
+    tooltip.style.top = (e.clientY - 55) + 'px';
+    setTimeout(() => {
+      tooltip.style.opacity = '1';
+    }, 0);
+  }
+
+  function hideTooltip() {
+    tooltip.style.opacity = '0';
+    tooltip.style.display = 'none';
+  }
+
+  function renderHeatmap(year) {
+    const container = document.getElementById('heatmap-container');
+    container.style.opacity = '0';
+    
+    setTimeout(() => {
+      container.innerHTML = '';
+      
+      const yearExpenses = allExpenses.filter(exp => {
+        if (!exp.date) return false;
+        return exp.date.startsWith(year + '-');
+      });
+      
+      const dataByDate = {};
+      yearExpenses.forEach(exp => {
+        if (!dataByDate[exp.date]) {
+          dataByDate[exp.date] = { amount: 0, count: 0 };
+        }
+        dataByDate[exp.date].amount += exp.amount;
+        dataByDate[exp.date].count += 1;
+      });
+      
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(year, 11, 31);
+      
+      const dayList = [];
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        dayList.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      if (yearExpenses.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.id = 'heatmap-empty-state';
+        emptyState.style.cssText = "text-align: center; padding: 2rem 1.5rem; color: var(--text-secondary);";
+        emptyState.innerHTML = `
+          <i data-lucide="info" style="width: 24px; height: 24px; margin: 0 auto 0.5rem auto; opacity: 0.5; display: block;"></i>
+          <p style="margin: 0; font-size: 0.85rem;">No expense activity found for this year.</p>
+        `;
+        container.appendChild(emptyState);
+      }
+      
+      const calendarWrapper = document.createElement('div');
+      calendarWrapper.style.cssText = "display: flex; gap: 8px; align-items: flex-start; user-select: none;";
+      
+      const dayLabels = document.createElement('div');
+      dayLabels.style.cssText = "display: grid; grid-template-rows: repeat(7, 10px); gap: 3px; font-size: 0.65rem; color: var(--text-muted); line-height: 10px; margin-top: 18px;";
+      dayLabels.innerHTML = `
+        <div>Sun</div>
+        <div></div>
+        <div>Tue</div>
+        <div></div>
+        <div>Thu</div>
+        <div></div>
+        <div>Sat</div>
+      `;
+      calendarWrapper.appendChild(dayLabels);
+      
+      const rightWrapper = document.createElement('div');
+      rightWrapper.style.cssText = "position: relative; display: flex; flex-direction: column; gap: 5px;";
+      
+      const monthsHeader = document.createElement('div');
+      monthsHeader.style.cssText = "position: relative; height: 15px; font-size: 0.65rem; color: var(--text-muted);";
+      rightWrapper.appendChild(monthsHeader);
+      
+      const daysGrid = document.createElement('div');
+      daysGrid.style.cssText = "display: grid; grid-template-rows: repeat(7, 10px); grid-auto-flow: column; gap: 3px;";
+      
+      let colIndex = 1;
+      const monthStartWeeks = {};
+      
+      dayList.forEach((date, index) => {
+        const dateStr = date.toISOString().split('T')[0];
+        const dayOfWeek = date.getDay();
+        
+        if (dayOfWeek === 0 && index > 0) {
+          colIndex++;
+        }
+        
+        const monthName = date.toLocaleString('default', { month: 'short' });
+        if (date.getDate() === 1 || !monthStartWeeks[monthName]) {
+          if (!monthStartWeeks[monthName]) {
+            monthStartWeeks[monthName] = colIndex;
+          }
+        }
+        
+        const dayData = dataByDate[dateStr] || { amount: 0, count: 0 };
+        const amount = dayData.amount;
+        const count = dayData.count;
+        
+        let bgColor = '#1e293b';
+        if (amount > 0) {
+          if (amount <= 500) bgColor = '#d8b4fe';
+          else if (amount <= 1000) bgColor = '#c084fc';
+          else if (amount <= 2500) bgColor = '#a855f7';
+          else bgColor = '#8b5cf6';
+        }
+        
+        const cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        cell.style.cssText = `width: 10px; height: 10px; border-radius: 2px; background: ${bgColor}; cursor: pointer; transition: transform 0.1s ease;`;
+        
+        cell.addEventListener('mouseenter', () => {
+          cell.style.transform = 'scale(1.2)';
+        });
+        cell.addEventListener('mouseleave', () => {
+          cell.style.transform = 'scale(1)';
+        });
+        
+        const formattedDate = date.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' });
+        const ariaLabel = `${formattedDate}, ₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} spent in ${count} transaction${count === 1 ? '' : 's'}`;
+        cell.setAttribute('aria-label', ariaLabel);
+        
+        cell.addEventListener('mousemove', (e) => {
+          showTooltip(e, formattedDate, amount, count);
+        });
+        cell.addEventListener('mouseleave', () => {
+          hideTooltip();
+        });
+        
+        cell.addEventListener('click', () => {
+          window.location.href = `?tab=history&date=${dateStr}`;
+        });
+        
+        daysGrid.appendChild(cell);
+      });
+      
+      Object.entries(monthStartWeeks).forEach(([monthName, startCol]) => {
+        const monthLabel = document.createElement('span');
+        monthLabel.style.cssText = `position: absolute; left: ${(startCol - 1) * 13}px; top: 0; white-space: nowrap;`;
+        monthLabel.textContent = monthName;
+        monthsHeader.appendChild(monthLabel);
+      });
+      
+      rightWrapper.appendChild(daysGrid);
+      calendarWrapper.appendChild(rightWrapper);
+      container.appendChild(calendarWrapper);
+      
+      container.style.opacity = '1';
+      
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+    }, 150);
   }
 </script>
 {% endblock %}
