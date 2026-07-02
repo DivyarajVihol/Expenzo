@@ -219,6 +219,56 @@ def dashboard_view(request):
 
 @rate_limit(limit=60, window=60)
 @login_required
+def charts_view(request):
+    user = request.user
+    
+    # Process recurring items dynamically
+    process_recurring_finance(user)
+    
+    now = django_timezone.now()
+    selected_year = now.year
+    selected_month_num = now.month
+    
+    # Compute active month stats
+    monthly_expenses = PersonalExpense.objects.filter(user=user, date__year=selected_year, date__month=selected_month_num)
+    
+    # Calculate Pie Chart category breakdown
+    category_sums = {}
+    current_month_spends = monthly_expenses.exclude(category="Income")
+    total_spend = sum(exp.amount for exp in current_month_spends)
+    
+    for exp in current_month_spends:
+        category_sums[exp.category] = category_sums.get(exp.category, 0) + exp.amount
+        
+    category_breakdown = []
+    pie_categories = []
+    pie_values = []
+    
+    # Premium color matching
+    COLORS = ["#818cf8", "#34d399", "#fb7185", "#fbbf24", "#a78bfa", "#22d3ee", "#f472b6", "#a7f3d0", "#c084fc", "#94a3b8"]
+    
+    for idx, (name, value) in enumerate(category_sums.items()):
+        percentage = round((value / total_spend) * 100) if total_spend > 0 else 0
+        category_breakdown.append({
+            'name': name,
+            'value': value,
+            'percentage': percentage,
+            'color': COLORS[idx % len(COLORS)]
+        })
+        pie_categories.append(name)
+        pie_values.append(value)
+        
+    # Generate charts
+    pie_chart_base64 = generate_spending_pie_chart(pie_categories, pie_values)
+    
+    context = {
+        'category_breakdown': category_breakdown,
+        'pie_chart': pie_chart_base64,
+    }
+    return render(request, 'charts.html', context)
+
+@rate_limit(limit=60, window=60)
+@login_required
 def history_view(request):
     user = request.user
     

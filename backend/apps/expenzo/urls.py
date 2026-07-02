@@ -6,6 +6,7 @@ urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
     path('history/', views.history_view, name='history'),
     path('recurring/', views.recurring_view, name='recurring'),
+    path('charts/', views.charts_view, name='personal_charts'),
     path('groups/', views.groups_view, name='groups'),
     path('groups/<int:group_id>/', views.group_detail_view, name='group_detail'),
     path('profile/', views.profile_view, name='profile'),
