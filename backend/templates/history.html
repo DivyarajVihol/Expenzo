@@ -416,14 +416,25 @@
                     {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
                   </td>
                   <td data-label="Actions" style="text-align: right; white-space: nowrap;">
-                    <button
-                      type="button"
-                      class="btn-edit-transaction"
-                      style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; box-sizing: border-box; transition: var(--transition-fast);"
-                      title="Edit Transaction"
-                    >
-                      <i data-lucide="pencil" style="width: 16px; height: 16px;"></i>
-                    </button>
+                    <div style="display: inline-flex; align-items: center; gap: 14px; justify-content: flex-end;">
+                      <button
+                        type="button"
+                        class="btn-edit-transaction"
+                        style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; box-sizing: border-box; transition: var(--transition-fast);"
+                        title="Edit Transaction"
+                      >
+                        <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-delete-transaction"
+                        data-id="{{ exp.id }}"
+                        style="background: none; border: none; color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; box-sizing: border-box; transition: var(--transition-fast);"
+                        title="Delete Expense"
+                      >
+                        <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               {% endfor %}
@@ -505,6 +516,23 @@
     </form>
   </div>
 
+<!-- Generic Delete Modal -->
+<div class="modal-overlay" id="delete-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div style="text-align: center;">
+      <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
+      <h3 id="delete-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Confirm Action</h3>
+      <p id="delete-modal-message" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+        Are you sure you want to proceed? This action cannot be undone.
+      </p>
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="flex: 1; background: var(--accent-danger); border-color: var(--accent-danger);">Delete</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -522,6 +550,16 @@
     document.querySelectorAll('.color-bg-apply').forEach(el => {
       el.style.backgroundColor = el.getAttribute('data-color');
     });
+
+    const confirmBtn = document.getElementById('confirm-delete-btn');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        if (deleteActionCallback) {
+          deleteActionCallback();
+          closeDeleteModal();
+        }
+      });
+    }
   });
 
   // Global event delegation for action buttons
@@ -541,6 +579,17 @@
           row.dataset.method,
           row.dataset.date
         );
+      }
+      return;
+    }
+
+    const deleteBtn = e.target.closest('.btn-delete-transaction');
+    if (deleteBtn) {
+      e.stopPropagation();
+      e.preventDefault();
+      const id = deleteBtn.getAttribute('data-id');
+      if (id) {
+        deletePersonalExpense(id);
       }
       return;
     }
@@ -698,6 +747,44 @@
     }
   }
 
+  let deleteActionCallback = null;
 
+  function openGenericDeleteModal(title, message, callback) {
+    document.getElementById('delete-modal-title').innerText = title;
+    document.getElementById('delete-modal-message').innerText = message;
+    deleteActionCallback = callback;
+    document.getElementById('delete-modal').style.display = 'flex';
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').style.display = 'none';
+    deleteActionCallback = null;
+  }
+
+  function deletePersonalExpense(expenseId) {
+    openGenericDeleteModal(
+      'Delete Expense',
+      'Are you sure you want to delete this expense? This action cannot be undone.',
+      async () => {
+        try {
+          const res = await fetch(`/api/expenses/delete/${expenseId}/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCookie('csrftoken'),
+              'Accept': 'application/json'
+            }
+          });
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            alert('Failed to delete expense');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error deleting expense');
+        }
+      }
+    );
+  }
 </script>
 {% endblock %}
