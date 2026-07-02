@@ -77,10 +77,21 @@
   <div class="charts-content-grid">
     <!-- Spending breakdown Pie Chart -->
     <div class="glass-card" style="padding: 1.5rem 1.75rem;">
-      <div class="spending-card-header">
+      <div class="spending-card-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div>
           <h3 class="spending-title">Monthly Spending</h3>
           <p class="spending-subtitle">Category breakdown for the selected month</p>
+        </div>
+        <div>
+          <select
+            class="recent-transactions-select"
+            onchange="changeMonth(this.value)"
+            style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;"
+          >
+            {% for m in available_months %}
+              <option value="{{ m.key }}" {% if selected_month == m.key %}selected{% endif %}>{{ m.label }}</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
 
@@ -118,5 +129,11 @@
       el.style.backgroundColor = el.getAttribute('data-color');
     });
   });
+
+  function changeMonth(val) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', val);
+    window.location.href = url.toString();
+  }
 </script>
 {% endblock %}

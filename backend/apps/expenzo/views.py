@@ -226,8 +226,36 @@ def charts_view(request):
     process_recurring_finance(user)
     
     now = django_timezone.now()
-    selected_year = now.year
-    selected_month_num = now.month
+    selected_month = strip_tags(request.GET.get('month', '')).strip()
+    
+    if selected_month:
+        try:
+            selected_year, selected_month_num = map(int, selected_month.split('-'))
+        except ValueError:
+            selected_year = now.year
+            selected_month_num = now.month
+            selected_month = f"{selected_year}-{selected_month_num:02d}"
+    else:
+        selected_year = now.year
+        selected_month_num = now.month
+        selected_month = f"{selected_year}-{selected_month_num:02d}"
+        
+    # Get all distinct months with expenses for the dropdown selection
+    expense_dates = PersonalExpense.objects.filter(user=user).dates('date', 'month', order='DESC')
+    available_months = []
+    for d in expense_dates:
+        available_months.append({
+            'key': d.strftime("%Y-%m"),
+            'label': d.strftime("%B %Y")
+        })
+    
+    # Ensure current selected month is in the list
+    selected_label = datetime(selected_year, selected_month_num, 1).strftime("%B %Y")
+    if not any(m['key'] == selected_month for m in available_months):
+        available_months.insert(0, {
+            'key': selected_month,
+            'label': selected_label
+        })
     
     # Compute active month stats
     monthly_expenses = PersonalExpense.objects.filter(user=user, date__year=selected_year, date__month=selected_month_num)
@@ -264,8 +292,11 @@ def charts_view(request):
     context = {
         'category_breakdown': category_breakdown,
         'pie_chart': pie_chart_base64,
+        'available_months': available_months,
+        'selected_month': selected_month
     }
     return render(request, 'charts.html', context)
+
 
 @rate_limit(limit=60, window=60)
 @login_required
