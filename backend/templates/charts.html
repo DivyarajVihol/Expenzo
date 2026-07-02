@@ -170,6 +170,9 @@
           <option value="ALL">All Categories</option>
         </select>
       </div>
+      <div style="flex: 0 0 auto; display: flex; align-items: flex-end;">
+        <button onclick="generateAnalyticsReport()" class="btn btn-primary" style="height: 38px; padding: 0 1.25rem; border: none; cursor: pointer; font-weight: 600;">Generate Report</button>
+      </div>
     </div>
 
     <!-- Report Section (Chart and Stats) -->
@@ -432,15 +435,9 @@
     setupCustomMonthPicker('analytics-start');
     setupCustomMonthPicker('analytics-end');
 
+    // Set default start/end months to last 6 months
     const startInput = document.getElementById('analytics-start');
     const endInput = document.getElementById('analytics-end');
-    const categorySelect = document.getElementById('analytics-category');
-
-    if (startInput) startInput.addEventListener('change', generateAnalyticsReport);
-    if (endInput) endInput.addEventListener('change', generateAnalyticsReport);
-    if (categorySelect) categorySelect.addEventListener('change', generateAnalyticsReport);
-
-    // Set default start/end months to last 6 months
     if (startInput && endInput) {
       const now = new Date();
       const endStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -462,14 +459,7 @@
     window.location.href = url.toString();
   }
 
-  let analyticsTimeoutId = null;
-
   function generateAnalyticsReport() {
-    // Clear any previously pending timeout to prevent race conditions
-    if (analyticsTimeoutId) {
-      clearTimeout(analyticsTimeoutId);
-    }
-
     const startVal = document.getElementById('analytics-start').value;
     const endVal = document.getElementById('analytics-end').value;
     const catVal = document.getElementById('analytics-category').value;
@@ -557,94 +547,75 @@
       return;
     }
 
-    // Show loading spinner overlay
     document.getElementById('analytics-empty-state').style.display = 'none';
     document.getElementById('analytics-report-area').style.display = 'block';
 
+    // Find highest/lowest spending months
+    let highestMonth = null;
+    let highestVal = -1;
+    let lowestMonth = null;
+    let lowestVal = Infinity;
+
+    Object.entries(monthlyData).forEach(([key, val]) => {
+      if (val.total > highestVal) {
+        highestVal = val.total;
+        highestMonth = key;
+      }
+      if (val.total > 0 && val.total < lowestVal) {
+        lowestVal = val.total;
+        lowestMonth = key;
+      }
+    });
+
+    if (lowestVal === Infinity) {
+      lowestVal = 0;
+    }
+
+    const formatMonthLabel = (key) => {
+      if (!key) return '-';
+      const [y, m] = key.split('-').map(Number);
+      return new Date(y, m - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
+    };
+
+    document.getElementById('summary-total').textContent = `₹${totalSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('summary-highest').textContent = highestVal > 0 ? `${formatMonthLabel(highestMonth)} (₹${highestVal.toFixed(2)})` : '-';
+    document.getElementById('summary-lowest').textContent = lowestVal > 0 ? `${formatMonthLabel(lowestMonth)} (₹${lowestVal.toFixed(2)})` : '-';
+    
+    const avgSpend = totalSum / monthsInRange.length;
+    document.getElementById('summary-avg').textContent = `₹${avgSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    // Render bars
     const chartContainer = document.getElementById('analytics-chart-container');
-    chartContainer.innerHTML = `
-      <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 10;">
-        <div style="width: 32px; height: 32px; border: 3px solid rgba(99, 102, 241, 0.1); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-      </div>
-    `;
+    chartContainer.innerHTML = '';
 
-    // Wait a brief moment to show subtle loading animation, then display chart and update stats
-    analyticsTimeoutId = setTimeout(() => {
-      // Find highest/lowest spending months
-      let highestMonth = null;
-      let highestVal = -1;
-      let lowestMonth = null;
-      let lowestVal = Infinity;
+    const maxVal = Math.max(...Object.values(monthlyData).map(d => d.total), 1);
 
-      Object.entries(monthlyData).forEach(([key, val]) => {
-        if (val.total > highestVal) {
-          highestVal = val.total;
-          highestMonth = key;
-        }
-        if (val.total > 0 && val.total < lowestVal) {
-          lowestVal = val.total;
-          lowestMonth = key;
-        }
-      });
+    monthsInRange.forEach(m => {
+      const data = monthlyData[m.key];
+      const heightPercent = maxVal > 0 ? (data.total / maxVal) * 80 : 0; 
 
-      if (lowestVal === Infinity) {
-        lowestVal = 0;
-      }
+      const barWrapper = document.createElement('div');
+      barWrapper.style.cssText = "display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; height: 100%; position: relative;";
 
-      const formatMonthLabel = (key) => {
-        if (!key) return '-';
-        const [y, m] = key.split('-').map(Number);
-        return new Date(y, m - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
-      };
-
-      document.getElementById('summary-total').textContent = `₹${totalSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      document.getElementById('summary-highest').textContent = highestVal > 0 ? `${formatMonthLabel(highestMonth)} (₹${highestVal.toFixed(2)})` : '-';
-      document.getElementById('summary-lowest').textContent = lowestVal > 0 ? `${formatMonthLabel(lowestMonth)} (₹${lowestVal.toFixed(2)})` : '-';
+      const barFill = document.createElement('div');
+      barFill.className = "analytics-bar-fill";
+      barFill.style.cssText = `width: 60%; max-width: 40px; height: ${heightPercent}%; background: linear-gradient(180deg, var(--accent-primary) 0%, rgba(129, 140, 248, 0.3) 100%); border-radius: 6px 6px 0 0; transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer;`;
       
-      const avgSpend = totalSum / monthsInRange.length;
-      document.getElementById('summary-avg').textContent = `₹${avgSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const tooltipText = `Month: ${formatMonthLabel(m.key)}\nTotal Expense: ₹${data.total.toFixed(2)}\nExpense Count: ${data.count}`;
+      barFill.setAttribute('data-tooltip', tooltipText);
 
-      chartContainer.innerHTML = '';
-      const maxVal = Math.max(...Object.values(monthlyData).map(d => d.total), 1);
+      const barLabel = document.createElement('span');
+      barLabel.style.cssText = "font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center; white-space: nowrap;";
+      barLabel.textContent = m.label;
 
-      const createdBars = [];
+      barWrapper.appendChild(barFill);
+      barWrapper.appendChild(barLabel);
+      chartContainer.appendChild(barWrapper);
+    });
 
-      monthsInRange.forEach(m => {
-        const data = monthlyData[m.key];
-        const heightPercent = maxVal > 0 ? (data.total / maxVal) * 80 : 0; 
-
-        const barWrapper = document.createElement('div');
-        barWrapper.style.cssText = "display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; height: 100%; position: relative;";
-
-        const barFill = document.createElement('div');
-        barFill.className = "analytics-bar-fill";
-        barFill.style.cssText = `width: 60%; max-width: 40px; height: 0%; background: linear-gradient(180deg, var(--accent-primary) 0%, rgba(129, 140, 248, 0.3) 100%); border-radius: 6px 6px 0 0; transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer;`;
-        
-        const tooltipText = `Month: ${formatMonthLabel(m.key)}\nTotal Expense: ₹${data.total.toFixed(2)}\nExpense Count: ${data.count}`;
-        barFill.setAttribute('data-tooltip', tooltipText);
-
-        const barLabel = document.createElement('span');
-        barLabel.style.cssText = "font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center; white-space: nowrap;";
-        barLabel.textContent = m.label;
-
-        barWrapper.appendChild(barFill);
-        barWrapper.appendChild(barLabel);
-        chartContainer.appendChild(barWrapper);
-
-        createdBars.push({ element: barFill, targetHeight: heightPercent });
-      });
-
-      // Animate heights
-      setTimeout(() => {
-        createdBars.forEach(item => {
-          item.element.style.height = `${item.targetHeight}%`;
-        });
-      }, 50);
-
-      if (window.lucide) {
-        window.lucide.createIcons();
-      }
-    }, 200);
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
   }
 </script>
 {% endblock %}
