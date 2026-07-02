@@ -2935,20 +2935,25 @@
       </div>
     `;
 
-    // Build avatar element via DOM (keeps base64 data out of template literals entirely)
+    // Build avatar element via DOM — profile_pic is a URL, used directly as src
     const avatarSlot = row.querySelector('#' + avatarSlotId);
     if (avatarSlot) {
-      if (member.profile_pic) {
-        const img = document.createElement('img');
-        img.alt = member.name;
-        img.style.cssText = 'width:38px;height:38px;border-radius:50%;object-fit:cover;';
-        img.src = 'data:image/jpeg;base64,' + member.profile_pic;
-        avatarSlot.appendChild(img);
-      } else {
+      const showInitials = () => {
         const initDiv = document.createElement('div');
         initDiv.style.cssText = 'width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent-primary),#c084fc);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff;flex-shrink:0;';
         initDiv.textContent = initials;
+        avatarSlot.innerHTML = '';
         avatarSlot.appendChild(initDiv);
+      };
+      if (member.profile_pic) {
+        const img = document.createElement('img');
+        img.alt = '';  // empty alt so broken images don't bleed alt text into the layout
+        img.style.cssText = 'width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;';
+        img.onerror = showInitials;  // if URL fails, fall back to initials
+        img.src = member.profile_pic;  // profile_pic is already a URL, use directly
+        avatarSlot.appendChild(img);
+      } else {
+        showInitials();
       }
     }
 

@@ -774,7 +774,7 @@ def group_detail_view(request, group_id):
     for m in memberships:
         profile_pic = None
         if hasattr(m.user, 'profile'):
-            profile_pic = m.user.profile.avatar_base64 or None
+            profile_pic = m.user.profile.avatar_base64 or m.user.profile.avatar or None
         members_score_data.append({
             'id': m.user.id,
             'name': m.user.first_name if m.user.first_name else m.user.username,
