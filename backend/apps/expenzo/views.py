@@ -731,6 +731,57 @@ def group_detail_view(request, group_id):
             'category_breakdown': breakdown
         })
         
+    import json as _json
+
+    # Serialize settlements for Settlement Score widget (no new queries — reuses fetched querysets)
+    settlements_data = []
+    for s in settlements:
+        settlements_data.append({
+            'from_user_id': s.from_user_id,
+            'to_user_id': s.to_user_id,
+            'amount': float(s.amount),
+            'date': s.date.strftime('%Y-%m-%d') if s.date else '',
+            'is_settled': s.is_settled,
+        })
+
+    # Serialize expenses with splits for Settlement Score widget (reuses prefetched splits)
+    expenses_score_data = []
+    for exp in expenses:
+        splits_data = []
+        for sp in exp.splits.all():
+            splits_data.append({
+                'user_id': sp.user_id,
+                'amount': float(sp.amount),
+                'is_settled': sp.is_settled,
+            })
+        payments_data = []
+        for pmt in exp.payments.all():
+            payments_data.append({
+                'user_id': pmt.user_id,
+                'amount': float(pmt.amount),
+            })
+        expenses_score_data.append({
+            'id': exp.id,
+            'date': exp.date.strftime('%Y-%m-%d') if exp.date else '',
+            'amount': float(exp.amount),
+            'paid_by_id': exp.paid_by_id,
+            'splits': splits_data,
+            'payments': payments_data,
+        })
+
+    # Serialize members for Settlement Score widget
+    members_score_data = []
+    for m in memberships:
+        profile_pic = None
+        if hasattr(m.user, 'profile'):
+            profile_pic = m.user.profile.avatar_base64 or None
+        members_score_data.append({
+            'id': m.user.id,
+            'name': m.user.first_name if m.user.first_name else m.user.username,
+            'role': m.role,
+            'profile_pic': profile_pic,
+        })
+
     context = {
         'group': group,
         'user_role': user_role,
@@ -754,6 +805,9 @@ def group_detail_view(request, group_id):
         'search_query': search_query,
         'selected_category': category_filter,
         'error': error_message,
+        'settlements_json': _json.dumps(settlements_data),
+        'expenses_score_json': _json.dumps(expenses_score_data),
+        'members_score_json': _json.dumps(members_score_data),
     }
     return render(request, 'group_detail.html', context)
 

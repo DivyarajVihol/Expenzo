@@ -709,6 +709,35 @@
           <span>More</span>
         </div>
       </div>
+
+      <!-- Settlement Score Card (inside ledger tab so it hides/shows with the tab) -->
+      <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-bottom: 2rem;" id="settlement-score-card">
+
+        <!-- Card Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+          <div>
+            <h3 class="spending-title" style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 700;">Settlement Score</h3>
+            <p class="spending-subtitle" style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">View how consistently members settle shared expenses.</p>
+          </div>
+          <!-- Time Range Filter -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Time Range:</span>
+            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;" id="score-filter-buttons">
+              <button class="score-filter-btn active" data-range="30" onclick="setScoreFilter(30, this)" style="font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid var(--accent-primary); background: var(--accent-primary); color: #fff; cursor: pointer; transition: all 0.2s;">30 Days</button>
+              <button class="score-filter-btn" data-range="90" onclick="setScoreFilter(90, this)" style="font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s;">90 Days</button>
+              <button class="score-filter-btn" data-range="180" onclick="setScoreFilter(180, this)" style="font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s;">6 Months</button>
+              <button class="score-filter-btn" data-range="365" onclick="setScoreFilter(365, this)" style="font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s;">Last Year</button>
+              <button class="score-filter-btn" data-range="0" onclick="setScoreFilter(0, this)" style="font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s;">All Time</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Member Score List -->
+        <div id="settlement-score-list" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1419,6 +1448,11 @@
       }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ];
+
+  // Settlement Score data (serialized server-side from existing querysets)
+  const scoreSettlements = {{ settlements_json|safe }};
+  const scoreExpenses    = {{ expenses_score_json|safe }};
+  const scoreMembers     = {{ members_score_json|safe }};
 
   function showWarningModal(title, message) {
     const loader = document.getElementById('global-loader');
@@ -2447,6 +2481,9 @@
       renderHeatmap(currentYear);
     }
 
+    // Initial render of Settlement Score (default: last 30 days)
+    renderSettlementScores(30);
+
     // Client-side date query parameter filtering for Group splits history tab
     const urlParams = new URLSearchParams(window.location.search);
     const filterDate = urlParams.get('date');
@@ -2689,5 +2726,335 @@
       }
     }, 150);
   }
+
+  /* =========================================================
+     SETTLEMENT SCORE ENGINE
+  ========================================================= */
+
+  let currentScoreRange = 30; // days; 0 = all time
+
+  function setScoreFilter(days, btn) {
+    currentScoreRange = days;
+    // Update button active styles
+    document.querySelectorAll('.score-filter-btn').forEach(b => {
+      b.style.background    = 'transparent';
+      b.style.color         = 'var(--text-secondary)';
+      b.style.borderColor   = 'var(--border-color)';
+    });
+    btn.style.background  = 'var(--accent-primary)';
+    btn.style.color       = '#fff';
+    btn.style.borderColor = 'var(--accent-primary)';
+    renderSettlementScores(days);
+  }
+
+  function getScoreBadge(score) {
+    if (score >= 90) return { label: 'Excellent',        color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
+    if (score >= 75) return { label: 'Good',             color: '#818cf8', bg: 'rgba(129,140,248,0.12)' };
+    if (score >= 50) return { label: 'Average',          color: '#fb923c', bg: 'rgba(251,146,60,0.12)' };
+    return                  { label: 'Needs Attention',  color: '#f87171', bg: 'rgba(248,113,113,0.12)' };
+  }
+
+  function getProgressColor(score) {
+    if (score >= 90) return '#22c55e';
+    if (score >= 75) return '#818cf8';
+    if (score >= 50) return '#fb923c';
+    return '#f87171';
+  }
+
+  function calcMemberScore(memberId, rangeDays) {
+    const now   = new Date();
+    const cutoff = rangeDays > 0 ? new Date(now - rangeDays * 864e5) : null;
+
+    const inRange = d => !cutoff || new Date(d) >= cutoff;
+
+    // Expenses this member is split into (what they owe)
+    let totalOwed    = 0;
+    let settledOwed  = 0;
+    let totalPaid    = 0;
+    let expenseCount = 0;
+
+    for (const exp of scoreExpenses) {
+      if (!inRange(exp.date)) continue;
+      expenseCount++;
+
+      // What this member paid
+      for (const pmt of exp.payments) {
+        if (pmt.user_id === memberId) totalPaid += pmt.amount;
+      }
+      // Fallback paid_by
+      if (!exp.payments.length && exp.paid_by_id === memberId) {
+        totalPaid += exp.amount;
+      }
+
+      // What this member owes
+      for (const sp of exp.splits) {
+        if (sp.user_id === memberId) {
+          totalOwed   += sp.amount;
+          if (sp.is_settled) settledOwed += sp.amount;
+        }
+      }
+    }
+
+    // Settlements sent by this member in range
+    const memberSettlements = scoreSettlements.filter(s =>
+      s.from_user_id === memberId && inRange(s.date)
+    );
+    const settledCount   = memberSettlements.length;
+    const totalSettlAmt  = memberSettlements.reduce((a, s) => a + s.amount, 0);
+    const lastSettlement = memberSettlements.length
+      ? memberSettlements.reduce((latest, s) => s.date > latest ? s.date : latest, memberSettlements[0].date)
+      : null;
+
+    // Pending settlements where this member is the debtor
+    const pendingSettl = scoreSettlements.filter(s =>
+      s.from_user_id === memberId && !s.is_settled && inRange(s.date)
+    );
+    const pendingCount = pendingSettl.length;
+
+    // Score formula (0-100)
+    // 50% from settled-split ratio, 30% from settlement frequency, 20% from pending penalty
+    const totalActivities = settledCount + pendingCount;
+    const freqScore   = totalActivities > 0 ? Math.min(100, (settledCount / Math.max(1, totalActivities)) * 100) : 100;
+    const splitScore  = totalOwed > 0 ? Math.min(100, (settledOwed / totalOwed) * 100) : 100;
+    const pendPenalty = pendingCount > 0 ? Math.max(0, 100 - pendingCount * 10) : 100;
+
+    const score = Math.round(splitScore * 0.5 + freqScore * 0.3 + pendPenalty * 0.2);
+
+    return {
+      score:          Math.min(100, Math.max(0, score)),
+      totalPaid:      totalPaid,
+      totalOwed:      totalOwed,
+      settledCount:   settledCount,
+      pendingCount:   pendingCount,
+      lastSettlement: lastSettlement,
+      hasData:        expenseCount > 0 || settledCount > 0,
+    };
+  }
+
+  function animateCounter(el, target, duration) {
+    const start     = performance.now();
+    const startVal  = 0;
+    const step = ts => {
+      const elapsed = ts - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease     = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(startVal + (target - startVal) * ease);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function animateBar(barEl, targetPct, delay) {
+    setTimeout(() => {
+      barEl.style.width = targetPct + '%';
+    }, delay);
+  }
+
+  function buildMemberRow(member, result, idx) {
+    const badge    = getScoreBadge(result.score);
+    const barColor = getProgressColor(result.score);
+    const initials = member.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const detailId = `score-detail-${member.id}`;
+    const avatarSlotId = `score-avatar-${member.id}`;
+
+    const row = document.createElement('div');
+    row.className = 'score-member-row';
+    row.setAttribute('data-member-id', member.id);
+    row.style.cssText = `
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s, background 0.2s;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: scoreFadeIn 0.35s ease forwards;
+      animation-delay: ${idx * 0.07}s;
+    `;
+
+    const rolePill = member.role === 'ADMIN'
+      ? `<span style="font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:4px;background:rgba(129,140,248,0.15);color:var(--accent-primary);font-weight:600;border:1px solid rgba(129,140,248,0.3);">Admin</span>`
+      : `<span style="font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:4px;background:rgba(255,255,255,0.05);color:var(--text-muted);font-weight:500;border:1px solid var(--border-color);">Member</span>`;
+
+    const lastDate = result.lastSettlement
+      ? new Date(result.lastSettlement).toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })
+      : 'No settlements yet';
+
+    const activityText = result.hasData ? `Last settled: ${lastDate}` : 'No activity yet';
+
+    // Avatar is a placeholder — filled programmatically AFTER innerHTML to avoid base64 corrupting template literals
+    row.innerHTML = `
+      <div class="score-row-summary" onclick="toggleScoreDetail('${detailId}', this)"
+           style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;cursor:pointer;flex-wrap:wrap;"
+           onmouseenter="this.parentElement.style.background='rgba(255,255,255,0.04)';this.parentElement.style.borderColor='rgba(129,140,248,0.3)'"
+           onmouseleave="this.parentElement.style.background='rgba(255,255,255,0.025)';this.parentElement.style.borderColor='var(--border-color)'">
+
+        <div id="${avatarSlotId}" style="flex-shrink:0;"></div>
+
+        <div style="flex:1;min-width:100px;">
+          <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.2rem;">
+            <span style="font-size:0.9rem;font-weight:600;color:var(--text-primary);">${member.name}</span>
+            ${rolePill}
+          </div>
+          <span style="font-size:0.72rem;color:var(--text-muted);">${activityText}</span>
+        </div>
+
+        <div style="flex:2;min-width:180px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+            <span style="font-size:0.72rem;color:var(--text-muted);">Settlement Score</span>
+            <span class="score-counter-${member.id}" style="font-size:0.85rem;font-weight:700;color:${barColor};"
+                  title="Settlement Score is calculated using:&#10;• On-time settlements&#10;• Pending balances&#10;• Settlement frequency&#10;&#10;This score updates automatically as transactions change.">
+              0 / 100
+            </span>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:999px;height:7px;overflow:hidden;"
+               role="progressbar"
+               aria-label="${member.name} Settlement Score ${result.score} out of 100"
+               aria-valuenow="${result.score}" aria-valuemin="0" aria-valuemax="100">
+            <div class="score-bar-${member.id}" style="height:100%;width:0%;background:${barColor};border-radius:999px;transition:width 0.9s cubic-bezier(0.4,0,0.2,1);"></div>
+          </div>
+        </div>
+
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:0.6rem;">
+          <span style="font-size:0.72rem;font-weight:600;padding:0.25rem 0.65rem;border-radius:20px;background:${badge.bg};color:${badge.color};border:1px solid ${badge.color}40;white-space:nowrap;">
+            ${badge.label}
+          </span>
+          <i data-lucide="chevron-down" class="score-chevron-${member.id}" style="width:14px;height:14px;color:var(--text-muted);transition:transform 0.25s;flex-shrink:0;"></i>
+        </div>
+      </div>
+
+      <div id="${detailId}" style="display:none;padding:0 1.25rem 1rem 1.25rem;animation:scoreFadeIn 0.2s ease;">
+        <div style="height:1px;background:var(--border-color);margin-bottom:1rem;"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;">
+          ${buildDetailStat('Total Amount Paid', '₹' + result.totalPaid.toLocaleString('en-IN', {maximumFractionDigits:2}), '#22d3ee')}
+          ${buildDetailStat('Total Amount Owed', '₹' + result.totalOwed.toLocaleString('en-IN', {maximumFractionDigits:2}), '#fb7185')}
+          ${buildDetailStat('Settled Transactions', result.settledCount, '#22c55e')}
+          ${buildDetailStat('Pending Transactions', result.pendingCount, '#fb923c')}
+          ${buildDetailStat('Last Settlement', lastDate, '#a78bfa')}
+        </div>
+      </div>
+    `;
+
+    // Build avatar element via DOM (keeps base64 data out of template literals entirely)
+    const avatarSlot = row.querySelector('#' + avatarSlotId);
+    if (avatarSlot) {
+      if (member.profile_pic) {
+        const img = document.createElement('img');
+        img.alt = member.name;
+        img.style.cssText = 'width:38px;height:38px;border-radius:50%;object-fit:cover;';
+        img.src = 'data:image/jpeg;base64,' + member.profile_pic;
+        avatarSlot.appendChild(img);
+      } else {
+        const initDiv = document.createElement('div');
+        initDiv.style.cssText = 'width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent-primary),#c084fc);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff;flex-shrink:0;';
+        initDiv.textContent = initials;
+        avatarSlot.appendChild(initDiv);
+      }
+    }
+
+    return row;
+  }
+
+  function buildDetailStat(label, value, color) {
+    return `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border-color);border-radius:10px;padding:0.75rem 1rem;">
+        <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">${label}</div>
+        <div style="font-size:1rem;font-weight:700;color:${color};">${value}</div>
+      </div>
+    `;
+  }
+
+  function toggleScoreDetail(detailId, summaryEl) {
+    const detail = document.getElementById(detailId);
+    if (!detail) return;
+    const isOpen = detail.style.display !== 'none';
+    detail.style.display = isOpen ? 'none' : 'block';
+    const memberId = summaryEl.closest('[data-member-id]').getAttribute('data-member-id');
+    const chevron  = summaryEl.querySelector(`[class^="score-chevron"]`) || summaryEl.parentElement.querySelector('[data-lucide="chevron-down"], [data-lucide="chevron-up"]');
+    if (chevron) {
+      chevron.setAttribute('data-lucide', isOpen ? 'chevron-down' : 'chevron-up');
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
+  function renderSettlementScores(rangeDays) {
+    const list = document.getElementById('settlement-score-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!scoreMembers || scoreMembers.length === 0) {
+      list.innerHTML = `
+        <div style="text-align:center;padding:2.5rem 1rem;color:var(--text-secondary);">
+          <i data-lucide="users" style="width:32px;height:32px;margin:0 auto 0.75rem;display:block;opacity:0.4;"></i>
+          <p style="margin:0;font-size:0.85rem;">Settlement Score will appear after members complete settlement activity.</p>
+        </div>`;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    const results = scoreMembers.map(m => ({ member: m, result: calcMemberScore(m.id, rangeDays) }));
+
+    // Check if any member has any data at all
+    const anyData = results.some(r => r.result.hasData);
+
+    if (!anyData) {
+      list.innerHTML = `
+        <div style="text-align:center;padding:2.5rem 1rem;color:var(--text-secondary);">
+          <i data-lucide="bar-chart-2" style="width:32px;height:32px;margin:0 auto 0.75rem;display:block;opacity:0.4;"></i>
+          <p style="margin:0;font-size:0.85rem;">Settlement Score will appear after members complete settlement activity.</p>
+        </div>`;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    results.sort((a, b) => b.result.score - a.result.score);
+
+    results.forEach(({ member, result }, idx) => {
+      const row = buildMemberRow(member, result, idx);
+      list.appendChild(row);
+
+      // Animate counter and bar after DOM insertion
+      setTimeout(() => {
+        const counterEl = list.querySelector(`.score-counter-${member.id}`);
+        if (counterEl) {
+          let current = 0;
+          const target = result.score;
+          const dur = 900;
+          const start = performance.now();
+          const step = ts => {
+            const p = Math.min((ts - start) / dur, 1);
+            const ease = 1 - Math.pow(1 - p, 3);
+            const val = Math.round(current + (target - current) * ease);
+            counterEl.textContent = `${val} / 100`;
+            if (p < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }
+        const barEl = list.querySelector(`.score-bar-${member.id}`);
+        if (barEl) animateBar(barEl, result.score, 50);
+      }, idx * 70 + 150);
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  // Inject keyframe animation for score rows
+  (function() {
+    if (!document.getElementById('score-keyframes')) {
+      const s = document.createElement('style');
+      s.id = 'score-keyframes';
+      s.textContent = `
+        @keyframes scoreFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .score-filter-btn:hover { opacity: 0.85; }
+        .score-member-row:hover { cursor: default; }
+        .score-row-summary:hover { border-radius: 12px 12px 0 0; }
+      `;
+      document.head.appendChild(s);
+    }
+  })();
+
 </script>
 {% endblock %}
