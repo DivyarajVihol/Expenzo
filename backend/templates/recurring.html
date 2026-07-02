@@ -5,18 +5,46 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/recurring.css' %}">
+<style>
+  .tabs-row {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition-fast);
+    text-decoration: none;
+    display: inline-block;
+  }
+  .tab-btn:hover {
+    color: var(--text-primary);
+  }
+  .tab-btn.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-primary);
+  }
+  .tab-btn.active::after {
+    display: none !important;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="recurring-container">
   <!-- Header with back button -->
-  <div class="recurring-header">
+  <div class="recurring-header" style="margin-bottom: 1rem;">
     <div>
-      <a href="{% url 'dashboard' %}" class="back-dashboard-btn">
-        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
-        Back to Dashboard
-      </a>
-      <h1 class="page-title">Recurring Monthly Finance</h1>
+      <h1 class="page-title">Personal Spend</h1>
+      <p class="page-subtitle">Welcome back, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}. Here's your financial summary.</p>
     </div>
 
     <form method="POST" action="{% url 'recurring' %}">
@@ -31,6 +59,13 @@
         Recalculate Current Month
       </button>
     </form>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-row">
+    <a href="{% url 'dashboard' %}" class="tab-btn">Dashboard</a>
+    <a href="{% url 'history' %}" class="tab-btn">Expense History</a>
+    <a href="{% url 'recurring' %}" class="tab-btn active">Recurring Finance</a>
   </div>
 
   <!-- Add Entry Inline Form -->

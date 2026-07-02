@@ -29,21 +29,13 @@
 
             <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; margin-top: 2rem;">
                 <nav class="nav-menu">
-                    <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'history' or request.resolver_match.url_name == 'recurring' %}active{% endif %}">
                         <i data-lucide="user"></i>
                         <span>Personal Spend</span>
-                    </a>
-                    <a href="{% url 'history' %}" class="nav-item {% if request.resolver_match.url_name == 'history' %}active{% endif %}">
-                        <i data-lucide="history"></i>
-                        <span>Expense History</span>
                     </a>
                     <a href="{% url 'groups' %}" class="nav-item {% if request.resolver_match.url_name == 'groups' or request.resolver_match.url_name == 'group_detail' %}active{% endif %}">
                         <i data-lucide="users"></i>
                         <span>Group Splits</span>
-                    </a>
-                    <a href="{% url 'recurring' %}" class="nav-item {% if request.resolver_match.url_name == 'recurring' %}active{% endif %}">
-                        <i data-lucide="repeat"></i>
-                        <span>Recurring Finance</span>
                     </a>
                     <a href="{% url 'profile' %}" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
                         <i data-lucide="settings" style="color: var(--accent-primary);"></i>
