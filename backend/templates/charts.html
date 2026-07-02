@@ -219,6 +219,196 @@
 <script>
   const allExpenses = {{ all_expenses_json|safe }};
 
+  function setupCustomMonthPicker(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    const parent = input.parentElement;
+    
+    const container = document.createElement('div');
+    container.className = 'custom-month-picker-container';
+    container.style.position = 'relative';
+    container.style.width = '100%';
+    
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-month-picker-trigger input-control';
+    trigger.style.cssText = `background: rgba(255, 255, 255, 0.03); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; width: 100%; cursor: pointer; text-align: left; height: 38px; box-sizing: border-box;`;
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'custom-month-picker-label';
+    labelSpan.textContent = 'Select Month';
+    
+    const calendarIcon = document.createElement('i');
+    calendarIcon.setAttribute('data-lucide', 'calendar');
+    calendarIcon.style.cssText = 'width: 16px; height: 16px; opacity: 0.6; pointer-events: none;';
+    
+    trigger.appendChild(labelSpan);
+    trigger.appendChild(calendarIcon);
+    
+    const dropdown = document.createElement('div');
+    dropdown.className = 'custom-month-picker-dropdown';
+    dropdown.style.cssText = 'display: none; position: absolute; top: calc(100% + 5px); left: 0; background: #12131a; border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; width: 260px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6); z-index: 1000; box-sizing: border-box;';
+    
+    const yearNav = document.createElement('div');
+    yearNav.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;';
+    
+    const prevYearBtn = document.createElement('button');
+    prevYearBtn.type = 'button';
+    prevYearBtn.style.cssText = 'background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; display: flex; align-items: center;';
+    prevYearBtn.innerHTML = '<i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>';
+    
+    const yearDisplay = document.createElement('span');
+    yearDisplay.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.95rem;';
+    yearDisplay.textContent = '2026';
+    
+    const nextYearBtn = document.createElement('button');
+    nextYearBtn.type = 'button';
+    nextYearBtn.style.cssText = 'background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; display: flex; align-items: center;';
+    nextYearBtn.innerHTML = '<i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>';
+    
+    yearNav.appendChild(prevYearBtn);
+    yearNav.appendChild(yearDisplay);
+    yearNav.appendChild(nextYearBtn);
+    
+    const monthsGrid = document.createElement('div');
+    monthsGrid.style.cssText = 'display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;';
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    dropdown.appendChild(yearNav);
+    dropdown.appendChild(monthsGrid);
+    
+    parent.replaceChild(container, input);
+    container.appendChild(trigger);
+    container.appendChild(dropdown);
+    
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.id = input.id;
+    hiddenInput.value = input.value;
+    container.appendChild(hiddenInput);
+    
+    let currentYear = 2026;
+    
+    function parseValue(val) {
+      if (!val) return null;
+      const parts = val.split('-');
+      if (parts.length !== 2) return null;
+      return {
+        year: parseInt(parts[0]),
+        month: parseInt(parts[1])
+      };
+    }
+    
+    function updateDisplay() {
+      const parsed = parseValue(hiddenInput.value);
+      if (parsed) {
+        labelSpan.textContent = `${monthNames[parsed.month - 1]} ${parsed.year}`;
+        currentYear = parsed.year;
+      } else {
+        labelSpan.textContent = 'Select Month';
+      }
+      yearDisplay.textContent = currentYear;
+      renderMonths();
+    }
+    
+    function renderMonths() {
+      monthsGrid.innerHTML = '';
+      const parsed = parseValue(hiddenInput.value);
+      
+      monthNames.forEach((name, idx) => {
+        const mNum = idx + 1;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.style.cssText = 'background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-secondary); padding: 0.5rem 0.25rem; font-size: 0.8rem; cursor: pointer; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;';
+        btn.textContent = name;
+        
+        const isSelected = parsed && parsed.year === currentYear && parsed.month === mNum;
+        if (isSelected) {
+          btn.style.background = 'var(--accent-primary)';
+          btn.style.borderColor = 'var(--accent-primary)';
+          btn.style.color = '#ffffff';
+          btn.style.fontWeight = '600';
+        } else {
+          btn.addEventListener('mouseenter', () => {
+            btn.style.background = 'rgba(255, 255, 255, 0.08)';
+            btn.style.color = 'var(--text-primary)';
+          });
+          btn.addEventListener('mouseleave', () => {
+            btn.style.background = 'rgba(255, 255, 255, 0.02)';
+            btn.style.color = 'var(--text-secondary)';
+          });
+        }
+        
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          hiddenInput.value = `${currentYear}-${String(mNum).padStart(2, '0')}`;
+          const event = new Event('change', { bubbles: true });
+          hiddenInput.dispatchEvent(event);
+          updateDisplay();
+          closeDropdown();
+        });
+        
+        monthsGrid.appendChild(btn);
+      });
+    }
+    
+    function toggleDropdown(e) {
+      e.stopPropagation();
+      const isOpen = dropdown.style.display === 'block';
+      if (isOpen) {
+        closeDropdown();
+      } else {
+        document.querySelectorAll('.custom-month-picker-dropdown').forEach(d => {
+          d.style.display = 'none';
+        });
+        dropdown.style.display = 'block';
+        updateDisplay();
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+    
+    function closeDropdown() {
+      dropdown.style.display = 'none';
+    }
+    
+    trigger.addEventListener('click', toggleDropdown);
+    
+    prevYearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentYear--;
+      yearDisplay.textContent = currentYear;
+      renderMonths();
+    });
+    
+    nextYearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentYear++;
+      yearDisplay.textContent = currentYear;
+      renderMonths();
+    });
+    
+    document.addEventListener('click', (e) => {
+      if (!container.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+    
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(hiddenInput, 'value', {
+      get() {
+        return descriptor.get.call(this);
+      },
+      set(val) {
+        descriptor.set.call(this, val);
+        updateDisplay();
+      }
+    });
+
+    updateDisplay();
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.color-apply').forEach(el => {
       el.style.backgroundColor = el.getAttribute('data-color');
@@ -240,6 +430,10 @@
         categorySelect.appendChild(opt);
       });
     }
+
+    // Set up custom month pickers
+    setupCustomMonthPicker('analytics-start');
+    setupCustomMonthPicker('analytics-end');
 
     // Set default start/end months to last 6 months
     const startInput = document.getElementById('analytics-start');
