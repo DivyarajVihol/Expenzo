@@ -560,6 +560,53 @@
         }
       });
     }
+
+    // Client-side date query parameter filtering for Heatmap navigation
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterDate = urlParams.get('date');
+    if (filterDate) {
+      document.querySelectorAll('.tx-table tbody tr').forEach(row => {
+        if (row.getAttribute('data-date') !== filterDate) {
+          row.style.display = 'none';
+        }
+      });
+
+      document.querySelectorAll('.month-group-card').forEach(card => {
+        const visibleRows = card.querySelectorAll('.tx-table tbody tr:not([style*="display: none"])');
+        if (visibleRows.length === 0) {
+          card.style.display = 'none';
+        } else {
+          card.style.display = 'block';
+          const content = card.querySelector('.month-expenses-content');
+          if (content) content.style.display = 'block';
+          const arrow = card.querySelector('.month-group-header i');
+          if (arrow) arrow.setAttribute('data-lucide', 'chevron-up');
+        }
+      });
+
+      const container = document.querySelector('.history-container');
+      if (container) {
+        const banner = document.createElement('div');
+        banner.className = 'glass-card';
+        banner.style.cssText = 'padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--accent-primary); border-radius: var(--radius-md);';
+        
+        const dateParts = filterDate.split('-');
+        let formattedDate = filterDate;
+        if (dateParts.length === 3) {
+          formattedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]).toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        
+        banner.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="filter" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+            <span style="font-size: 0.9rem; color: var(--text-primary);">Showing transactions for <strong>${formattedDate}</strong></span>
+          </div>
+          <a href="{% url 'history' %}" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; height: auto; display: inline-flex; align-items: center; text-decoration: none;">Clear Filter</a>
+        `;
+        container.insertBefore(banner, container.querySelector('.filters-card'));
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
   });
 
   // Global event delegation for action buttons
