@@ -452,6 +452,7 @@
       </button>
     </div>
     <form id="transaction-form" onsubmit="saveTransaction(event)">
+      {% csrf_token %}
       <input type="hidden" id="tx-id" value="">
       <div class="modal-body">
         <div class="form-group">
@@ -559,11 +560,7 @@
     lucide.createIcons();
   }
 
-  function openEditPersonalModal(id, amount, description, category, paymentMethod, date) {
-    // We will extract account and method dynamically if we pass them 
-    // Wait! The onClick function only passes 6 arguments, but I didn't update it in history.html!
-    // Let me update the JS signature to accept account
-  }
+
   function togglePaymentMethod() {
     const accountSelect = document.getElementById('tx-account');
     const paymentGroup = document.getElementById('tx-payment-group');
