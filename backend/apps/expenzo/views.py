@@ -217,6 +217,7 @@ def dashboard_view(request):
     }
     return render(request, 'dashboard.html', context)
 
+
 @rate_limit(limit=60, window=60)
 @login_required
 def charts_view(request):
@@ -289,11 +290,22 @@ def charts_view(request):
     # Generate charts
     pie_chart_base64 = generate_spending_pie_chart(pie_categories, pie_values)
     
+    import json
+    all_expenses_data = []
+    for exp in PersonalExpense.objects.filter(user=user).order_by('date'):
+        all_expenses_data.append({
+            'date': exp.date.strftime('%Y-%m-%d') if exp.date else '',
+            'amount': float(exp.amount),
+            'category': exp.category
+        })
+    all_expenses_json = json.dumps(all_expenses_data)
+    
     context = {
         'category_breakdown': category_breakdown,
         'pie_chart': pie_chart_base64,
         'available_months': available_months,
-        'selected_month': selected_month
+        'selected_month': selected_month,
+        'all_expenses_json': all_expenses_json
     }
     return render(request, 'charts.html', context)
 

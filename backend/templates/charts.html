@@ -47,10 +47,38 @@
     gap: 2rem;
     align-items: start;
   }
-  @media (max-width: 1024px) {
-    .charts-content-grid {
-      grid-template-columns: 1fr;
-    }
+  .analytics-bar-fill {
+    position: relative;
+  }
+  .analytics-bar-fill::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: #181920;
+    color: #f8fafc;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    white-space: pre;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-color);
+    z-index: 100;
+    text-align: left;
+    pointer-events: none;
+    line-height: 1.4;
+  }
+  .analytics-bar-fill:hover::before {
+    visibility: visible;
+    opacity: 1;
+  }
+  .analytics-bar-fill:hover {
+    background: var(--accent-primary) !important;
+    filter: brightness(1.2);
   }
 </style>
 {% endblock %}
@@ -119,21 +147,281 @@
     </div>
   </div>
 
+  <!-- Expense Analytics Card -->
+  <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
+    <div style="margin-bottom: 1.5rem;">
+      <h3 class="spending-title" style="margin: 0 0 0.25rem 0;">Expense Analytics</h3>
+      <p class="spending-subtitle" style="margin: 0;">Analyze your spending over a custom date range.</p>
+    </div>
+
+    <!-- Filters Section -->
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+      <div style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 0.4rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Starting Month</label>
+        <input type="month" id="analytics-start" class="input-control" style="background: rgba(255, 255, 255, 0.03); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 8px;">
+      </div>
+      <div style="flex: 1 1 140px; display: flex; flex-direction: column; gap: 0.4rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Ending Month</label>
+        <input type="month" id="analytics-end" class="input-control" style="background: rgba(255, 255, 255, 0.03); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 8px;">
+      </div>
+      <div style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 0.4rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Category</label>
+        <select id="analytics-category" class="input-control select-control-dark" style="background: #0d121f; color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 8px; appearance: auto;">
+          <option value="ALL">All Categories</option>
+        </select>
+      </div>
+      <div style="flex: 0 0 auto; display: flex; align-items: flex-end;">
+        <button onclick="generateAnalyticsReport()" class="btn btn-primary" style="height: 38px; padding: 0 1.25rem; border: none; cursor: pointer; font-weight: 600;">Generate Report</button>
+      </div>
+    </div>
+
+    <!-- Report Section (Chart and Stats) -->
+    <div id="analytics-report-area" style="display: none;">
+      <!-- Bar Chart Container -->
+      <div style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+        <div id="analytics-chart-container" style="height: 250px; display: flex; align-items: flex-end; justify-content: space-between; gap: 0.5rem; position: relative;">
+          <!-- Bars dynamically populated via JS -->
+        </div>
+      </div>
+
+      <!-- Summary Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+        <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02);">
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">Total Expenses</span>
+          <strong id="summary-total" style="font-size: 1.25rem; color: var(--text-primary);">₹0.00</strong>
+        </div>
+        <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02);">
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">Highest Month</span>
+          <strong id="summary-highest" style="font-size: 0.95rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</strong>
+        </div>
+        <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02);">
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">Lowest Month</span>
+          <strong id="summary-lowest" style="font-size: 0.95rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</strong>
+        </div>
+        <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02);">
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">Average Monthly Spending</span>
+          <strong id="summary-avg" style="font-size: 1.25rem; color: var(--text-primary);">₹0.00</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State Area -->
+    <div id="analytics-empty-state" style="display: block; text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary);">
+      <i data-lucide="bar-chart-2" style="width: 48px; height: 48px; margin: 0 auto 1rem auto; opacity: 0.3; display: block;"></i>
+      <p id="analytics-empty-message" style="font-size: 0.9rem; margin: 0; color: var(--text-secondary);">No expense data available for the selected period.</p>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+  const allExpenses = {{ all_expenses_json|safe }};
+
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.color-apply').forEach(el => {
       el.style.backgroundColor = el.getAttribute('data-color');
     });
+
+    // Populate categories dynamically for analytics
+    const categorySelect = document.getElementById('analytics-category');
+    if (categorySelect) {
+      const categories = new Set();
+      allExpenses.forEach(exp => {
+        if (exp.category && exp.category !== 'Income') {
+          categories.add(exp.category);
+        }
+      });
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categorySelect.appendChild(opt);
+      });
+    }
+
+    // Set default start/end months to last 6 months
+    const startInput = document.getElementById('analytics-start');
+    const endInput = document.getElementById('analytics-end');
+    if (startInput && endInput) {
+      const now = new Date();
+      const endStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(now.getMonth() - 5);
+      const startStr = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}`;
+      
+      startInput.value = startStr;
+      endInput.value = endStr;
+      
+      // Auto generate the first report on load
+      generateAnalyticsReport();
+    }
   });
 
   function changeMonth(val) {
     const url = new URL(window.location.href);
     url.searchParams.set('month', val);
     window.location.href = url.toString();
+  }
+
+  function generateAnalyticsReport() {
+    const startVal = document.getElementById('analytics-start').value;
+    const endVal = document.getElementById('analytics-end').value;
+    const catVal = document.getElementById('analytics-category').value;
+
+    if (!startVal || !endVal) {
+      alert("Please select both starting and ending months.");
+      return;
+    }
+
+    if (startVal > endVal) {
+      alert("Starting month cannot be later than ending month.");
+      return;
+    }
+
+    // Parse start and end dates
+    const [startYear, startMonth] = startVal.split('-').map(Number);
+    const [endYear, endMonth] = endVal.split('-').map(Number);
+
+    // Generate list of months in range (YYYY-MM)
+    const monthsInRange = [];
+    let curYear = startYear;
+    let curMonth = startMonth;
+    while (curYear < endYear || (curYear === endYear && curMonth <= endMonth)) {
+      monthsInRange.push({
+        key: `${curYear}-${String(curMonth).padStart(2, '0')}`,
+        label: new Date(curYear, curMonth - 1, 1).toLocaleString('default', { month: 'short' }),
+        year: curYear,
+        month: curMonth
+      });
+      curMonth++;
+      if (curMonth > 12) {
+        curMonth = 1;
+        curYear++;
+      }
+    }
+
+    // Filter expenses
+    const filtered = allExpenses.filter(exp => {
+      if (!exp.date) return false;
+      const [y, m, d] = exp.date.split('-').map(Number);
+      
+      // Check date range
+      const inRange = (y > startYear || (y === startYear && m >= startMonth)) &&
+                      (y < endYear || (y === endYear && m <= endMonth));
+      if (!inRange) return false;
+
+      // Check category
+      if (catVal !== 'ALL' && exp.category !== catVal) return false;
+      
+      // Do not include Income in expense analytics
+      if (exp.category === 'Income') return false;
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      document.getElementById('analytics-report-area').style.display = 'none';
+      document.getElementById('analytics-empty-state').style.display = 'block';
+      document.getElementById('analytics-empty-message').textContent = "No expense data available for the selected period.";
+      return;
+    }
+
+    // Calculate totals per month
+    const monthlyData = {};
+    monthsInRange.forEach(m => {
+      monthlyData[m.key] = { total: 0, count: 0 };
+    });
+
+    let totalSum = 0;
+    filtered.forEach(exp => {
+      const [y, m] = exp.date.split('-').slice(0, 2);
+      const key = `${y}-${m}`;
+      if (monthlyData[key]) {
+        monthlyData[key].total += exp.amount;
+        monthlyData[key].count += 1;
+        totalSum += exp.amount;
+      }
+    });
+
+    const hasData = Object.values(monthlyData).some(d => d.count > 0);
+    if (!hasData) {
+      document.getElementById('analytics-report-area').style.display = 'none';
+      document.getElementById('analytics-empty-state').style.display = 'block';
+      document.getElementById('analytics-empty-message').textContent = "No expense data available for the selected period.";
+      return;
+    }
+
+    document.getElementById('analytics-empty-state').style.display = 'none';
+    document.getElementById('analytics-report-area').style.display = 'block';
+
+    // Find highest/lowest spending months
+    let highestMonth = null;
+    let highestVal = -1;
+    let lowestMonth = null;
+    let lowestVal = Infinity;
+
+    Object.entries(monthlyData).forEach(([key, val]) => {
+      if (val.total > highestVal) {
+        highestVal = val.total;
+        highestMonth = key;
+      }
+      if (val.total > 0 && val.total < lowestVal) {
+        lowestVal = val.total;
+        lowestMonth = key;
+      }
+    });
+
+    if (lowestVal === Infinity) {
+      lowestVal = 0;
+    }
+
+    const formatMonthLabel = (key) => {
+      if (!key) return '-';
+      const [y, m] = key.split('-').map(Number);
+      return new Date(y, m - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
+    };
+
+    document.getElementById('summary-total').textContent = `₹${totalSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('summary-highest').textContent = highestVal > 0 ? `${formatMonthLabel(highestMonth)} (₹${highestVal.toFixed(2)})` : '-';
+    document.getElementById('summary-lowest').textContent = lowestVal > 0 ? `${formatMonthLabel(lowestMonth)} (₹${lowestVal.toFixed(2)})` : '-';
+    
+    const avgSpend = totalSum / monthsInRange.length;
+    document.getElementById('summary-avg').textContent = `₹${avgSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    // Render bars
+    const chartContainer = document.getElementById('analytics-chart-container');
+    chartContainer.innerHTML = '';
+
+    const maxVal = Math.max(...Object.values(monthlyData).map(d => d.total), 1);
+
+    monthsInRange.forEach(m => {
+      const data = monthlyData[m.key];
+      const heightPercent = maxVal > 0 ? (data.total / maxVal) * 80 : 0; 
+
+      const barWrapper = document.createElement('div');
+      barWrapper.style.cssText = "display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; height: 100%; position: relative;";
+
+      const barFill = document.createElement('div');
+      barFill.className = "analytics-bar-fill";
+      barFill.style.cssText = `width: 60%; max-width: 40px; height: ${heightPercent}%; background: linear-gradient(180deg, var(--accent-primary) 0%, rgba(129, 140, 248, 0.3) 100%); border-radius: 6px 6px 0 0; transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer;`;
+      
+      const tooltipText = `Month: ${formatMonthLabel(m.key)}\nTotal Expense: ₹${data.total.toFixed(2)}\nExpense Count: ${data.count}`;
+      barFill.setAttribute('data-tooltip', tooltipText);
+
+      const barLabel = document.createElement('span');
+      barLabel.style.cssText = "font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center; white-space: nowrap;";
+      barLabel.textContent = m.label;
+
+      barWrapper.appendChild(barFill);
+      barWrapper.appendChild(barLabel);
+      chartContainer.appendChild(barWrapper);
+    });
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
   }
 </script>
 {% endblock %}
