@@ -2219,73 +2219,31 @@ def scan_receipt_api(request):
 def _try_parse_date_str(s):
     """Try multiple date formats; return 'YYYY-MM-DD' string or None."""
     import re
-    s = str(s).strip().lower()
+    import dateparser
     
-    month_map = {
-        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-        'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-        'january': 1, 'february': 2, 'march': 3, 'april': 4, 'june': 6,
-        'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
-    }
-
-    # 1. ISO format: yyyy-mm-dd
-    m = re.match(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$', s)
-    if m:
-        try:
-            y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
-            if 1 <= mo <= 12 and 1 <= d <= 31 and 2000 <= y <= 2100:
+    s = s.strip()
+    s = re.sub(r'^[:\s\-]+|[:\s\-]+$', '', s)
+    if not s:
+        return None
+        
+    try:
+        parsed_dt = dateparser.parse(
+            s,
+            settings={
+                "DATE_ORDER": "DMY",
+                "PREFER_DAY_OF_MONTH": "first",
+                "STRICT_PARSING": True
+            }
+        )
+        if parsed_dt:
+            y = parsed_dt.year
+            mo = parsed_dt.month
+            d = parsed_dt.day
+            if 2000 <= y <= 2100:
                 return f"{y:04d}-{mo:02d}-{d:02d}"
-        except ValueError:
-            pass
-
-    # 2. Word month check: "5 May 2026", "May 5 2026", "5 MAY 2026"
-    # "5 May 2026" or "05 May 2026"
-    m = re.match(r'^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})\s+(\d{4})$', s)
-    if m:
-        try:
-            d = int(m.group(1))
-            mon_str = m.group(2)
-            y = int(m.group(3))
-            mo = month_map.get(mon_str) or month_map.get(mon_str[:3])
-            if mo and 1 <= d <= 31 and 2000 <= y <= 2100:
-                return f"{y:04d}-{mo:02d}-{d:02d}"
-        except ValueError:
-            pass
-
-    # "May 5 2026"
-    m = re.match(r'^([a-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?\s+(\d{4})$', s)
-    if m:
-        try:
-            mon_str = m.group(1)
-            d = int(m.group(2))
-            y = int(m.group(3))
-            mo = month_map.get(mon_str) or month_map.get(mon_str[:3])
-            if mo and 1 <= d <= 31 and 2000 <= y <= 2100:
-                return f"{y:04d}-{mo:02d}-{d:02d}"
-        except ValueError:
-            pass
-
-    # 3. Numeric formats: dd/mm/yyyy, d/m/yyyy, dd-mm-yyyy, d-m-yyyy
-    m = re.match(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$', s)
-    if m:
-        try:
-            p1 = int(m.group(1))
-            p2 = int(m.group(2))
-            y = int(m.group(3))
+    except Exception:
+        pass
             
-            # Assume DD/MM/YYYY. Only swap to MM/DD/YYYY if p2 > 12 and p1 <= 12
-            if p2 <= 12:
-                d, mo = p1, p2
-            elif p1 <= 12:
-                d, mo = p2, p1
-            else:
-                return None
-                
-            if 1 <= mo <= 12 and 1 <= d <= 31 and 2000 <= y <= 2100:
-                return f"{y:04d}-{mo:02d}-{d:02d}"
-        except ValueError:
-            pass
-
     return None
 
 
@@ -2299,9 +2257,13 @@ def _parse_receipt_text(text, ocr_confidence=0):
     text_lower = text.lower()
 
     # ── 1. Merchant Extraction ─────────────────────────────────────
+    # Check for explicit vendor/merchant labels first, then fall back
     merchant = None
-    top_lines = lines[:8]
-    
+    merchant_labels = [
+        r'vendor\s+name', r'vendor', r'merchant\s+name', r'merchant',
+        r'store\s+name', r'store', r'seller\s+name', r'seller',
+        r'shop\s+name', r'shop'
+    ]
     ignore_merchant_patterns = [
         r'\bwelcome\b', r'\bthank\b', r'\binvoice\b', r'\breceipt\b', r'\bbill\b',
         r'\btax\b', r'\bgst\b', r'\bvat\b', r'\bphone\b', r'\btel\b', r'\bmob\b',
@@ -2309,22 +2271,36 @@ def _parse_receipt_text(text, ocr_confidence=0):
         r'\btotal\b', r'\bamount\b', r'\bpayable\b', r'\bpaid\b', r'\bgrand\b', r'\bsubtotal\b',
         r'\bchange\b', r'\bcard\b', r'\bupi\b', r'\bcash\b', r'\bpayment\b'
     ]
-    
-    for line in top_lines:
-        line_clean = line.strip()
-        if not line_clean:
-            continue
-        if not re.search(r'[a-zA-Z]', line_clean):
-            continue
-        if re.match(r'^[\W\d_]+$', line_clean):
-            continue
-        
-        low_line = line_clean.lower()
-        if any(re.search(pat, low_line) for pat in ignore_merchant_patterns):
-            continue
+
+    for label in merchant_labels:
+        for line in lines:
+            low_line = line.lower()
+            m = re.search(r'\b' + label + r'\b[:\s\-]*', low_line)
+            if m:
+                val = line[m.end():].strip()
+                if val and len(val) >= 2 and not any(re.search(pat, val.lower()) for pat in ignore_merchant_patterns):
+                    merchant = val
+                    break
+        if merchant:
+            break
+
+    if not merchant:
+        top_lines = lines[:8]
+        for line in top_lines:
+            line_clean = line.strip()
+            if not line_clean:
+                continue
+            if not re.search(r'[a-zA-Z]', line_clean):
+                continue
+            if re.match(r'^[\W\d_]+$', line_clean):
+                continue
             
-        merchant = line_clean
-        break
+            low_line = line_clean.lower()
+            if any(re.search(pat, low_line) for pat in ignore_merchant_patterns):
+                continue
+                
+            merchant = line_clean
+            break
 
     # ── 2. Date Extraction ─────────────────────────────────────────
     # Recognize labels: Date, DATE, Invoice Date, Bill Date, Transaction Date, Txn Date
@@ -2497,7 +2473,7 @@ def _parse_receipt_text(text, ocr_confidence=0):
         ('Travel', ['petrol', 'fuel', 'diesel', 'uber', 'ola', 'metro']),
         ('Food', ['restaurant', 'cafe', 'food court']),
         ('Health', ['medical store', 'pharmacy']),
-        ('Utilities', ['electricity', 'gas bill', 'water bill']),
+        ('Utilities', ['electricity', 'gas bill', 'water bill', 'newspaper', 'news']),
         ('Entertainment', ['movie', 'cinema', 'netflix']),
         ('Shopping', ['shopping mall', 'amazon', 'flipkart'])
     ]
