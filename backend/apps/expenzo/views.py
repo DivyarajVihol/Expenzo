@@ -2188,3 +2188,205 @@ def export_group_excel(request, group_id):
     response['Content-Disposition'] = f'attachment; filename="expenzo_group_{group.name}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
     wb.save(response)
     return response
+
+
+# ──────────────────────────────────────────────────────────────
+#  SCAN RECEIPT  –  OCR text parsing endpoint
+#  Accepts raw text extracted by client-side Tesseract.js,
+#  parses structured expense fields, returns JSON.
+#  Does NOT modify any existing model or API.
+# ──────────────────────────────────────────────────────────────
+@login_required
+def scan_receipt_api(request):
+    """Parse OCR-extracted receipt text and return structured expense data."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    raw_text = strip_tags(body.get('text', ''))[:6000]
+    ocr_confidence = float(body.get('ocr_confidence', 0))
+
+    if not raw_text or len(raw_text.strip()) < 4:
+        return JsonResponse({'error': 'No readable text found. Please upload a clearer image.'}, status=400)
+
+    result = _parse_receipt_text(raw_text, ocr_confidence)
+    return JsonResponse(result)
+
+
+def _parse_receipt_text(text, ocr_confidence=0):
+    """Regex + keyword-based receipt parser. Returns dict of expense fields."""
+    import re
+    from datetime import date as dt_date
+
+    text_lower = text.lower()
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+
+    # ── Amount extraction ──────────────────────────────────────────
+    amount = None
+    amount_patterns = [
+        r'(?:total|grand\s*total|amount\s*due|net\s*amount|payable|due\s*amount)[:\s]*[₹$£€rs\.]*\s*([0-9,]+(?:\.[0-9]{1,2})?)',
+        r'[₹$£€]\s*([0-9,]+(?:\.[0-9]{1,2})?)',
+        r'([0-9,]{2,}(?:\.[0-9]{1,2})?)\s*(?:inr|usd|eur|gbp|rs)',
+    ]
+    for pat in amount_patterns:
+        m = re.search(pat, text_lower)
+        if m:
+            try:
+                amount = round(float(m.group(1).replace(',', '')), 2)
+                break
+            except (ValueError, AttributeError):
+                continue
+
+    # ── Tax extraction ─────────────────────────────────────────────
+    tax = None
+    tax_m = re.search(
+        r'(?:tax|gst|vat|cgst|sgst|igst)[:\s]*[₹$rs\.]*\s*([0-9,]+(?:\.[0-9]{1,2})?)',
+        text_lower
+    )
+    if tax_m:
+        try:
+            tax = round(float(tax_m.group(1).replace(',', '')), 2)
+        except (ValueError, AttributeError):
+            pass
+
+    # ── Date extraction ────────────────────────────────────────────
+    date_val = str(dt_date.today())
+    date_patterns = [
+        (r'(\d{4}[-/]\d{1,2}[-/]\d{1,2})', '%Y-%m-%d'),
+        (r'(\d{1,2}[-/]\d{1,2}[-/]\d{4})', None),   # dd/mm/yyyy or mm/dd/yyyy
+        (r'(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4})', None),
+    ]
+    month_map = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,
+                 'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
+    for pat, fmt in date_patterns:
+        dm = re.search(pat, text_lower)
+        if dm:
+            raw_d = dm.group(1)
+            if fmt:
+                try:
+                    date_val = datetime.strptime(raw_d, fmt).strftime('%Y-%m-%d')
+                    break
+                except ValueError:
+                    pass
+            else:
+                # Try dd/mm/yyyy
+                parts = re.split(r'[-/\s]+', raw_d)
+                if len(parts) == 3:
+                    try:
+                        # Try month name
+                        if parts[1].isalpha():
+                            mn = month_map.get(parts[1][:3], 0)
+                            if mn:
+                                yr = int(parts[2]) if len(parts[2]) == 4 else 2000 + int(parts[2])
+                                date_val = f"{yr:04d}-{mn:02d}-{int(parts[0]):02d}"
+                                break
+                        else:
+                            d, m2, y = int(parts[0]), int(parts[1]), int(parts[2])
+                            if y < 100:
+                                y += 2000
+                            date_val = f"{y:04d}-{m2:02d}-{d:02d}"
+                            break
+                    except (ValueError, IndexError):
+                        pass
+
+    # ── Merchant extraction ────────────────────────────────────────
+    merchant = None
+    skip_tokens = {'receipt', 'invoice', 'bill', 'tax', 'total', 'amount', 'date', 'time',
+                   'thank', 'you', 'welcome', 'customer', 'copy', 'duplicate', 'original',
+                   'gst', 'vat', 'cash', 'paid', 'change', 'tel', 'phone', 'mob', 'fax'}
+    for line in lines[:6]:
+        low = line.lower()
+        words = set(re.findall(r'[a-z]+', low))
+        # Skip lines that are mostly numbers/symbols or contain skip tokens
+        if len(line) < 3:
+            continue
+        if words & skip_tokens:
+            continue
+        if re.match(r'^[\d\W]+$', line):
+            continue
+        merchant = line[:80]
+        break
+
+    # ── Category suggestion ────────────────────────────────────────
+    category_map = [
+        ('Food',          ['restaurant','cafe','coffee','food','pizza','burger','swiggy','zomato',
+                           'dominos','mcdonalds','kfc','subway','dhaba','biryani','bakery','canteen',
+                           'dining','eatery','snack','starbucks','chai','haldirams','barbeque']),
+        ('Travel',        ['uber','ola','rapido','fuel','petrol','diesel','cng','taxi','auto','cab',
+                           'irctc','railway','metro','bus','flight','airline','indigo','airindia',
+                           'makemytrip','goibibo','yatra','toll','parking','vahan']),
+        ('Shopping',      ['amazon','flipkart','myntra','meesho','ajio','nykaa','mall','shop','store',
+                           'retail','market','bazaar','supermarket','bigbasket','grofer','blinkit',
+                           'dmart','reliance','spencer','more\b','zepto']),
+        ('Health',        ['pharmacy','medical','hospital','clinic','doctor','medicine','apollo',
+                           'medplus','netmeds','1mg','health','diagnostic','lab','pathology',
+                           'dental','optical','chemist','drugstor']),
+        ('Utilities',     ['electricity','electric','power','water','gas','broadband','internet',
+                           'recharge','dth','bill','jio','airtel','bsnl','vodafone','vi\b','tata sky',
+                           'dish tv','netflix','spotify','hotstar']),
+        ('Entertainment', ['movie','cinema','pvr','inox','bookmyshow','concert','game','gaming',
+                           'amusement','fun','play','event','ticket','theatre','escape room']),
+        ('Education',     ['school','college','university','tuition','book','course','fee','admission',
+                           'byju','unacademy','udemy','coursera','stationery','library']),
+    ]
+    category = 'Others'
+    for cat, keywords in category_map:
+        for kw in keywords:
+            if re.search(r'\b' + re.escape(kw), text_lower):
+                category = cat
+                break
+        if category != 'Others':
+            break
+
+    # ── Payment method ─────────────────────────────────────────────
+    payment_method = 'UPI'
+    if re.search(r'\bcash\b', text_lower):
+        payment_method = 'Cash'
+    elif re.search(r'\b(credit card|visa|mastercard|amex|rupay credit)\b', text_lower):
+        payment_method = 'Credit Card'
+    elif re.search(r'\b(debit card|atm card|rupay debit)\b', text_lower):
+        payment_method = 'Debit Card'
+    elif re.search(r'\b(upi|gpay|google pay|phonepe|paytm|bhim|neft|imps)\b', text_lower):
+        payment_method = 'UPI'
+    elif re.search(r'\b(bank transfer|neft|rtgs|imps)\b', text_lower):
+        payment_method = 'Bank Transfer'
+
+    # ── Receipt / Invoice number ───────────────────────────────────
+    receipt_no = None
+    rn_m = re.search(
+        r'(?:receipt|bill|invoice|order|txn|transaction|ref)[:\s#no\.]*([A-Z0-9\-]{4,30})',
+        text, re.IGNORECASE
+    )
+    if rn_m:
+        receipt_no = rn_m.group(1)[:50]
+
+    # ── Confidence score ───────────────────────────────────────────
+    # Combine Tesseract OCR confidence with our field-extraction success
+    field_score = 0
+    if amount is not None:
+        field_score += 40
+    if merchant:
+        field_score += 25
+    if date_val != str(dt_date.today()):
+        field_score += 20
+    if category != 'Others':
+        field_score += 15
+
+    # Blend: 40% OCR confidence (normalised to 0-100) + 60% field extraction
+    ocr_norm = min(100, max(0, ocr_confidence))
+    confidence = round(ocr_norm * 0.4 + field_score * 0.6)
+
+    return {
+        'merchant':       merchant or '',
+        'amount':         amount,
+        'tax':            tax,
+        'date':           date_val,
+        'currency':       'INR',
+        'category':       category,
+        'payment_method': payment_method,
+        'receipt_no':     receipt_no or '',
+        'confidence':     confidence,
+    }

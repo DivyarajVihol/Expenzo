@@ -263,7 +263,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
           <button class="btn btn-secondary btn-add-income" onclick="openTransactionModal('income')" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.1); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
             <i data-lucide="plus" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
             Income
@@ -271,6 +271,10 @@
           <button class="btn btn-primary btn-quick-expense" onclick="openTransactionModal('Food')" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 0.25rem;">
             <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
             Expense
+          </button>
+          <button class="btn btn-primary" onclick="openScanReceiptModal()" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 0.25rem;" title="Scan a receipt to auto-fill expense details">
+            <i data-lucide="scan-line" style="width: 14px; height: 14px;"></i>
+            Scan Receipt
           </button>
         </div>
 
@@ -513,6 +517,165 @@
     </form>
   </div>
 </div>
+
+<!-- ===== SCAN RECEIPT MODAL ===== -->
+<div class="modal-overlay" id="scan-receipt-modal" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="max-width:540px; width:95%; max-height:90vh; overflow-y:auto;">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <i data-lucide="scan-line" style="width:20px;height:20px;color:var(--accent-primary);"></i>
+        <h3 class="chart-card-title" style="margin:0;" id="scan-modal-title">Scan Receipt</h3>
+      </div>
+      <button onclick="closeScanReceiptModal()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;">
+        <i data-lucide="x" style="width:20px;height:20px;"></i>
+      </button>
+    </div>
+
+    <!-- SCREEN 1: Upload -->
+    <div id="scan-screen-upload" class="modal-body">
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1.25rem;">
+        Upload a photo of your receipt and we'll automatically extract the expense details.
+      </p>
+
+      <!-- Drag & Drop Zone -->
+      <div id="scan-dropzone"
+           ondragover="event.preventDefault();this.classList.add('drag-active')"
+           ondragleave="this.classList.remove('drag-active')"
+           ondrop="handleReceiptDrop(event)"
+           onclick="document.getElementById('scan-file-input').click()"
+           style="border:2px dashed rgba(129,140,248,0.4);border-radius:14px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:rgba(129,140,248,0.04);">
+        <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--accent-primary);margin:0 auto 0.75rem;display:block;opacity:0.8;"></i>
+        <p style="font-size:0.95rem;font-weight:600;color:var(--text-primary);margin:0 0 0.35rem;">Drop receipt here or click to browse</p>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">PNG, JPG, JPEG, WEBP &nbsp;·&nbsp; Max 10 MB</p>
+      </div>
+
+      <!-- Hidden file input - accepts camera on mobile -->
+      <input type="file" id="scan-file-input" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none;" onchange="handleReceiptFile(this.files[0])">
+
+      <!-- Image preview thumbnail (shown after selection) -->
+      <div id="scan-preview-thumb" style="display:none;margin-top:1rem;text-align:center;">
+        <img id="scan-thumb-img" style="max-height:120px;border-radius:10px;border:1px solid var(--border-color);" alt="Receipt preview">
+        <p id="scan-thumb-name" style="font-size:0.78rem;color:var(--text-muted);margin:0.4rem 0 0;"></p>
+      </div>
+
+      <div class="modal-footer" style="margin-top:1.25rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeScanReceiptModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="scan-process-btn" onclick="processReceipt()" disabled
+                style="opacity:0.5;transition:opacity 0.2s;">
+          <i data-lucide="cpu" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
+          Scan Receipt
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: Loading / OCR Progress -->
+    <div id="scan-screen-loading" class="modal-body" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(129,140,248,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+        <i data-lucide="scan-line" style="width:32px;height:32px;color:var(--accent-primary);" id="scan-loading-icon"></i>
+      </div>
+      <h4 id="scan-loading-msg" style="font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 0.35rem;">Scanning Receipt...</h4>
+      <p id="scan-loading-sub" style="font-size:0.82rem;color:var(--text-secondary);margin:0 0 1.5rem;">Please wait while we read your receipt.</p>
+      <!-- Progress bar -->
+      <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;max-width:300px;margin:0 auto;">
+        <div id="scan-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent-primary),#c084fc);border-radius:999px;transition:width 0.4s ease;"></div>
+      </div>
+      <p id="scan-progress-label" style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem;">0%</p>
+    </div>
+
+    <!-- SCREEN 3: Preview / Edit Form -->
+    <div id="scan-screen-preview" class="modal-body" style="display:none;">
+
+      <!-- OCR Confidence badge -->
+      <div id="scan-confidence-bar" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;padding:0.6rem 0.85rem;border-radius:10px;background:rgba(129,140,248,0.07);border:1px solid rgba(129,140,248,0.15);">
+        <i data-lucide="shield-check" style="width:15px;height:15px;color:var(--accent-primary);flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:var(--text-secondary);flex:1;">OCR Accuracy</span>
+        <span id="scan-confidence-val" style="font-size:0.85rem;font-weight:700;color:var(--accent-primary);">—</span>
+      </div>
+      <div id="scan-low-confidence-note" style="display:none;font-size:0.78rem;color:#fb923c;margin-bottom:0.85rem;padding:0.5rem 0.75rem;background:rgba(251,146,60,0.08);border-radius:8px;border:1px solid rgba(251,146,60,0.2);">
+        <i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>
+        Please verify the extracted information before saving.
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Merchant / Store Name</label>
+          <input type="text" id="scan-merchant" class="input-control" placeholder="e.g. Swiggy, Zomato, D-Mart">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (₹) <span style="color:var(--accent-danger);">*</span></label>
+          <input type="number" id="scan-amount" class="input-control" placeholder="0.00" min="0.01" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tax Amount (₹)</label>
+          <input type="number" id="scan-tax" class="input-control" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date <span style="color:var(--accent-danger);">*</span></label>
+          <input type="date" id="scan-date" class="input-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="scan-category" class="input-control" style="background:#0d121f;">
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Rent">Rent</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Health">Health</option>
+            <option value="Education">Education</option>
+            <option value="Investment">Investment</option>
+            <option value="Others" selected>Others</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select id="scan-payment" class="input-control" style="background:#0d121f;">
+            <option value="UPI">UPI</option>
+            <option value="Cash">Cash</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Debit Card">Debit Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Notes / Description</label>
+          <input type="text" id="scan-notes" class="input-control" placeholder="Auto-filled from receipt — edit as needed">
+        </div>
+        <div class="form-group" id="scan-receipt-no-group" style="grid-column:1/-1;display:none;">
+          <label class="form-label">Receipt / Invoice No.</label>
+          <input type="text" id="scan-receipt-no" class="input-control" readonly style="opacity:0.6;">
+        </div>
+      </div>
+
+      <div class="modal-footer" style="margin-top:0.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="resetScanModal()">
+          <i data-lucide="arrow-left" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>
+          Back
+        </button>
+        <button type="button" class="btn btn-primary" onclick="saveScanExpense()" id="scan-save-btn">
+          <i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>
+          Save Expense
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: Error -->
+    <div id="scan-screen-error" class="modal-body" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
+      <i data-lucide="file-x" style="width:48px;height:48px;color:var(--accent-danger);margin:0 auto 1rem;display:block;"></i>
+      <h4 style="font-size:1rem;color:var(--text-primary);margin:0 0 0.5rem;">Unable to Read Receipt</h4>
+      <p id="scan-error-msg" style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 1.5rem;">Please upload a clearer image and try again.</p>
+      <div style="display:flex;gap:0.75rem;justify-content:center;">
+        <button type="button" class="btn btn-secondary" onclick="resetScanModal()">Try Again</button>
+        <button type="button" class="btn btn-primary" onclick="showScanPreviewManual()">Enter Manually</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- ===== END SCAN RECEIPT MODAL ===== -->
 
 <!-- Add Expense/Income Transaction Modal -->
 <div class="modal-overlay" id="transaction-modal" style="display: none;">
@@ -957,5 +1120,255 @@
       closeDeleteModal();
     }
   });
+
+  /* =====================================================
+     SCAN RECEIPT ENGINE
+  ===================================================== */
+
+  let scanReceiptFile = null;
+
+  // Drag-active CSS (injected once)
+  (function() {
+    const s = document.createElement('style');
+    s.textContent = `
+      #scan-dropzone.drag-active { border-color: var(--accent-primary); background: rgba(129,140,248,0.1); }
+      @keyframes scanPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    `;
+    document.head.appendChild(s);
+  })();
+
+  function openScanReceiptModal() {
+    resetScanModal();
+    document.getElementById('scan-receipt-modal').style.display = 'flex';
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function closeScanReceiptModal() {
+    document.getElementById('scan-receipt-modal').style.display = 'none';
+    scanReceiptFile = null;
+  }
+
+  function showScanScreen(name) {
+    ['upload','loading','preview','error'].forEach(s => {
+      document.getElementById('scan-screen-' + s).style.display = (s === name ? '' : 'none');
+    });
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function resetScanModal() {
+    scanReceiptFile = null;
+    document.getElementById('scan-file-input').value = '';
+    document.getElementById('scan-preview-thumb').style.display = 'none';
+    document.getElementById('scan-process-btn').disabled = true;
+    document.getElementById('scan-process-btn').style.opacity = '0.5';
+    showScanScreen('upload');
+  }
+
+  function handleReceiptFile(file) {
+    if (!file) return;
+    if (!file.type.match(/^image\/(png|jpeg|webp)$/)) {
+      alert('Unsupported format. Please use PNG, JPG, JPEG, or WEBP.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File too large. Maximum size is 10 MB.');
+      return;
+    }
+    scanReceiptFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('scan-thumb-img').src = e.target.result;
+      document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+      document.getElementById('scan-preview-thumb').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    document.getElementById('scan-process-btn').disabled = false;
+    document.getElementById('scan-process-btn').style.opacity = '1';
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function handleReceiptDrop(e) {
+    e.preventDefault();
+    document.getElementById('scan-dropzone').classList.remove('drag-active');
+    const file = e.dataTransfer.files[0];
+    if (file) handleReceiptFile(file);
+  }
+
+  function setScanProgress(pct, msg, sub) {
+    document.getElementById('scan-progress-bar').style.width = pct + '%';
+    document.getElementById('scan-progress-label').textContent = pct + '%';
+    if (msg) document.getElementById('scan-loading-msg').textContent = msg;
+    if (sub) document.getElementById('scan-loading-sub').textContent = sub;
+  }
+
+  async function processReceipt() {
+    if (!scanReceiptFile) return;
+    showScanScreen('loading');
+    setScanProgress(0, 'Scanning Receipt...', 'Loading OCR engine...');
+
+    try {
+      // Lazy-load Tesseract.js from CDN if not already loaded
+      if (!window.Tesseract) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      setScanProgress(10, 'Scanning Receipt...', 'Initializing OCR worker...');
+
+      const { createWorker } = window.Tesseract;
+      const worker = await createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            const pct = Math.round(10 + m.progress * 60);
+            setScanProgress(pct, 'Scanning Receipt...', 'Reading text from image...');
+          }
+        }
+      });
+
+      setScanProgress(70, 'Extracting Expense Details...', 'Analysing receipt contents...');
+
+      const { data: { text, confidence } } = await worker.recognize(scanReceiptFile);
+      await worker.terminate();
+
+      setScanProgress(85, 'Extracting Expense Details...', 'Parsing data...');
+
+      if (!text || text.trim().length < 5) {
+        showScanScreen('error');
+        document.getElementById('scan-error-msg').textContent = 'Unable to read this receipt. Please upload a clearer image.';
+        return;
+      }
+
+      // Send extracted text to backend for smart parsing
+      const resp = await fetch("{% url 'api_scan_receipt' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ text: text, ocr_confidence: confidence })
+      });
+
+      setScanProgress(100, 'Done!', 'Expense details extracted.');
+
+      if (!resp.ok) {
+        showScanScreen('error');
+        return;
+      }
+
+      const parsed = await resp.json();
+      if (parsed.error) {
+        showScanScreen('error');
+        document.getElementById('scan-error-msg').textContent = parsed.error;
+        return;
+      }
+
+      populateScanPreview(parsed);
+      setTimeout(() => showScanScreen('preview'), 400);
+
+    } catch (err) {
+      console.error('Scan Receipt error:', err);
+      showScanScreen('error');
+      document.getElementById('scan-error-msg').textContent = 'OCR processing failed. Please try a clearer image.';
+    }
+  }
+
+  function populateScanPreview(d) {
+    document.getElementById('scan-merchant').value  = d.merchant || '';
+    document.getElementById('scan-amount').value    = d.amount != null ? d.amount : '';
+    document.getElementById('scan-tax').value       = d.tax != null ? d.tax : '';
+    document.getElementById('scan-date').value      = d.date || new Date().toISOString().split('T')[0];
+    document.getElementById('scan-notes').value     = d.merchant ? ('Receipt: ' + d.merchant) : '';
+
+    // Category
+    const catSel = document.getElementById('scan-category');
+    const opts = Array.from(catSel.options).map(o => o.value);
+    catSel.value = opts.includes(d.category) ? d.category : 'Others';
+
+    // Payment method
+    const pmSel = document.getElementById('scan-payment');
+    const pmOpts = Array.from(pmSel.options).map(o => o.value);
+    pmSel.value = pmOpts.includes(d.payment_method) ? d.payment_method : 'UPI';
+
+    // Receipt no
+    if (d.receipt_no) {
+      document.getElementById('scan-receipt-no').value = d.receipt_no;
+      document.getElementById('scan-receipt-no-group').style.display = 'block';
+    } else {
+      document.getElementById('scan-receipt-no-group').style.display = 'none';
+    }
+
+    // Confidence indicator
+    const conf = Math.min(100, Math.max(0, d.confidence || 0));
+    document.getElementById('scan-confidence-val').textContent = conf + '%';
+    const confColor = conf >= 70 ? 'var(--accent-primary)' : conf >= 40 ? '#fb923c' : '#f87171';
+    document.getElementById('scan-confidence-val').style.color = confColor;
+    document.getElementById('scan-low-confidence-note').style.display = conf < 60 ? 'flex' : 'none';
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function showScanPreviewManual() {
+    populateScanPreview({ merchant:'', amount:null, tax:null, date:new Date().toISOString().split('T')[0], category:'Others', payment_method:'UPI', receipt_no:'', confidence:0 });
+    showScanScreen('preview');
+  }
+
+  async function saveScanExpense() {
+    const amount = parseFloat(document.getElementById('scan-amount').value);
+    if (!amount || amount <= 0) {
+      alert('Please enter a valid amount before saving.');
+      document.getElementById('scan-amount').focus();
+      return;
+    }
+    const date = document.getElementById('scan-date').value;
+    if (!date) {
+      alert('Please select a date.');
+      document.getElementById('scan-date').focus();
+      return;
+    }
+
+    const merchant  = document.getElementById('scan-merchant').value.trim();
+    const category  = document.getElementById('scan-category').value;
+    const payment   = document.getElementById('scan-payment').value;
+    const notes     = document.getElementById('scan-notes').value.trim();
+    const description = notes || (merchant ? 'Receipt: ' + merchant : 'Scanned Receipt');
+
+    const saveBtn = document.getElementById('scan-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      const res = await fetch("{% url 'api_add_expense' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({
+          amount,
+          category,
+          account: 'Bank Account',
+          paymentMethod: payment,
+          description,
+          date
+        })
+      });
+
+      if (res.ok) {
+        closeScanReceiptModal();
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to save expense. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>Save Expense';
+        if (window.lucide) window.lucide.createIcons();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving expense.');
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>Save Expense';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
 </script>
 {% endblock %}
