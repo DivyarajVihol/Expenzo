@@ -548,11 +548,11 @@
            style="border:2px dashed rgba(129,140,248,0.4);border-radius:14px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:rgba(129,140,248,0.04);">
         <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--accent-primary);margin:0 auto 0.75rem;display:block;opacity:0.8;"></i>
         <p style="font-size:0.95rem;font-weight:600;color:var(--text-primary);margin:0 0 0.35rem;">Drop receipt here or click to browse</p>
-        <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">PNG, JPG, JPEG, WEBP &nbsp;·&nbsp; Max 10 MB</p>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">PDF, PNG, JPG, JPEG, WEBP &nbsp;·&nbsp; Max 10 MB</p>
       </div>
 
       <!-- Hidden file input - accepts camera on mobile -->
-      <input type="file" id="scan-file-input" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none;" onchange="handleReceiptFile(this.files[0])">
+      <input type="file" id="scan-file-input" accept="image/png,image/jpeg,image/webp,application/pdf" capture="environment" style="display:none;" onchange="handleReceiptFile(this.files[0])">
 
       <!-- Image preview thumbnail (shown after selection) -->
       <div id="scan-preview-thumb" style="display:none;margin-top:1rem;text-align:center;">
@@ -1172,10 +1172,42 @@
     showScanScreen('upload');
   }
 
+  async function renderPdfPageToCanvas(file) {
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1);
+    
+    const scale = 2.0;
+    const viewport = page.getViewport({ scale });
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    
+    return new Promise((resolve) => {
+      canvas.toBlob(blob => resolve(blob), 'image/png');
+    });
+  }
+
   function handleReceiptFile(file) {
     if (!file) return;
-    if (!file.type.match(/^image\/(png|jpeg|webp)$/)) {
-      alert('Unsupported format. Please use PNG, JPG, JPEG, or WEBP.');
+    if (!file.type.match(/^image\/(png|jpeg|webp)$/) && file.type !== 'application/pdf') {
+      alert('Unsupported format. Please use PDF, PNG, JPG, JPEG, or WEBP.');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -1183,15 +1215,37 @@
       return;
     }
     scanReceiptFile = file;
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById('scan-thumb-img').src = e.target.result;
-      document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+    
+    if (file.type === 'application/pdf') {
+      document.getElementById('scan-thumb-name').textContent = 'Generating PDF preview...';
       document.getElementById('scan-preview-thumb').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-    document.getElementById('scan-process-btn').disabled = false;
-    document.getElementById('scan-process-btn').style.opacity = '1';
+      document.getElementById('scan-process-btn').disabled = true;
+      document.getElementById('scan-process-btn').style.opacity = '0.5';
+
+      renderPdfPageToCanvas(file).then(blob => {
+        const url = URL.createObjectURL(blob);
+        document.getElementById('scan-thumb-img').src = url;
+        document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        document.getElementById('scan-process-btn').disabled = false;
+        document.getElementById('scan-process-btn').style.opacity = '1';
+      }).catch(err => {
+        console.error(err);
+        document.getElementById('scan-thumb-img').src = 'https://cdn-icons-png.flaticon.com/512/337/337946.png';
+        document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        document.getElementById('scan-process-btn').disabled = false;
+        document.getElementById('scan-process-btn').style.opacity = '1';
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('scan-thumb-img').src = e.target.result;
+        document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        document.getElementById('scan-preview-thumb').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+      document.getElementById('scan-process-btn').disabled = false;
+      document.getElementById('scan-process-btn').style.opacity = '1';
+    }
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -1453,12 +1507,19 @@
 
       // ── 2. Preprocess the image ───────────────────────────────
       setScanProgress(6, 'Preparing Image...', 'Enhancing image quality...');
+      let imageBlob = scanReceiptFile;
+      if (scanReceiptFile.type === 'application/pdf') {
+        setScanProgress(5, 'Preparing Document...', 'Converting PDF to image...');
+        imageBlob = await renderPdfPageToCanvas(scanReceiptFile);
+      }
+
+      setScanProgress(7, 'Preparing Image...', 'Enhancing image quality...');
       let processedBlob;
       try {
-        processedBlob = await preprocessReceiptImage(scanReceiptFile);
+        processedBlob = await preprocessReceiptImage(imageBlob);
       } catch (prepErr) {
         console.warn('Preprocessing failed, using original:', prepErr);
-        processedBlob = scanReceiptFile; // fall back to raw file
+        processedBlob = imageBlob; // fall back to raw file
       }
 
       // ── 3. Run OCR (two passes) ───────────────────────────────
