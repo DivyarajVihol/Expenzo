@@ -2216,166 +2216,345 @@ def scan_receipt_api(request):
     return JsonResponse(result)
 
 
+def _try_parse_date_str(s):
+    """Try multiple date formats; return 'YYYY-MM-DD' string or None."""
+    import re
+    s = str(s).strip().lower()
+    month_map = {
+        'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,
+        'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12,
+    }
+
+    # ISO: 2026-05-05 or 2026/05/05
+    m = re.match(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})', s)
+    if m:
+        try:
+            y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            if 1 <= mo <= 12 and 1 <= d <= 31 and y >= 2000:
+                return f"{y:04d}-{mo:02d}-{d:02d}"
+        except ValueError:
+            pass
+
+    # dd/mm/yyyy or dd-mm-yyyy (Indian format — day first, month second)
+    m = re.match(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$', s)
+    if m:
+        try:
+            d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            if y < 100:
+                y += 2000
+            if 1 <= mo <= 12 and 1 <= d <= 31 and y >= 2000:
+                return f"{y:04d}-{mo:02d}-{d:02d}"
+        except ValueError:
+            pass
+
+    # "5 Jan 2026" or "05-Jan-2026"
+    m = re.match(r'^(\d{1,2})[\s\-]([a-z]{3})[a-z]*[\s\-\.](\d{2,4})$', s)
+    if m:
+        try:
+            d = int(m.group(1))
+            mn = month_map.get(m.group(2)[:3], 0)
+            y = int(m.group(3))
+            if y < 100:
+                y += 2000
+            if mn and 1 <= d <= 31 and y >= 2000:
+                return f"{y:04d}-{mn:02d}-{d:02d}"
+        except ValueError:
+            pass
+
+    return None
+
+
 def _parse_receipt_text(text, ocr_confidence=0):
-    """Regex + keyword-based receipt parser. Returns dict of expense fields."""
+    """
+    Structured key:value-first receipt parser.
+
+    Printed receipts (fuel slips, restaurant bills, pharmacy receipts) use a
+    consistent 'Label:   Value' layout per line. Parsing those directly is far
+    more reliable than running regex over the whole OCR text blob.
+
+    Strategy:
+      1. Build a normalised key→value dict from all 'X: Y' lines.
+      2. Look up known field aliases in that dict (amount, date, tax, payment, …).
+      3. Fall back to regex only when a key is not found in the dict.
+    """
     import re
     from datetime import date as dt_date
 
-    text_lower = text.lower()
     lines = [l.strip() for l in text.split('\n') if l.strip()]
+    text_lower = text.lower()
 
-    # ── Amount extraction ──────────────────────────────────────────
-    amount = None
-    amount_patterns = [
-        r'(?:total|grand\s*total|amount\s*due|net\s*amount|payable|due\s*amount)[:\s]*[₹$£€rs\.]*\s*([0-9,]+(?:\.[0-9]{1,2})?)',
-        r'[₹$£€]\s*([0-9,]+(?:\.[0-9]{1,2})?)',
-        r'([0-9,]{2,}(?:\.[0-9]{1,2})?)\s*(?:inr|usd|eur|gbp|rs)',
-    ]
-    for pat in amount_patterns:
-        m = re.search(pat, text_lower)
+    # ── 1. Build structured key:value dictionary ───────────────────
+    # Normalise keys: lowercase + keep only [a-z0-9] so "Amount(Rs.)" → "amountrs"
+    kv = {}           # normalised_key → raw_value_string
+    kv_orig = {}      # normalised_key → original line index
+    kv_start_line = len(lines)   # index of first key:value line in `lines`
+
+    for i, line in enumerate(lines):
+        m = re.match(r'^([^:]{1,45}):\s*(.+)$', line)
         if m:
-            try:
-                amount = round(float(m.group(1).replace(',', '')), 2)
-                break
-            except (ValueError, AttributeError):
-                continue
+            raw_key = m.group(1).strip()
+            val = m.group(2).strip()
+            norm = re.sub(r'[^a-z0-9]', '', raw_key.lower())
+            kv[norm] = val
+            if kv_start_line == len(lines):
+                kv_start_line = i   # remember where fields begin
 
-    # ── Tax extraction ─────────────────────────────────────────────
-    tax = None
-    tax_m = re.search(
-        r'(?:tax|gst|vat|cgst|sgst|igst)[:\s]*[₹$rs\.]*\s*([0-9,]+(?:\.[0-9]{1,2})?)',
-        text_lower
-    )
-    if tax_m:
+    def kv_get(*aliases):
+        """Return first matching value from kv dict, or None."""
+        for a in aliases:
+            n = re.sub(r'[^a-z0-9]', '', a.lower())
+            if n in kv:
+                return kv[n]
+        return None
+
+    def kv_float(*aliases):
+        """Return numeric value of first matching kv alias, or None."""
+        raw = kv_get(*aliases)
+        if raw is None:
+            return None
         try:
-            tax = round(float(tax_m.group(1).replace(',', '')), 2)
-        except (ValueError, AttributeError):
-            pass
+            cleaned = re.sub(r'[^\d.]', '', raw)
+            v = round(float(cleaned), 2)
+            return v if v > 0 else None
+        except (ValueError, TypeError):
+            return None
 
-    # ── Date extraction ────────────────────────────────────────────
-    date_val = str(dt_date.today())
-    date_patterns = [
-        (r'(\d{4}[-/]\d{1,2}[-/]\d{1,2})', '%Y-%m-%d'),
-        (r'(\d{1,2}[-/]\d{1,2}[-/]\d{4})', None),   # dd/mm/yyyy or mm/dd/yyyy
-        (r'(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4})', None),
-    ]
-    month_map = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,
-                 'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
-    for pat, fmt in date_patterns:
-        dm = re.search(pat, text_lower)
-        if dm:
-            raw_d = dm.group(1)
-            if fmt:
+    # ── 2. Merchant name ───────────────────────────────────────────
+    # Lines that appear BEFORE the first key:value line are the receipt header
+    # (logo text, store name, address). We grab the first 1–2 meaningful ones.
+    if kv_start_line > 0:
+        header_lines = lines[:kv_start_line]
+    else:
+        header_lines = lines[:6]   # fallback if the whole receipt is key:value
+
+    skip_words = {
+        'receipt', 'invoice', 'bill', 'tax', 'total', 'amount', 'date', 'time',
+        'thank', 'you', 'welcome', 'customer', 'copy', 'duplicate', 'original',
+        'gst', 'vat', 'cash', 'paid', 'change', 'tel', 'phone', 'mob', 'fax',
+        'gstin', 'cin', 'pan', 'reg', 'regd', 'print', 'printed',
+    }
+
+    # Try named keys first (some receipts have an explicit store/vendor field)
+    merchant_from_kv = kv_get('merchant', 'vendor', 'store', 'shopname',
+                               'company', 'businessname', 'tradename')
+
+    merchant_parts = []
+    if not merchant_from_kv:
+        for line in header_lines:
+            low = line.lower()
+            words = set(re.findall(r'[a-z]+', low))
+            if len(line) < 2:
+                continue
+            if words & skip_words:
+                continue
+            if re.match(r'^[\d\W]+$', line):      # all non-alpha
+                continue
+            if re.match(r'^[\*\-=#_!]+$', line):  # divider lines
+                continue
+            if re.match(r'^[^a-zA-Z]+$', line):   # no letters at all
+                continue
+            merchant_parts.append(line.strip())
+            if len(merchant_parts) >= 2:
+                break
+
+    merchant = (merchant_from_kv or ' '.join(merchant_parts))[:100]
+
+    # ── 3. Amount ──────────────────────────────────────────────────
+    # Priority order: most specific label → most general
+    amount = kv_float(
+        'amount(rs.)', 'amountrs', 'amountrs.', 'amountinr',
+        'netamount', 'totalamount', 'grandtotal', 'total', 'nettotal',
+        'amountdue', 'payable', 'totalpayable', 'totaldue', 'billamount',
+        'amount',
+    )
+
+    # Fallback regex (handles ₹ sign or generic "Total XXX" text)
+    if amount is None:
+        for pat in [
+            r'(?:total|grand\s+total|net\s+amount|amount\s+due|payable|bill\s+amount)[:\s\(]+([0-9,]+(?:\.[0-9]{1,2})?)',
+            r'[₹]\s*([0-9,]+(?:\.[0-9]{1,2})?)',
+        ]:
+            fm = re.search(pat, text_lower)
+            if fm:
                 try:
-                    date_val = datetime.strptime(raw_d, fmt).strftime('%Y-%m-%d')
+                    v = round(float(fm.group(1).replace(',', '')), 2)
+                    if v > 0:
+                        amount = v
+                        break
+                except (ValueError, TypeError):
+                    continue
+
+    # ── 4. Tax ────────────────────────────────────────────────────
+    # ONLY extract tax if an explicit tax/GST line exists in the key:value dict.
+    # Never infer tax from unrelated fields.
+    tax = kv_float(
+        'tax', 'taxamount', 'gst', 'cgst', 'sgst', 'igst', 'vat',
+        'servicetax', 'statetax', 'centraltax', 'cess', 'exciseduty',
+    )
+    # Sanity: tax must be a fraction of amount; if not, discard it
+    if tax is not None:
+        if tax <= 0:
+            tax = None
+        elif amount is not None and tax >= amount:
+            tax = None   # clearly wrong — discard
+
+    # ── 5. Date ────────────────────────────────────────────────────
+    date_val = str(dt_date.today())
+
+    # Check key:value dict first (most reliable)
+    raw_date = kv_get(
+        'date', 'billdate', 'invoicedate', 'receiptdate',
+        'txndate', 'transactiondate', 'saledate',
+    )
+    if raw_date:
+        parsed = _try_parse_date_str(raw_date)
+        if parsed:
+            date_val = parsed
+
+    # Fallback: scan full text for date patterns
+    if date_val == str(dt_date.today()):
+        for pat in [
+            r'\b(\d{4}[-/]\d{1,2}[-/]\d{1,2})\b',
+            r'\b(\d{1,2}[-/]\d{1,2}[-/]\d{4})\b',
+            r'\b(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{2,4})\b',
+        ]:
+            dm = re.search(pat, text_lower)
+            if dm:
+                parsed = _try_parse_date_str(dm.group(1))
+                if parsed:
+                    date_val = parsed
                     break
-                except ValueError:
-                    pass
-            else:
-                # Try dd/mm/yyyy
-                parts = re.split(r'[-/\s]+', raw_d)
-                if len(parts) == 3:
-                    try:
-                        # Try month name
-                        if parts[1].isalpha():
-                            mn = month_map.get(parts[1][:3], 0)
-                            if mn:
-                                yr = int(parts[2]) if len(parts[2]) == 4 else 2000 + int(parts[2])
-                                date_val = f"{yr:04d}-{mn:02d}-{int(parts[0]):02d}"
-                                break
-                        else:
-                            d, m2, y = int(parts[0]), int(parts[1]), int(parts[2])
-                            if y < 100:
-                                y += 2000
-                            date_val = f"{y:04d}-{m2:02d}-{d:02d}"
-                            break
-                    except (ValueError, IndexError):
-                        pass
 
-    # ── Merchant extraction ────────────────────────────────────────
-    merchant = None
-    skip_tokens = {'receipt', 'invoice', 'bill', 'tax', 'total', 'amount', 'date', 'time',
-                   'thank', 'you', 'welcome', 'customer', 'copy', 'duplicate', 'original',
-                   'gst', 'vat', 'cash', 'paid', 'change', 'tel', 'phone', 'mob', 'fax'}
-    for line in lines[:6]:
-        low = line.lower()
-        words = set(re.findall(r'[a-z]+', low))
-        # Skip lines that are mostly numbers/symbols or contain skip tokens
-        if len(line) < 3:
-            continue
-        if words & skip_tokens:
-            continue
-        if re.match(r'^[\d\W]+$', line):
-            continue
-        merchant = line[:80]
-        break
+    # ── 6. Category ────────────────────────────────────────────────
+    # Check the "Product" or "Description" field first (high confidence signal)
+    product_raw = (
+        kv_get('product', 'item', 'description', 'productname', 'service') or ''
+    ).lower()
 
-    # ── Category suggestion ────────────────────────────────────────
     category_map = [
-        ('Food',          ['restaurant','cafe','coffee','food','pizza','burger','swiggy','zomato',
-                           'dominos','mcdonalds','kfc','subway','dhaba','biryani','bakery','canteen',
-                           'dining','eatery','snack','starbucks','chai','haldirams','barbeque']),
-        ('Travel',        ['uber','ola','rapido','fuel','petrol','diesel','cng','taxi','auto','cab',
-                           'irctc','railway','metro','bus','flight','airline','indigo','airindia',
-                           'makemytrip','goibibo','yatra','toll','parking','vahan']),
-        ('Shopping',      ['amazon','flipkart','myntra','meesho','ajio','nykaa','mall','shop','store',
-                           'retail','market','bazaar','supermarket','bigbasket','grofer','blinkit',
-                           'dmart','reliance','spencer','more\b','zepto']),
-        ('Health',        ['pharmacy','medical','hospital','clinic','doctor','medicine','apollo',
-                           'medplus','netmeds','1mg','health','diagnostic','lab','pathology',
-                           'dental','optical','chemist','drugstor']),
-        ('Utilities',     ['electricity','electric','power','water','gas','broadband','internet',
-                           'recharge','dth','bill','jio','airtel','bsnl','vodafone','vi\b','tata sky',
-                           'dish tv','netflix','spotify','hotstar']),
-        ('Entertainment', ['movie','cinema','pvr','inox','bookmyshow','concert','game','gaming',
-                           'amusement','fun','play','event','ticket','theatre','escape room']),
-        ('Education',     ['school','college','university','tuition','book','course','fee','admission',
-                           'byju','unacademy','udemy','coursera','stationery','library']),
+        ('Travel', [
+            'petrol', 'diesel', 'cng', 'fuel', 'lubricant', 'engine oil',
+            'uber', 'ola', 'rapido', 'taxi', 'auto', 'cab',
+            'irctc', 'railway', 'metro', 'bus', 'flight', 'airline',
+            'indigo', 'airindia', 'spicejet', 'vistara', 'goair',
+            'makemytrip', 'goibibo', 'yatra', 'toll', 'parking',
+            'bharat petroleum', 'hindustan petroleum', 'hpcl', 'bpcl', 'iocl',
+            'indian oil', 'hp petrol', 'essar', 'shell',
+        ]),
+        ('Food', [
+            'restaurant', 'cafe', 'coffee', 'food', 'pizza', 'burger',
+            'swiggy', 'zomato', 'dominos', 'mcdonalds', 'kfc', 'subway',
+            'dhaba', 'biryani', 'bakery', 'canteen', 'dining', 'eatery',
+            'snack', 'starbucks', 'chai', 'haldirams', 'barbeque',
+        ]),
+        ('Shopping', [
+            'amazon', 'flipkart', 'myntra', 'meesho', 'ajio', 'nykaa',
+            'mall', 'shop', 'store', 'retail', 'market', 'bazaar',
+            'supermarket', 'bigbasket', 'grofer', 'blinkit', 'zepto',
+            'dmart', 'reliance fresh', 'spencer',
+        ]),
+        ('Health', [
+            'pharmacy', 'medical', 'hospital', 'clinic', 'doctor',
+            'medicine', 'apollo', 'medplus', 'netmeds', '1mg', 'health',
+            'diagnostic', 'lab', 'pathology', 'dental', 'optical', 'chemist',
+        ]),
+        ('Utilities', [
+            'electricity', 'electric', 'power', 'water bill', 'broadband',
+            'internet', 'recharge', 'dth', 'jio', 'airtel', 'bsnl',
+            'vodafone', 'tata sky', 'dish tv', 'netflix', 'spotify', 'hotstar',
+        ]),
+        ('Entertainment', [
+            'movie', 'cinema', 'pvr', 'inox', 'bookmyshow', 'concert',
+            'game', 'gaming', 'amusement', 'event', 'ticket', 'theatre',
+        ]),
+        ('Education', [
+            'school', 'college', 'university', 'tuition', 'books', 'course',
+            'fee', 'admission', 'byju', 'unacademy', 'udemy', 'coursera',
+            'stationery', 'library',
+        ]),
     ]
+
     category = 'Others'
-    for cat, keywords in category_map:
-        for kw in keywords:
-            if re.search(r'\b' + re.escape(kw), text_lower):
+    # First pass: product field only (most reliable)
+    if product_raw:
+        for cat, kws in category_map:
+            if any(kw in product_raw for kw in kws):
                 category = cat
                 break
-        if category != 'Others':
-            break
 
-    # ── Payment method ─────────────────────────────────────────────
-    payment_method = 'UPI'
-    if re.search(r'\bcash\b', text_lower):
-        payment_method = 'Cash'
-    elif re.search(r'\b(credit card|visa|mastercard|amex|rupay credit)\b', text_lower):
-        payment_method = 'Credit Card'
-    elif re.search(r'\b(debit card|atm card|rupay debit)\b', text_lower):
-        payment_method = 'Debit Card'
-    elif re.search(r'\b(upi|gpay|google pay|phonepe|paytm|bhim|neft|imps)\b', text_lower):
-        payment_method = 'UPI'
-    elif re.search(r'\b(bank transfer|neft|rtgs|imps)\b', text_lower):
-        payment_method = 'Bank Transfer'
+    # Second pass: merchant name
+    if category == 'Others' and merchant:
+        m_low = merchant.lower()
+        for cat, kws in category_map:
+            if any(kw in m_low for kw in kws):
+                category = cat
+                break
 
-    # ── Receipt / Invoice number ───────────────────────────────────
-    receipt_no = None
-    rn_m = re.search(
-        r'(?:receipt|bill|invoice|order|txn|transaction|ref)[:\s#no\.]*([A-Z0-9\-]{4,30})',
-        text, re.IGNORECASE
+    # Third pass: full OCR text (word-boundary match)
+    if category == 'Others':
+        for cat, kws in category_map:
+            for kw in kws:
+                if re.search(r'\b' + re.escape(kw), text_lower):
+                    category = cat
+                    break
+            if category != 'Others':
+                break
+
+    # ── 7. Payment method ──────────────────────────────────────────
+    # Check structured field first (e.g. "PayMode: CASH", "Mode: UPI")
+    pm_raw = (
+        kv_get('paymode', 'paymentmode', 'modeofpayment', 'mode',
+               'paymentmethod', 'payment', 'payby') or ''
+    ).lower()
+
+    payment_method = 'UPI'  # safe default
+    if pm_raw:
+        if 'cash' in pm_raw:
+            payment_method = 'Cash'
+        elif any(w in pm_raw for w in ['credit', 'visa', 'mastercard', 'amex']):
+            payment_method = 'Credit Card'
+        elif any(w in pm_raw for w in ['debit', 'atm']):
+            payment_method = 'Debit Card'
+        elif any(w in pm_raw for w in ['upi', 'gpay', 'phonepe', 'paytm', 'bhim']):
+            payment_method = 'UPI'
+        elif any(w in pm_raw for w in ['neft', 'rtgs', 'imps', 'netbanking', 'bank transfer']):
+            payment_method = 'Bank Transfer'
+    else:
+        # Fallback: scan full text
+        if re.search(r'\bcash\b', text_lower):
+            payment_method = 'Cash'
+        elif re.search(r'\b(credit card|visa|mastercard|amex)\b', text_lower):
+            payment_method = 'Credit Card'
+        elif re.search(r'\b(debit card|atm card)\b', text_lower):
+            payment_method = 'Debit Card'
+        elif re.search(r'\b(upi|gpay|google pay|phonepe|paytm|bhim)\b', text_lower):
+            payment_method = 'UPI'
+        elif re.search(r'\b(neft|rtgs|imps|bank transfer|netbanking)\b', text_lower):
+            payment_method = 'Bank Transfer'
+
+    # ── 8. Receipt / Invoice number ────────────────────────────────
+    receipt_no = kv_get(
+        'receipt no.', 'receiptno', 'receiptno.', 'billno', 'bill no.',
+        'invoiceno', 'invoice no.', 'orderno', 'order no.',
+        'txnid', 'transactionid', 'ref', 'refno',
     )
-    if rn_m:
-        receipt_no = rn_m.group(1)[:50]
+    if not receipt_no:
+        rn_m = re.search(
+            r'(?:receipt|bill|invoice|order|txn|transaction|ref)[:\s#no\.]*([A-Z0-9\-]{4,30})',
+            text, re.IGNORECASE,
+        )
+        if rn_m:
+            receipt_no = rn_m.group(1)
+    if receipt_no:
+        receipt_no = str(receipt_no)[:50]
 
-    # ── Confidence score ───────────────────────────────────────────
-    # Combine Tesseract OCR confidence with our field-extraction success
+    # ── 9. Confidence score ────────────────────────────────────────
     field_score = 0
-    if amount is not None:
-        field_score += 40
-    if merchant:
-        field_score += 25
-    if date_val != str(dt_date.today()):
-        field_score += 20
-    if category != 'Others':
-        field_score += 15
+    if amount is not None:                      field_score += 40
+    if merchant:                                field_score += 25
+    if date_val != str(dt_date.today()):        field_score += 20
+    if category != 'Others':                   field_score += 15
 
-    # Blend: 40% OCR confidence (normalised to 0-100) + 60% field extraction
     ocr_norm = min(100, max(0, ocr_confidence))
     confidence = round(ocr_norm * 0.4 + field_score * 0.6)
 
@@ -2390,3 +2569,4 @@ def _parse_receipt_text(text, ocr_confidence=0):
         'receipt_no':     receipt_no or '',
         'confidence':     confidence,
     }
+
