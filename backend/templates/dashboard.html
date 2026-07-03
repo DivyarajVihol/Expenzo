@@ -1634,7 +1634,11 @@
 
     // Display verify note message
     if (noteEl) {
-      noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Please verify the extracted information before saving.`;
+      if (!dateInput.value) {
+        noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Unable to detect the receipt date. Please select it manually.`;
+      } else {
+        noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Please verify the extracted information before saving.`;
+      }
       noteEl.style.display = 'flex';
       noteEl.style.color = '#fb923c';
       noteEl.style.background = 'rgba(251,146,60,0.08)';

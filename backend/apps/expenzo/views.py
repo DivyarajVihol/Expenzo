@@ -2228,31 +2228,19 @@ def _try_parse_date_str(s):
         'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
     }
 
-    # 1. ISO: yyyy-mm-dd
-    m = re.match(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})', s)
+    # 1. ISO format: yyyy-mm-dd
+    m = re.match(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$', s)
     if m:
         try:
             y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
-            if 1 <= mo <= 12 and 1 <= d <= 31 and y >= 2000:
+            if 1 <= mo <= 12 and 1 <= d <= 31 and 2000 <= y <= 2100:
                 return f"{y:04d}-{mo:02d}-{d:02d}"
         except ValueError:
             pass
 
-    # 2. Word month check 1: "May 5 2026" or "May 05, 2026"
-    m = re.match(r'^([a-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?[\s,]+(\d{4})', s)
-    if m:
-        try:
-            mon_str = m.group(1)
-            d = int(m.group(2))
-            y = int(m.group(3))
-            mo = month_map.get(mon_str) or month_map.get(mon_str[:3])
-            if mo and 1 <= d <= 31 and 2000 <= y <= 2100:
-                return f"{y:04d}-{mo:02d}-{d:02d}"
-        except ValueError:
-            pass
-
-    # 3. Word month check 2: "5 May 2026"
-    m = re.match(r'^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})[\s,]+(\d{4})', s)
+    # 2. Word month check: "5 May 2026", "May 5 2026", "5 MAY 2026"
+    # "5 May 2026" or "05 May 2026"
+    m = re.match(r'^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})\s+(\d{4})$', s)
     if m:
         try:
             d = int(m.group(1))
@@ -2264,19 +2252,34 @@ def _try_parse_date_str(s):
         except ValueError:
             pass
 
-    # 4. Numeric check: dd/mm/yyyy or d/m/yyyy or 05/05/2026 or 5/5/2026
-    m = re.match(r'^(\d{1,2})[-/\.](\d{1,2})[-/\.](\d{4})', s)
+    # "May 5 2026"
+    m = re.match(r'^([a-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?\s+(\d{4})$', s)
+    if m:
+        try:
+            mon_str = m.group(1)
+            d = int(m.group(2))
+            y = int(m.group(3))
+            mo = month_map.get(mon_str) or month_map.get(mon_str[:3])
+            if mo and 1 <= d <= 31 and 2000 <= y <= 2100:
+                return f"{y:04d}-{mo:02d}-{d:02d}"
+        except ValueError:
+            pass
+
+    # 3. Numeric formats: dd/mm/yyyy, d/m/yyyy, dd-mm-yyyy, d-m-yyyy
+    m = re.match(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$', s)
     if m:
         try:
             p1 = int(m.group(1))
             p2 = int(m.group(2))
             y = int(m.group(3))
             
-            # Assume DD/MM/YYYY. If p2 > 12, swap
+            # Assume DD/MM/YYYY. Only swap to MM/DD/YYYY if p2 > 12 and p1 <= 12
             if p2 <= 12:
                 d, mo = p1, p2
-            else:
+            elif p1 <= 12:
                 d, mo = p2, p1
+            else:
+                return None
                 
             if 1 <= mo <= 12 and 1 <= d <= 31 and 2000 <= y <= 2100:
                 return f"{y:04d}-{mo:02d}-{d:02d}"
@@ -2296,8 +2299,6 @@ def _parse_receipt_text(text, ocr_confidence=0):
     text_lower = text.lower()
 
     # ── 1. Merchant Extraction ─────────────────────────────────────
-    # Always extract the largest business name near the top.
-    # Ignore logos, welcome messages, etc.
     merchant = None
     top_lines = lines[:8]
     
@@ -2313,10 +2314,8 @@ def _parse_receipt_text(text, ocr_confidence=0):
         line_clean = line.strip()
         if not line_clean:
             continue
-        # Ignore lines without any letters (logos, delimiters, purely numeric lines)
         if not re.search(r'[a-zA-Z]', line_clean):
             continue
-        # Skip divider lines or lines with mostly non-alphabetic characters
         if re.match(r'^[\W\d_]+$', line_clean):
             continue
         
@@ -2328,54 +2327,89 @@ def _parse_receipt_text(text, ocr_confidence=0):
         break
 
     # ── 2. Date Extraction ─────────────────────────────────────────
-    # Recognize labels: Date:, DATE, Invoice Date, Txn Date
+    # Recognize labels: Date, DATE, Invoice Date, Bill Date, Transaction Date, Txn Date
     # Support formats: dd/mm/yyyy, d/m/yyyy, yyyy-mm-dd, 05/05/2026, 5/5/2026, May 5 2026
-    # Never guess dates. If not found, leave as None.
+    # Never guess dates. Never swap day and month unless format is explicitly known.
+    # Leave empty if not found.
     date_val = None
-    date_labels = [r'invoice\s+date', r'txn\s+date', r'date:?', r'date']
+    date_labels = [
+        r'transaction\s+date', r'invoice\s+date', r'bill\s+date', r'txn\s+date', r'date'
+    ]
+    exclude_date_words = {
+        'receipt no', 'receipt number', 'receipt#', 'bill no', 'bill number', 'bill#',
+        'invoice no', 'invoice number', 'invoice#', 'time', 'volume', 'rate', 'amount',
+        'mobile', 'vehicle', 'veh no', 'veh#'
+    }
     
     # Try finding by labels first
     for label in date_labels:
         for line in lines:
-            if re.search(r'\b' + label, line, re.IGNORECASE):
-                # Look for a date string on this line
-                # Try finding a pattern matching the formats
-                m_iso = re.search(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', line)
+            low_line = line.lower()
+            if any(w in low_line for w in exclude_date_words):
+                continue
+                
+            m = re.search(r'\b' + label + r'\b[:\s\-]*', low_line)
+            if m:
+                # Extract immediately following text
+                after_text = line[m.end():].strip()
+                
+                # Check for standard date pattern matches inside after_text
+                # ISO check
+                m_iso = re.search(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', after_text)
                 if m_iso:
                     parsed = _try_parse_date_str(m_iso.group(0))
                     if parsed:
                         date_val = parsed
                         break
-                
-                m_word = re.search(r'\b(?:[a-z]{3,9}\s+\d{1,2}|\d{1,2}\s+[a-z]{3,9})[\s,]+\d{4}\b', line, re.IGNORECASE)
+                        
+                # Word month check
+                m_word = re.search(r'\b(?:[a-z]{3,9}\s+\d{1,2}|\d{1,2}\s+[a-z]{3,9})[\s,]+\d{4}\b', after_text, re.IGNORECASE)
                 if m_word:
                     parsed = _try_parse_date_str(m_word.group(0))
                     if parsed:
                         date_val = parsed
                         break
                         
-                m_num = re.search(r'\b\d{1,2}[-/.]\d{1,2}[-/.]\d{4}\b', line)
+                # Slashes/Dashes check
+                m_num = re.search(r'\b\d{1,2}[-/.]\d{1,2}[-/.]\d{4}\b', after_text)
                 if m_num:
-                    parsed = _try_parse_date_str(m_num.group(0))
+                    # Clean trailing periods or separators
+                    cleaned_num = m_num.group(0).replace('.', '-')
+                    parsed = _try_parse_date_str(cleaned_num)
                     if parsed:
                         date_val = parsed
                         break
         if date_val:
             break
 
-    # If no labeled date, search the entire text for date format matches
+    # If no labeled date, search remaining text
     if not date_val:
-        candidates = []
-        candidates.extend(re.findall(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', text_lower))
-        candidates.extend(re.findall(r'\b[a-z]{3,9}\s+\d{1,2}[\s,]+\d{4}\b', text_lower))
-        candidates.extend(re.findall(r'\b\d{1,2}\s+[a-z]{3,9}[\s,]+\d{4}\b', text_lower))
-        candidates.extend(re.findall(r'\b\d{1,2}[-/.]\d{1,2}[-/.]\d{4}\b', text_lower))
-        
-        for cand in candidates:
-            parsed = _try_parse_date_str(cand)
-            if parsed:
-                date_val = parsed
-                break
+        for line in lines:
+            low_line = line.lower()
+            if any(w in low_line for w in exclude_date_words):
+                continue
+                
+            m_iso = re.search(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', line)
+            if m_iso:
+                parsed = _try_parse_date_str(m_iso.group(0))
+                if parsed:
+                    date_val = parsed
+                    break
+            
+            m_word = re.search(r'\b(?:[a-z]{3,9}\s+\d{1,2}|\d{1,2}\s+[a-z]{3,9})[\s,]+\d{4}\b', line, re.IGNORECASE)
+            if m_word:
+                parsed = _try_parse_date_str(m_word.group(0))
+                if parsed:
+                    date_val = parsed
+                    break
+                    
+            m_num = re.search(r'\b\d{1,2}[-/.]\d{1,2}[-/.]\d{4}\b', line)
+            if m_num:
+                cleaned_num = m_num.group(0).replace('.', '-')
+                parsed = _try_parse_date_str(cleaned_num)
+                if parsed:
+                    date_val = parsed
+                    break
 
     # ── 3. Amount Extraction ───────────────────────────────────────
     # Prioritize labels: Total, Grand Total, Amount, Amount(Rs.), Net Amount, Amount Payable
