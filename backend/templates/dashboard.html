@@ -1501,11 +1501,26 @@
   }
 
   function populateScanPreview(d) {
-    document.getElementById('scan-merchant').value  = d.merchant || '';
-    document.getElementById('scan-amount').value    = d.amount != null ? d.amount : '';
-    document.getElementById('scan-tax').value       = d.tax != null ? d.tax : '';
-    document.getElementById('scan-date').value      = d.date || new Date().toISOString().split('T')[0];
-    document.getElementById('scan-notes').value     = d.merchant ? ('Receipt: ' + d.merchant) : '';
+    const merchantInput = document.getElementById('scan-merchant');
+    const amountInput = document.getElementById('scan-amount');
+    const dateInput = document.getElementById('scan-date');
+    const taxInput = document.getElementById('scan-tax');
+    const notesInput = document.getElementById('scan-notes');
+    const noteEl = document.getElementById('scan-low-confidence-note');
+
+    // Clear previous warning highlights
+    merchantInput.classList.remove('scan-field-warn');
+    amountInput.classList.remove('scan-field-warn');
+    dateInput.classList.remove('scan-field-warn');
+
+    merchantInput.value = d.merchant || '';
+    amountInput.value = d.amount != null ? d.amount : '';
+    taxInput.value = d.tax != null ? d.tax : '';
+    
+    // Parse date
+    const parsedDate = d.date || new Date().toISOString().split('T')[0];
+    dateInput.value = parsedDate;
+    notesInput.value = d.merchant ? ('Receipt: ' + d.merchant) : '';
 
     // Category
     const catSel = document.getElementById('scan-category');
@@ -1525,15 +1540,55 @@
       document.getElementById('scan-receipt-no-group').style.display = 'none';
     }
 
+    // Validation checks
+    let hasFieldWarning = false;
+    
+    // Validate merchant
+    if (!d.merchant || d.merchant.trim().toLowerCase() === 'unknown merchant') {
+      merchantInput.classList.add('scan-field-warn');
+      hasFieldWarning = true;
+    }
+    
+    // Validate amount
+    const amountVal = parseFloat(d.amount);
+    if (isNaN(amountVal) || amountVal <= 0) {
+      amountInput.classList.add('scan-field-warn');
+      hasFieldWarning = true;
+    }
+    
+    // Validate date: check if it matches today's date (likely a fallback)
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (!d.date || d.date === todayStr) {
+      dateInput.classList.add('scan-field-warn');
+      hasFieldWarning = true;
+    }
+
     // Confidence indicator
     const conf = Math.min(100, Math.max(0, d.confidence || 0));
     document.getElementById('scan-confidence-val').textContent = conf + '%';
+    
     const confColor = conf >= 70 ? 'var(--accent-primary)' : conf >= 40 ? '#fb923c' : '#f87171';
     document.getElementById('scan-confidence-val').style.color = confColor;
-    document.getElementById('scan-low-confidence-note').style.display = conf < 60 ? 'flex' : 'none';
+
+    if (conf < 70) {
+      noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>We couldn't confidently extract all information. Please review the fields before saving.`;
+      noteEl.style.display = 'flex';
+      noteEl.style.color = '#fb923c';
+      noteEl.style.background = 'rgba(251,146,60,0.08)';
+      noteEl.style.borderColor = 'rgba(251,146,60,0.2)';
+    } else if (hasFieldWarning) {
+      noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Some fields could not be verified. Please review the highlighted fields.`;
+      noteEl.style.display = 'flex';
+      noteEl.style.color = '#fb923c';
+      noteEl.style.background = 'rgba(251,146,60,0.08)';
+      noteEl.style.borderColor = 'rgba(251,146,60,0.2)';
+    } else {
+      noteEl.style.display = 'none';
+    }
 
     if (window.lucide) window.lucide.createIcons();
   }
+
 
   function showScanPreviewManual() {
     populateScanPreview({ merchant:'', amount:null, tax:null, date:new Date().toISOString().split('T')[0], category:'Others', payment_method:'UPI', receipt_no:'', confidence:0 });
