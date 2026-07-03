@@ -2304,12 +2304,17 @@ def _parse_receipt_text(text, ocr_confidence=0):
     ignore_merchant_patterns = [
         r'\bwelcome\b', r'\bthank\b', r'\binvoice\b', r'\breceipt\b', r'\bbill\b',
         r'\btax\b', r'\bgst\b', r'\bvat\b', r'\bphone\b', r'\btel\b', r'\bmob\b',
-        r'\bdate\b', r'\btime\b', r'\bcash\s+memo\b', r'\bduplicate\b', r'\boriginal\b'
+        r'\bdate\b', r'\btime\b', r'\bcash\s+memo\b', r'\bduplicate\b', r'\boriginal\b',
+        r'\btotal\b', r'\bamount\b', r'\bpayable\b', r'\bpaid\b', r'\bgrand\b', r'\bsubtotal\b',
+        r'\bchange\b', r'\bcard\b', r'\bupi\b', r'\bcash\b', r'\bpayment\b'
     ]
     
     for line in top_lines:
         line_clean = line.strip()
         if not line_clean:
+            continue
+        # Ignore lines without any letters (logos, delimiters, purely numeric lines)
+        if not re.search(r'[a-zA-Z]', line_clean):
             continue
         # Skip divider lines or lines with mostly non-alphabetic characters
         if re.match(r'^[\W\d_]+$', line_clean):

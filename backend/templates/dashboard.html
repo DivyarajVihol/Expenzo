@@ -1012,15 +1012,22 @@
   let pendingTransactionEvent = null;
   let currentEditOriginalAmount = 0;
   let currentEditOriginalAccount = '';
+  let isScanReceiptSubmission = false;
 
   function cancelNegativeBalance() {
     document.getElementById('negative-balance-modal').style.display = 'none';
     pendingTransactionEvent = null;
+    isScanReceiptSubmission = false;
   }
 
   function confirmNegativeBalance() {
     document.getElementById('negative-balance-modal').style.display = 'none';
-    saveTransaction(null); // passing null bypasses the check
+    if (isScanReceiptSubmission) {
+      isScanReceiptSubmission = false;
+      saveScanExpense(true); // Bypass check
+    } else {
+      saveTransaction(null); // passing null bypasses the check
+    }
   }
 
   async function saveTransaction(e) {
@@ -1507,6 +1514,8 @@
     const taxInput = document.getElementById('scan-tax');
     const notesInput = document.getElementById('scan-notes');
     const noteEl = document.getElementById('scan-low-confidence-note');
+    const confBar = document.getElementById('scan-confidence-bar');
+    const confVal = document.getElementById('scan-confidence-val');
 
     // Clear previous warning highlights
     merchantInput.classList.remove('scan-field-warn');
@@ -1517,9 +1526,8 @@
     amountInput.value = d.amount != null ? d.amount : '';
     taxInput.value = d.tax != null ? d.tax : '';
     
-    // Parse date
-    const parsedDate = d.date || new Date().toISOString().split('T')[0];
-    dateInput.value = parsedDate;
+    // Parse date (leave empty if not provided)
+    dateInput.value = d.date || '';
     notesInput.value = d.merchant ? ('Receipt: ' + d.merchant) : '';
 
     // Category
@@ -1540,62 +1548,47 @@
       document.getElementById('scan-receipt-no-group').style.display = 'none';
     }
 
-    // Validation checks
-    let hasFieldWarning = false;
-    
-    // Validate merchant
-    if (!d.merchant || d.merchant.trim().toLowerCase() === 'unknown merchant') {
+    // Validation checks (highlight if empty)
+    if (!merchantInput.value) {
       merchantInput.classList.add('scan-field-warn');
-      hasFieldWarning = true;
     }
-    
-    // Validate amount
-    const amountVal = parseFloat(d.amount);
-    if (isNaN(amountVal) || amountVal <= 0) {
+    const amt = parseFloat(amountInput.value);
+    if (isNaN(amt) || amt <= 0) {
       amountInput.classList.add('scan-field-warn');
-      hasFieldWarning = true;
     }
-    
-    // Validate date: check if it matches today's date (likely a fallback)
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (!d.date || d.date === todayStr) {
+    if (!dateInput.value) {
       dateInput.classList.add('scan-field-warn');
-      hasFieldWarning = true;
     }
 
-    // Confidence indicator
-    const conf = Math.min(100, Math.max(0, d.confidence || 0));
-    document.getElementById('scan-confidence-val').textContent = conf + '%';
-    
-    const confColor = conf >= 70 ? 'var(--accent-primary)' : conf >= 40 ? '#fb923c' : '#f87171';
-    document.getElementById('scan-confidence-val').style.color = confColor;
+    // Update confidence bar label text and hide percentage display
+    if (confBar) {
+      const labelSpan = confBar.querySelector('span:not(#scan-confidence-val)');
+      if (labelSpan) {
+        labelSpan.textContent = "Receipt scanned successfully.";
+      }
+    }
+    if (confVal) {
+      confVal.style.display = 'none';
+    }
 
-    if (conf < 70) {
-      noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>We couldn't confidently extract all information. Please review the fields before saving.`;
+    // Display verify note message
+    if (noteEl) {
+      noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Please verify the extracted information before saving.`;
       noteEl.style.display = 'flex';
       noteEl.style.color = '#fb923c';
       noteEl.style.background = 'rgba(251,146,60,0.08)';
       noteEl.style.borderColor = 'rgba(251,146,60,0.2)';
-    } else if (hasFieldWarning) {
-      noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Some fields could not be verified. Please review the highlighted fields.`;
-      noteEl.style.display = 'flex';
-      noteEl.style.color = '#fb923c';
-      noteEl.style.background = 'rgba(251,146,60,0.08)';
-      noteEl.style.borderColor = 'rgba(251,146,60,0.2)';
-    } else {
-      noteEl.style.display = 'none';
     }
 
     if (window.lucide) window.lucide.createIcons();
   }
 
-
   function showScanPreviewManual() {
-    populateScanPreview({ merchant:'', amount:null, tax:null, date:new Date().toISOString().split('T')[0], category:'Others', payment_method:'UPI', receipt_no:'', confidence:0 });
+    populateScanPreview({ merchant:'', amount:null, tax:null, date:'', category:'Others', payment_method:'UPI', receipt_no:'', confidence:0 });
     showScanScreen('preview');
   }
 
-  async function saveScanExpense() {
+  async function saveScanExpense(bypassCheck = false) {
     const amount = parseFloat(document.getElementById('scan-amount').value);
     if (!amount || amount <= 0) {
       alert('Please enter a valid amount before saving.');
@@ -1615,6 +1608,30 @@
     const notes     = document.getElementById('scan-notes').value.trim();
     const description = notes || (merchant ? 'Receipt: ' + merchant : 'Scanned Receipt');
 
+    let account = 'Bank Account';
+    if (payment === 'Cash') {
+      account = 'Cash';
+    } else if (payment === 'Credit Card') {
+      account = 'Credit Card';
+    }
+
+    // Check for negative balance warning
+    if (!bypassCheck) {
+      const balance = accountBalances[account] || 0;
+      if (amount > balance) {
+        document.getElementById('nb-current-balance').innerText = `₹${balance.toFixed(2)}`;
+        document.getElementById('nb-expense-amount').innerText = `₹${amount.toFixed(2)}`;
+        document.getElementById('nb-new-balance').innerText = `₹${(balance - amount).toFixed(2)}`;
+        
+        let methodName = account === 'Bank Account' ? payment : account;
+        document.getElementById('negative-balance-message').innerText = `This expense will make your ${methodName} balance negative. Do you want to continue?`;
+        
+        document.getElementById('negative-balance-modal').style.display = 'flex';
+        isScanReceiptSubmission = true;
+        return; // Halt submission
+      }
+    }
+
     const saveBtn = document.getElementById('scan-save-btn');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
@@ -1626,7 +1643,7 @@
         body: JSON.stringify({
           amount,
           category,
-          account: 'Bank Account',
+          account,
           paymentMethod: payment,
           description,
           date
