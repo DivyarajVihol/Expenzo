@@ -115,7 +115,7 @@
     cursor: pointer;
   }
   .flow-path:hover {
-    stroke-opacity: 0.6 !important;
+    stroke-opacity: 0.8 !important;
   }
   .flow-node.active-node {
     border-color: var(--accent-primary);
@@ -1316,17 +1316,17 @@
       const strokeWidth = Math.max(1.5, Math.min(32, pct * 36));
       path.setAttribute("stroke-width", strokeWidth);
       path.setAttribute("stroke", color);
-      path.setAttribute("stroke-opacity", "0.22");
+      path.setAttribute("stroke-opacity", "0.45");
       
       path.addEventListener('mouseenter', (e) => {
-        path.setAttribute("stroke-opacity", "0.65");
+        path.setAttribute("stroke-opacity", "0.8");
         showFlowTooltip(e, label, val, pct, count, isIncomeFlow, pctOfSpending);
       });
       path.addEventListener('mousemove', (e) => {
         positionFlowTooltip(e);
       });
       path.addEventListener('mouseleave', () => {
-        path.setAttribute("stroke-opacity", "0.22");
+        path.setAttribute("stroke-opacity", "0.45");
         hideFlowTooltip();
       });
       
