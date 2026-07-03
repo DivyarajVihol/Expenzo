@@ -321,7 +321,8 @@ def charts_view(request):
         all_expenses_data.append({
             'date': exp.date.strftime('%Y-%m-%d') if exp.date else '',
             'amount': float(exp.amount),
-            'category': exp.category
+            'category': exp.category,
+            'description': exp.description or ''
         })
     all_expenses_json = json.dumps(all_expenses_data)
     

@@ -76,9 +76,65 @@
     visibility: visible;
     opacity: 1;
   }
-  .analytics-bar-fill:hover {
-    background: var(--accent-primary) !important;
-    filter: brightness(1.2);
+  
+  /* --- Where Did My Money Go Styles --- */
+  .flow-node {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    text-align: center;
+    position: relative;
+    user-select: none;
+    z-index: 10;
+  }
+  .flow-node:hover {
+    transform: translateY(-2px) scale(1.02);
+    border-color: rgba(129, 140, 248, 0.4);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .flow-node-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .flow-node-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .flow-path {
+    fill: none;
+    transition: stroke-opacity 0.25s ease, stroke 0.25s ease;
+    cursor: pointer;
+  }
+  .flow-path:hover {
+    stroke-opacity: 0.6 !important;
+  }
+  .flow-node.active-node {
+    border-color: var(--accent-primary);
+    background: rgba(129, 140, 248, 0.1);
+  }
+  
+  /* Fade-in Animation */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .fade-in-load {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 </style>
 {% endblock %}
@@ -244,6 +300,113 @@
       <div style="width: 10px; height: 10px; border-radius: 2px; background: #8b5cf6;" title="Above ₹2500"></div>
       <span>More</span>
     </div>
+  </div>
+
+  <!-- "Where Did My Money Go?" Flow Analytics Card -->
+  <div class="glass-card fade-in-load" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem; margin-bottom: 2rem; opacity: 0; transition: opacity 0.5s ease;" id="flow-analytics-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h3 class="spending-title" style="margin: 0 0 0.25rem 0;">Where Did My Money Go?</h3>
+        <p class="spending-subtitle" style="margin: 0;">Visualize how your income was distributed across different expense categories.</p>
+      </div>
+      
+      <!-- Filters Row -->
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <!-- Time Range Selector -->
+        <div>
+          <select id="flow-time-range" class="recent-transactions-select" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;" onchange="handleFlowFilterChange()">
+            <option value="current_month">Current Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="last_3_months">Last 3 Months</option>
+            <option value="last_6_months">Last 6 Months</option>
+            <option value="current_year">Current Year</option>
+            <option value="custom">Custom Date Range</option>
+          </select>
+        </div>
+
+        <!-- Custom Date Picker Container -->
+        <div id="flow-custom-dates" style="display: none; gap: 0.5rem; align-items: center;">
+          <input type="date" id="flow-start-date" class="recent-transactions-select" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; color-scheme: dark;" onchange="handleFlowFilterChange()">
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">to</span>
+          <input type="date" id="flow-end-date" class="recent-transactions-select" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; color-scheme: dark;" onchange="handleFlowFilterChange()">
+        </div>
+
+        <!-- Category Filter -->
+        <div>
+          <select id="flow-category-filter" class="recent-transactions-select" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;" onchange="handleFlowFilterChange()">
+            <option value="ALL">All Categories</option>
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Bills">Bills</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Education">Education</option>
+            <option value="Investment">Investment</option>
+            <option value="Travel">Travel</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="flow-empty-state" style="display: none; text-align: center; padding: 4rem 1.5rem; color: var(--text-secondary);">
+      <i data-lucide="info" style="width: 48px; height: 48px; margin: 0 auto 1rem auto; opacity: 0.3; display: block;"></i>
+      <p style="font-size: 0.9rem; margin: 0; color: var(--text-secondary);">No expense data available for the selected period.</p>
+    </div>
+
+    <!-- Diagram Area -->
+    <div id="flow-diagram-area" style="position: relative; margin: 2rem 0; width: 100%;">
+      <!-- SVG Overlay for connection paths -->
+      <svg id="flow-svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; z-index: 1; min-height: 380px;"></svg>
+
+      <!-- Three-column layout -->
+      <div id="flow-columns-wrapper" style="display: flex; justify-content: space-between; position: relative; z-index: 2; gap: 4rem; overflow-x: auto; padding: 1rem 0; -webkit-overflow-scrolling: touch; min-height: 380px;">
+        
+        <!-- Column 1: Sources -->
+        <div class="flow-column" id="flow-col-sources" style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; min-width: 160px;">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Column 2: Flows (Savings & Total Expenses) -->
+        <div class="flow-column" id="flow-col-mid" style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; min-width: 160px;">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Column 3: Categories -->
+        <div class="flow-column" id="flow-col-targets" style="display: flex; flex-direction: column; gap: 1.25rem; justify-content: center; min-width: 160px;">
+          <!-- Populated dynamically -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Hover Info Bar / Tooltip -->
+    <div id="flow-connection-tooltip" style="position: absolute; display: none; background: rgba(15, 23, 42, 0.98); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 0.75rem 1rem; color: #f8fafc; font-size: 0.75rem; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6); pointer-events: none; min-width: 200px; line-height: 1.4;">
+      <!-- Tooltip details dynamic -->
+    </div>
+
+    <!-- Summary Cards Grid -->
+    <div id="flow-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+      <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Largest Expense Category</span>
+        <strong id="flow-sum-largest" style="font-size: 1.1rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</strong>
+      </div>
+      <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Highest Single Expense</span>
+        <strong id="flow-sum-highest" style="font-size: 1.1rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="">-</strong>
+      </div>
+      <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Total Savings</span>
+        <strong id="flow-sum-savings" style="font-size: 1.15rem; color: var(--text-primary);">₹0.00</strong>
+      </div>
+      <div class="glass-card" style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Money Remaining</span>
+        <strong id="flow-sum-remaining" style="font-size: 1.15rem; color: var(--text-primary);">₹0.00</strong>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -853,5 +1016,440 @@
       }
     }, 150);
   }
-</script>
+
+  // --- "Where Did My Money Go" Flow Analytics JS Engine ---
+
+  function initFlowAnalytics() {
+    const timeRangeSelect = document.getElementById('flow-time-range');
+    if (timeRangeSelect) {
+      timeRangeSelect.value = 'current_month';
+    }
+    
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const startDateInput = document.getElementById('flow-start-date');
+    const endDateInput = document.getElementById('flow-end-date');
+    if (startDateInput) startDateInput.value = todayStr;
+    if (endDateInput) endDateInput.value = todayStr;
+
+    handleFlowFilterChange();
+    
+    window.addEventListener('resize', () => {
+      drawFlowConnections();
+    });
+
+    const flowCard = document.getElementById('flow-analytics-card');
+    if (flowCard) {
+      setTimeout(() => {
+        flowCard.style.opacity = '1';
+      }, 100);
+    }
+  }
+
+  function handleFlowFilterChange() {
+    const timeRange = document.getElementById('flow-time-range').value;
+    const customDatesDiv = document.getElementById('flow-custom-dates');
+    
+    if (timeRange === 'custom') {
+      customDatesDiv.style.display = 'flex';
+    } else {
+      customDatesDiv.style.display = 'none';
+    }
+    
+    recalculateFlow();
+  }
+
+  function recalculateFlow() {
+    const timeRange = document.getElementById('flow-time-range').value;
+    const categoryFilter = document.getElementById('flow-category-filter').value;
+    
+    const { startDate, endDate } = getFlowDateRange(timeRange);
+    
+    const filtered = allExpenses.filter(exp => {
+      if (!exp.date) return false;
+      const expDate = new Date(exp.date);
+      
+      if (startDate && expDate < startDate) return false;
+      if (endDate && expDate > endDate) return false;
+      
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      document.getElementById('flow-empty-state').style.display = 'block';
+      document.getElementById('flow-diagram-area').style.display = 'none';
+      document.getElementById('flow-summary-grid').style.display = 'none';
+      updateFlowSummaryCards(0, 0, 0, 0, null, null);
+      return;
+    }
+    
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    const categorySums = {};
+    const categoryTxnCounts = {};
+    let highestSingleExpenseAmt = 0;
+    let highestSingleExpenseDesc = '-';
+    
+    filtered.forEach(exp => {
+      const amt = exp.amount;
+      if (exp.category === 'Income') {
+        totalIncome += amt;
+      } else {
+        if (categoryFilter !== 'ALL' && exp.category !== categoryFilter) {
+          return;
+        }
+        
+        totalExpenses += amt;
+        categorySums[exp.category] = (categorySums[exp.category] || 0) + amt;
+        categoryTxnCounts[exp.category] = (categoryTxnCounts[exp.category] || 0) + 1;
+        
+        if (amt > highestSingleExpenseAmt) {
+          highestSingleExpenseAmt = amt;
+          highestSingleExpenseDesc = exp.description || exp.category;
+        }
+      }
+    });
+
+    if (totalIncome === 0 && totalExpenses === 0) {
+      document.getElementById('flow-empty-state').style.display = 'block';
+      document.getElementById('flow-diagram-area').style.display = 'none';
+      document.getElementById('flow-summary-grid').style.display = 'none';
+      updateFlowSummaryCards(0, 0, 0, 0, null, null);
+      return;
+    }
+    
+    document.getElementById('flow-empty-state').style.display = 'none';
+    document.getElementById('flow-diagram-area').style.display = 'block';
+    document.getElementById('flow-summary-grid').style.display = 'grid';
+
+    const moneyRemaining = totalIncome - totalExpenses;
+    const totalSavings = moneyRemaining > 0 ? moneyRemaining : 0;
+    const deficit = moneyRemaining < 0 ? Math.abs(moneyRemaining) : 0;
+
+    let largestCategory = '-';
+    let largestCategoryAmt = 0;
+    Object.entries(categorySums).forEach(([cat, amt]) => {
+      if (amt > largestCategoryAmt) {
+        largestCategoryAmt = amt;
+        largestCategory = cat;
+      }
+    });
+
+    renderFlowNodes(totalIncome, deficit, totalSavings, totalExpenses, categorySums, categoryTxnCounts);
+    
+    setTimeout(() => {
+      drawFlowConnections(totalIncome, deficit, totalSavings, totalExpenses, categorySums, categoryTxnCounts);
+    }, 50);
+
+    updateFlowSummaryCards(largestCategoryAmt, highestSingleExpenseAmt, totalSavings, moneyRemaining, largestCategory, highestSingleExpenseDesc);
+  }
+
+  function getFlowDateRange(rangeType) {
+    const now = new Date();
+    let startDate = null;
+    let endDate = null;
+    
+    switch (rangeType) {
+      case 'current_month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case 'last_month':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case 'last_3_months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+        endDate = now;
+        break;
+      case 'last_6_months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+        endDate = now;
+        break;
+      case 'current_year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now.getFullYear(), 11, 31);
+        break;
+      case 'custom':
+        const startVal = document.getElementById('flow-start-date').value;
+        const endVal = document.getElementById('flow-end-date').value;
+        if (startVal) startDate = new Date(startVal);
+        if (endVal) endDate = new Date(endVal);
+        break;
+    }
+    
+    if (startDate) startDate.setHours(0,0,0,0);
+    if (endDate) endDate.setHours(23,59,59,999);
+    
+    return { startDate, endDate };
+  }
+
+  function renderFlowNodes(income, deficit, savings, expenses, categorySums, categoryTxnCounts) {
+    const colSources = document.getElementById('flow-col-sources');
+    const colMid = document.getElementById('flow-col-mid');
+    const colTargets = document.getElementById('flow-col-targets');
+    
+    colSources.innerHTML = '';
+    colMid.innerHTML = '';
+    colTargets.innerHTML = '';
+
+    if (income > 0) {
+      colSources.innerHTML += `
+        <div class="flow-node" id="node-income" data-val="${income}" aria-label="Income, ₹${income.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Income: ₹${income.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+          <span class="flow-node-title">Income</span>
+          <span class="flow-node-value">₹${income.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+        </div>
+      `;
+    }
+    if (deficit > 0) {
+      colSources.innerHTML += `
+        <div class="flow-node" id="node-deficit" data-val="${deficit}" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.05);" aria-label="Savings Drawdown, ₹${deficit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Savings Drawdown: ₹${deficit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+          <span class="flow-node-title" style="color: #fb7185;">Savings Drawdown</span>
+          <span class="flow-node-value" style="color: #fb7185;">₹${deficit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+        </div>
+      `;
+    }
+
+    if (savings > 0 || income > 0) {
+      colMid.innerHTML += `
+        <div class="flow-node" id="node-savings" data-val="${savings}" style="border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.05);" aria-label="Savings, ₹${savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Savings: ₹${savings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+          <span class="flow-node-title" style="color: #34d399;">Savings</span>
+          <span class="flow-node-value" style="color: #34d399;">₹${savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+        </div>
+      `;
+    }
+    if (expenses > 0) {
+      colMid.innerHTML += `
+        <div class="flow-node" id="node-expenses" data-val="${expenses}" aria-label="Expenses, ₹${expenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Expenses: ₹${expenses.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+          <span class="flow-node-title">Expenses</span>
+          <span class="flow-node-value">₹${expenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+        </div>
+      `;
+    }
+
+    const sortedCategories = Object.entries(categorySums).sort((a,b) => b[1] - a[1]);
+    if (sortedCategories.length === 0) {
+      colTargets.innerHTML = `
+        <div class="flow-node" style="cursor: default;" aria-label="No Expenses">
+          <span class="flow-node-title">No Expenses</span>
+          <span class="flow-node-value">₹0</span>
+        </div>
+      `;
+    } else {
+      sortedCategories.forEach(([cat, val]) => {
+        const pct = expenses > 0 ? Math.round((val / expenses) * 100) : 0;
+        const txns = categoryTxnCounts[cat] || 0;
+        const ariaLabel = `${cat}, ₹${val.toLocaleString('en-IN', { maximumFractionDigits: 0 })}, ${pct}% of total spending, ${txns} transaction${txns === 1 ? '' : 's'}`;
+        
+        colTargets.innerHTML += `
+          <div class="flow-node" id="node-cat-${cat}" data-cat="${cat}" data-val="${val}" aria-label="${ariaLabel}" title="${cat}: ₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${pct}%, ${txns} txns)">
+            <span class="flow-node-title">${cat}</span>
+            <span class="flow-node-value">₹${val.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          </div>
+        `;
+      });
+    }
+
+    document.querySelectorAll('[data-cat]').forEach(el => {
+      el.addEventListener('click', () => {
+        const cat = el.getAttribute('data-cat');
+        window.location.href = `/history/?category=${encodeURIComponent(cat)}`;
+      });
+    });
+  }
+
+  function drawFlowConnections(income, deficit, savings, expenses, categorySums, categoryTxnCounts) {
+    const svg = document.getElementById('flow-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+    
+    if (income === undefined && window.flowState) {
+      income = window.flowState.income;
+      deficit = window.flowState.deficit;
+      savings = window.flowState.savings;
+      expenses = window.flowState.expenses;
+      categorySums = window.flowState.categorySums;
+      categoryTxnCounts = window.flowState.categoryTxnCounts;
+    } else {
+      window.flowState = { income, deficit, savings, expenses, categorySums, categoryTxnCounts };
+    }
+    
+    const wrapper = document.getElementById('flow-diagram-area');
+    const wrapperRect = wrapper.getBoundingClientRect();
+    
+    const scrollWrapper = document.getElementById('flow-columns-wrapper');
+    svg.style.width = scrollWrapper.scrollWidth + 'px';
+    svg.style.height = scrollWrapper.scrollHeight + 'px';
+
+    const elIncome = document.getElementById('node-income');
+    const elDeficit = document.getElementById('node-deficit');
+    const elSavings = document.getElementById('node-savings');
+    const elExpenses = document.getElementById('node-expenses');
+    
+    const valIncome = elIncome ? parseFloat(elIncome.getAttribute('data-val')) || 0 : 0;
+    const valDeficit = elDeficit ? parseFloat(elDeficit.getAttribute('data-val')) || 0 : 0;
+    const valSavings = elSavings ? parseFloat(elSavings.getAttribute('data-val')) || 0 : 0;
+    const valExpenses = elExpenses ? parseFloat(elExpenses.getAttribute('data-val')) || 0 : 0;
+    
+    const totalFlow = valIncome + valDeficit;
+    if (totalFlow === 0) return;
+
+    function drawPath(elA, elB, val, label, count = 0, pctOfSpending = 0, color = 'rgba(129, 140, 248, 0.16)', isIncomeFlow = false) {
+      if (!elA || !elB) return;
+      
+      const rectA = elA.getBoundingClientRect();
+      const rectB = elB.getBoundingClientRect();
+      
+      const xA = rectA.right - wrapperRect.left + scrollWrapper.scrollLeft;
+      const yA = rectA.top + rectA.height / 2 - wrapperRect.top + scrollWrapper.scrollTop;
+      
+      const xB = rectB.left - wrapperRect.left + scrollWrapper.scrollLeft;
+      const yB = rectB.top + rectB.height / 2 - wrapperRect.top + scrollWrapper.scrollTop;
+      
+      const dx = (xB - xA) * 0.45;
+      const d = `M ${xA} ${yA} C ${xA + dx} ${yA}, ${xB - dx} ${yB}, ${xB} ${yB}`;
+      
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d);
+      path.setAttribute("class", "flow-path");
+      
+      const pct = val / totalFlow;
+      const strokeWidth = Math.max(1.5, Math.min(32, pct * 36));
+      path.setAttribute("stroke-width", strokeWidth);
+      path.setAttribute("stroke", color);
+      path.setAttribute("stroke-opacity", "0.22");
+      
+      path.addEventListener('mouseenter', (e) => {
+        path.setAttribute("stroke-opacity", "0.65");
+        showFlowTooltip(e, label, val, pct, count, isIncomeFlow, pctOfSpending);
+      });
+      path.addEventListener('mousemove', (e) => {
+        positionFlowTooltip(e);
+      });
+      path.addEventListener('mouseleave', () => {
+        path.setAttribute("stroke-opacity", "0.22");
+        hideFlowTooltip();
+      });
+      
+      if (!isIncomeFlow) {
+        path.addEventListener('click', () => {
+          window.location.href = `/history/?category=${encodeURIComponent(label)}`;
+        });
+      }
+      
+      svg.appendChild(path);
+    }
+
+    if (elIncome) {
+      if (elSavings && valSavings > 0) {
+        drawPath(elIncome, elSavings, valSavings, 'Savings', 0, 0, 'rgba(52, 211, 153, 0.2)', true);
+      }
+      if (elExpenses && valExpenses > 0) {
+        const flowToExpenses = Math.min(valIncome, valExpenses);
+        drawPath(elIncome, elExpenses, flowToExpenses, 'Expenses', 0, 0, 'rgba(129, 140, 248, 0.2)', true);
+      }
+    }
+    
+    if (elDeficit && elExpenses && valDeficit > 0) {
+      drawPath(elDeficit, elExpenses, valDeficit, 'Savings drawdown', 0, 0, 'rgba(244, 63, 94, 0.2)', true);
+    }
+
+    if (elExpenses && valExpenses > 0) {
+      document.querySelectorAll('[data-cat]').forEach(elCat => {
+        const catName = elCat.getAttribute('data-cat');
+        const catVal = parseFloat(elCat.getAttribute('data-val')) || 0;
+        const count = categoryTxnCounts ? (categoryTxnCounts[catName] || 0) : 0;
+        const pctOfSpending = valExpenses > 0 ? (catVal / valExpenses) : 0;
+        
+        drawPath(elExpenses, elCat, catVal, catName, count, pctOfSpending, 'rgba(129, 140, 248, 0.2)', false);
+      });
+    }
+  }
+
+  function showFlowTooltip(e, label, amount, percentage, count, isIncomeFlow, pctOfSpending) {
+    const tooltip = document.getElementById('flow-connection-tooltip');
+    if (!tooltip) return;
+    
+    let infoHtml = `<div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.25rem;">${label}</div>`;
+    infoHtml += `<div style="color: var(--accent-primary); font-weight: 700; font-size: 0.9rem; margin-bottom: 0.15rem;">₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+    
+    if (isIncomeFlow) {
+      infoHtml += `<div style="color: var(--text-secondary); font-size: 0.75rem;">${Math.round(percentage * 100)}% of total flow</div>`;
+    } else {
+      infoHtml += `<div style="color: var(--text-secondary); font-size: 0.75rem;">${Math.round(pctOfSpending * 100)}% of total spending</div>`;
+      infoHtml += `<div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 0.1rem;">${count} Transaction${count === 1 ? '' : 's'}</div>`;
+    }
+    
+    tooltip.innerHTML = infoHtml;
+    tooltip.style.display = 'block';
+    positionFlowTooltip(e);
+  }
+
+  function positionFlowTooltip(e) {
+    const tooltip = document.getElementById('flow-connection-tooltip');
+    if (!tooltip) return;
+    
+    const card = document.getElementById('flow-analytics-card');
+    const cardRect = card.getBoundingClientRect();
+    
+    tooltip.style.left = (e.clientX - cardRect.left + 15) + 'px';
+    tooltip.style.top = (e.clientY - cardRect.top + window.scrollY - 30) + 'px';
+  }
+
+  function hideFlowTooltip() {
+    const tooltip = document.getElementById('flow-connection-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+  }
+
+  function updateFlowSummaryCards(largestAmt, highestAmt, savings, remaining, largestCat, highestDesc) {
+    const sumLargest = document.getElementById('flow-sum-largest');
+    const sumHighest = document.getElementById('flow-sum-highest');
+    const sumSavings = document.getElementById('flow-sum-savings');
+    const sumRemaining = document.getElementById('flow-sum-remaining');
+    
+    animateFlowCounter(sumLargest, largestAmt, largestCat || '-');
+    animateFlowCounter(sumHighest, highestAmt, highestDesc || '-');
+    
+    animateFlowCounter(sumSavings, savings);
+    animateFlowCounter(sumRemaining, remaining);
+  }
+
+  function animateFlowCounter(el, targetValue, textLabel = null) {
+    if (!el) return;
+    
+    if (textLabel !== null) {
+      if (targetValue === 0) {
+        el.textContent = '-';
+        el.title = '';
+      } else {
+        el.textContent = `${textLabel} (₹${targetValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })})`;
+        el.title = `${textLabel}: ₹${targetValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+      }
+      return;
+    }
+
+    let start = 0;
+    let end = targetValue;
+    if (start === end) {
+      el.textContent = `₹${end.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return;
+    }
+    
+    let duration = 500;
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      const current = progress * (end - start) + start;
+      el.textContent = `₹${current.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+    window.requestAnimationFrame(step);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initFlowAnalytics();
+  });
+
 {% endblock %}
