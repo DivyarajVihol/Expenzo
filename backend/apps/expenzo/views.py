@@ -31,7 +31,7 @@ from .models import (
 )
 from .recurring_processor import process_recurring_finance, recalculate_current_month
 from .charts import (
-    generate_savings_gauge_chart, generate_spending_pie_chart,
+    generate_spending_pie_chart,
     generate_group_net_standing_chart, generate_payment_method_bar_chart
 )
 from .decorators import rate_limit
@@ -186,12 +186,6 @@ def dashboard_view(request):
     # Generate charts
     pie_chart_base64 = generate_spending_pie_chart(pie_categories, pie_values)
     
-    profile = user.profile
-    savings_target = profile.savings_target
-    savings_current = profile.savings_current
-    savings_percent = min(100, round((savings_current / savings_target) * 100)) if savings_target > 0 else 0
-    
-    gauge_chart_base64 = generate_savings_gauge_chart(savings_percent)
     active_month_label = now.strftime("%B %Y")
     
     import json
@@ -201,13 +195,9 @@ def dashboard_view(request):
     context = {
         'recent_transactions': recent_transactions,
         'monthly_balance': monthly_balance,
-        'savings_target': savings_target,
-        'savings_current': savings_current,
-        'savings_percent': savings_percent,
         'active_month_label': active_month_label,
         'category_breakdown': category_breakdown,
         'pie_chart': pie_chart_base64,
-        'gauge_chart': gauge_chart_base64,
         'account_breakdown': account_breakdown,
         'payment_method_breakdown': payment_method_breakdown,
         'pm_chart': pm_chart_base64,
@@ -1407,29 +1397,7 @@ def add_settlement_api(request, group_id):
     return JsonResponse({'error': 'POST required'}, status=405)
 
 @rate_limit(limit=30, window=60)
-@login_required
-def save_savings_goal_api(request):
-    if request.method == 'POST':
-        try:
-            body = json.loads(request.body)
-            try:
-                target = float(body.get('target', 0))
-                current = float(body.get('current', 0))
-            except (ValueError, TypeError):
-                return JsonResponse({'error': 'Invalid float value.'}, status=400)
-            
-            profile = request.user.profile
-            profile.savings_target = target
-            profile.savings_current = current
-            profile.save()
-            
-            return JsonResponse({'status': 'success'})
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
-        except Exception as e:
-            logger.error(f"SECURITY: API Exception in {request.path} by user {request.user.id if request.user.is_authenticated else 'Anonymous'}: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
-    return JsonResponse({'error': 'POST required'}, status=405)
+
 
 @rate_limit(limit=10, window=60)
 def register_view(request):

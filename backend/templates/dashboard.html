@@ -284,37 +284,7 @@
         </div>
       </div>
 
-      <!-- Savings Goal Card -->
-      <div class="glass-card savings-card" style="display: none;">
-        <div class="savings-card-header">
-          <div>
-            <h4 class="savings-title">Savings Goal</h4>
-            <p class="savings-subtitle">Track progress to your target</p>
-          </div>
-          <button onclick="openSavingsModal()" class="btn-edit-savings">
-            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
-          </button>
-        </div>
 
-        <div class="savings-gauge-section">
-          <!-- Circular Gauge Chart generated via Matplotlib/Seaborn -->
-          <div class="gauge-chart-wrapper">
-            {% if gauge_chart %}
-              <img src="data:image/png;base64,{{ gauge_chart }}" alt="Savings Gauge" style="width: 80px; height: 80px;">
-            {% else %}
-              <div style="font-size: 0.85rem; color: var(--text-muted)">0%</div>
-            {% endif %}
-          </div>
-
-          <div class="savings-text-info">
-            <div class="savings-info-label">Current Savings</div>
-            <div class="savings-info-value">₹{{ savings_current|floatformat:2 }}</div>
-            <div class="savings-info-target">
-              Goal: ₹{{ savings_target|floatformat:2 }}
-            </div>
-          </div>
-        </div>
-      </div>
       
     </div>
 
@@ -474,49 +444,7 @@
 
 </div>
 
-<!-- Savings Goal Modal -->
-<div class="modal-overlay" id="savings-modal" style="display: none;">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 class="chart-card-title">Adjust Savings Goal</h3>
-      <button onclick="closeSavingsModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
-        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
-      </button>
-    </div>
-    <form id="savings-form" onsubmit="saveSavingsGoal(event)">
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Goal Target Amount</label>
-          <input
-            type="number"
-            id="savings-target-input"
-            class="input-control"
-            placeholder="e.g. 50000"
-            value="{{ savings_target }}"
-            required
-            min="0"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Current Saved Amount</label>
-          <input
-            type="number"
-            id="savings-current-input"
-            class="input-control"
-            placeholder="e.g. 12000"
-            value="{{ savings_current }}"
-            required
-            min="0"
-          />
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeSavingsModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-      </div>
-    </form>
-  </div>
-</div>
+
 
 <!-- ===== SCAN RECEIPT MODAL ===== -->
 <div class="modal-overlay" id="scan-receipt-modal" style="display:none; align-items:center; justify-content:center;">
@@ -833,13 +761,7 @@
     window.location.href = url.toString();
   }
 
-  function openSavingsModal() {
-    document.getElementById('savings-modal').style.display = 'flex';
-  }
 
-  function closeSavingsModal() {
-    document.getElementById('savings-modal').style.display = 'none';
-  }
 
   function togglePaymentMethod() {
     const accountSelect = document.getElementById('tx-account');
@@ -981,31 +903,7 @@
     document.getElementById('transaction-modal').style.display = 'none';
   }
 
-  async function saveSavingsGoal(e) {
-    e.preventDefault();
-    const target = document.getElementById('savings-target-input').value;
-    const current = document.getElementById('savings-current-input').value;
 
-    try {
-      const res = await fetch("{% url 'api_save_savings_goal' %}", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ target, current })
-      });
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to save savings goal');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error saving savings goal');
-    }
-  }
 
   const accountBalances = JSON.parse('{{ account_balances_json|escapejs }}' || '{}');
 
