@@ -1122,7 +1122,7 @@
   });
 
   /* =====================================================
-     SCAN RECEIPT ENGINE
+     SCAN RECEIPT ENGINE  —  v2 (improved OCR pipeline)
   ===================================================== */
 
   let scanReceiptFile = null;
@@ -1133,6 +1133,7 @@
     s.textContent = `
       #scan-dropzone.drag-active { border-color: var(--accent-primary); background: rgba(129,140,248,0.1); }
       @keyframes scanPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+      .scan-field-warn { border-color: #fb923c !important; box-shadow: 0 0 0 2px rgba(251,146,60,0.2) !important; }
     `;
     document.head.appendChild(s);
   })();
@@ -1201,14 +1202,239 @@
     if (sub) document.getElementById('scan-loading-sub').textContent = sub;
   }
 
+  /* ── Image Preprocessing Pipeline ───────────────────────────────
+     Runs entirely in the browser via Canvas 2D API.
+     Steps: EXIF rotation → upscale → grayscale → auto-levels
+            → dark-receipt inversion → unsharp-mask sharpening
+  ─────────────────────────────────────────────────────────────── */
+
+  /** Read JPEG EXIF orientation tag (returns 1–8, default 1 = normal). */
+  function _readExifOrientation(arrayBuffer) {
+    try {
+      const view = new DataView(arrayBuffer);
+      if (view.getUint16(0, false) !== 0xFFD8) return 1; // not JPEG
+      let offset = 2;
+      while (offset < arrayBuffer.byteLength - 4) {
+        const marker = view.getUint16(offset, false);
+        const segLen  = view.getUint16(offset + 2, false);
+        if (marker === 0xFFE1) {
+          // APP1 — may contain EXIF
+          if (view.getUint32(offset + 4, false) !== 0x45786966) break; // 'Exif'
+          const exifBase = offset + 10;
+          const little   = view.getUint16(exifBase, false) === 0x4949;
+          const ifdOffset = view.getUint32(exifBase + 4, little);
+          const numTags   = view.getUint16(exifBase + ifdOffset, little);
+          for (let t = 0; t < numTags; t++) {
+            const tagOff = exifBase + ifdOffset + 2 + t * 12;
+            if (view.getUint16(tagOff, little) === 0x0112) { // Orientation
+              return view.getUint16(tagOff + 8, little);
+            }
+          }
+          break;
+        }
+        offset += 2 + segLen;
+      }
+    } catch (_) { /* ignore parse errors */ }
+    return 1;
+  }
+
+  /** Apply EXIF transform to a canvas context before drawing. */
+  function _applyExifTransform(ctx, orientation, srcW, srcH) {
+    switch (orientation) {
+      case 2: ctx.transform(-1, 0,  0,  1, srcW,    0); break;
+      case 3: ctx.transform(-1, 0,  0, -1, srcW, srcH); break;
+      case 4: ctx.transform( 1, 0,  0, -1,    0, srcH); break;
+      case 5: ctx.transform( 0, 1,  1,  0,    0,    0); break;
+      case 6: ctx.transform( 0, 1, -1,  0, srcH,    0); break;
+      case 7: ctx.transform( 0,-1, -1,  0, srcH, srcW); break;
+      case 8: ctx.transform( 0,-1,  1,  0,    0, srcW); break;
+      // case 1: identity — no transform needed
+    }
+  }
+
+  /**
+   * Full preprocessing pipeline.
+   * Returns a Promise<Blob> of the enhanced grayscale PNG.
+   */
+  function preprocessReceiptImage(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onerror = reject;
+      fr.onload = evt => {
+        const buf  = evt.target.result;
+        const orient = _readExifOrientation(buf);
+
+        const blob = new Blob([buf], { type: file.type });
+        const url  = URL.createObjectURL(blob);
+        const img  = new Image();
+        img.onerror = reject;
+        img.onload  = () => {
+          URL.revokeObjectURL(url);
+
+          const srcW = img.naturalWidth;
+          const srcH = img.naturalHeight;
+          // rotated 90/270 → swap dims
+          const rotated = orient >= 5 && orient <= 8;
+          const canvW = rotated ? srcH : srcW;
+          const canvH = rotated ? srcW : srcH;
+
+          // ── Step 1: Draw with EXIF correction ──────────────────
+          const c1 = document.createElement('canvas');
+          c1.width  = canvW;
+          c1.height = canvH;
+          const x1 = c1.getContext('2d');
+          _applyExifTransform(x1, orient, srcW, srcH);
+          x1.drawImage(img, 0, 0);
+
+          // ── Step 2: Upscale if narrower than 1400 px ───────────
+          // Tesseract accuracy improves significantly at higher resolution
+          const TARGET_W = 1400;
+          let c2 = c1;
+          if (c1.width < TARGET_W) {
+            const scale = TARGET_W / c1.width;
+            c2 = document.createElement('canvas');
+            c2.width  = Math.round(c1.width  * scale);
+            c2.height = Math.round(c1.height * scale);
+            const x2 = c2.getContext('2d');
+            x2.imageSmoothingEnabled  = true;
+            x2.imageSmoothingQuality  = 'high';
+            x2.drawImage(c1, 0, 0, c2.width, c2.height);
+          }
+
+          // ── Step 3: Pixel-level enhancements ───────────────────
+          const W = c2.width, H = c2.height;
+          const x3 = c2.getContext('2d');
+          const imgData = x3.getImageData(0, 0, W, H);
+          const d = imgData.data;
+
+          // 3a. Grayscale (luminance-weighted)
+          for (let i = 0; i < d.length; i += 4) {
+            const g = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+            d[i] = d[i+1] = d[i+2] = g;
+          }
+
+          // 3b. Auto-levels: stretch histogram so darkest→0, brightest→255
+          let lo = 255, hi = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i] < lo) lo = d[i];
+            if (d[i] > hi) hi = d[i];
+          }
+          const span = hi - lo;
+          if (span > 10 && span < 250) {        // only stretch if meaningful range
+            const inv = 255 / span;
+            for (let i = 0; i < d.length; i += 4) {
+              const v = Math.min(255, Math.max(0, Math.round((d[i] - lo) * inv)));
+              d[i] = d[i+1] = d[i+2] = v;
+            }
+          }
+
+          // 3c. Detect dark-background receipts (thermal paper dark-mode)
+          //     If >55% of sampled pixels are dark → invert
+          let darkCount = 0, totalSampled = 0;
+          for (let i = 0; i < d.length; i += 4 * 20) { // sample every 20th pixel
+            if (d[i] < 128) darkCount++;
+            totalSampled++;
+          }
+          if (darkCount / totalSampled > 0.55) {
+            for (let i = 0; i < d.length; i += 4) {
+              d[i] = d[i+1] = d[i+2] = 255 - d[i];
+            }
+          }
+
+          // 3d. Unsharp-mask sharpening (3×3 sharpen kernel)
+          //     Only applied on a copy so original edge pixels are safe
+          const sharpenK = [-1,-1,-1, -1,9,-1, -1,-1,-1];
+          const src = new Uint8ClampedArray(d); // snapshot before sharpen
+          for (let y = 1; y < H - 1; y++) {
+            for (let x = 0; x < W; x++) {
+              let sum = 0;
+              for (let ky = -1; ky <= 1; ky++) {
+                for (let kx = -1; kx <= 1; kx++) {
+                  const px = Math.min(W - 1, Math.max(0, x + kx));
+                  const idx = ((y + ky) * W + px) * 4;
+                  sum += src[idx] * sharpenK[(ky + 1) * 3 + (kx + 1)];
+                }
+              }
+              const out = (y * W + x) * 4;
+              const v = Math.min(255, Math.max(0, sum));
+              d[out] = d[out+1] = d[out+2] = v;
+            }
+          }
+
+          x3.putImageData(imgData, 0, 0);
+
+          c2.toBlob(blob => resolve(blob), 'image/png', 1.0);
+        };
+        img.src = url;
+      };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  /* ── Multi-pass Tesseract OCR ────────────────────────────────────
+     Tries PSM 4 (single column — ideal for receipts) and PSM 6
+     (single block — better for dense text). Picks the higher
+     confidence result automatically.
+  ─────────────────────────────────────────────────────────────── */
+
+  async function runOCR(imageBlob, progressCallback) {
+    const { createWorker } = window.Tesseract;
+
+    // PSM 4 = Assume a single column of text (best for most receipts)
+    progressCallback(12, 'Scanning Receipt...', 'Pass 1/2 — column layout...');
+    const w1 = await createWorker('eng', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          progressCallback(
+            Math.round(12 + m.progress * 28),
+            'Scanning Receipt...', 'Reading text (pass 1)...'
+          );
+        }
+      }
+    });
+    await w1.setParameters({
+      tessedit_pageseg_mode: '4',     // single column
+      preserve_interword_spaces: '1',
+      tessedit_do_invert: '0',        // we handle inversion ourselves
+    });
+    const r1 = await w1.recognize(imageBlob);
+    await w1.terminate();
+
+    progressCallback(42, 'Scanning Receipt...', 'Pass 2/2 — block layout...');
+
+    // PSM 6 = Assume a single uniform block (good for dense tabular receipts)
+    const w2 = await createWorker('eng', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          progressCallback(
+            Math.round(42 + m.progress * 28),
+            'Scanning Receipt...', 'Reading text (pass 2)...'
+          );
+        }
+      }
+    });
+    await w2.setParameters({
+      tessedit_pageseg_mode: '6',
+      preserve_interword_spaces: '1',
+      tessedit_do_invert: '0',
+    });
+    const r2 = await w2.recognize(imageBlob);
+    await w2.terminate();
+
+    // Use the result with higher confidence; prefer PSM 4 on a tie
+    const best = r1.data.confidence >= r2.data.confidence ? r1.data : r2.data;
+    return { text: best.text, confidence: best.confidence };
+  }
+
   async function processReceipt() {
     if (!scanReceiptFile) return;
     showScanScreen('loading');
-    setScanProgress(0, 'Scanning Receipt...', 'Loading OCR engine...');
+    setScanProgress(0, 'Preparing Image...', 'Applying preprocessing...');
 
     try {
-      // Lazy-load Tesseract.js from CDN if not already loaded
+      // ── 1. Lazy-load Tesseract.js ─────────────────────────────
       if (!window.Tesseract) {
+        setScanProgress(4, 'Preparing Image...', 'Loading OCR engine...');
         await new Promise((resolve, reject) => {
           const s = document.createElement('script');
           s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
@@ -1218,39 +1444,37 @@
         });
       }
 
-      setScanProgress(10, 'Scanning Receipt...', 'Initializing OCR worker...');
+      // ── 2. Preprocess the image ───────────────────────────────
+      setScanProgress(6, 'Preparing Image...', 'Enhancing image quality...');
+      let processedBlob;
+      try {
+        processedBlob = await preprocessReceiptImage(scanReceiptFile);
+      } catch (prepErr) {
+        console.warn('Preprocessing failed, using original:', prepErr);
+        processedBlob = scanReceiptFile; // fall back to raw file
+      }
 
-      const { createWorker } = window.Tesseract;
-      const worker = await createWorker('eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            const pct = Math.round(10 + m.progress * 60);
-            setScanProgress(pct, 'Scanning Receipt...', 'Reading text from image...');
-          }
-        }
-      });
+      // ── 3. Run OCR (two passes) ───────────────────────────────
+      const { text, confidence } = await runOCR(processedBlob, setScanProgress);
 
-      setScanProgress(70, 'Extracting Expense Details...', 'Analysing receipt contents...');
-
-      const { data: { text, confidence } } = await worker.recognize(scanReceiptFile);
-      await worker.terminate();
-
-      setScanProgress(85, 'Extracting Expense Details...', 'Parsing data...');
+      setScanProgress(72, 'Extracting Details...', 'Analysing receipt text...');
 
       if (!text || text.trim().length < 5) {
         showScanScreen('error');
-        document.getElementById('scan-error-msg').textContent = 'Unable to read this receipt. Please upload a clearer image.';
+        document.getElementById('scan-error-msg').textContent =
+          'Unable to read any text from this image. Please upload a clearer, well-lit photo.';
         return;
       }
 
-      // Send extracted text to backend for smart parsing
+      // ── 4. Send to backend for structured parsing ─────────────
+      setScanProgress(82, 'Extracting Details...', 'Identifying fields...');
       const resp = await fetch("{% url 'api_scan_receipt' %}", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ text: text, ocr_confidence: confidence })
+        body: JSON.stringify({ text, ocr_confidence: confidence })
       });
 
-      setScanProgress(100, 'Done!', 'Expense details extracted.');
+      setScanProgress(96, 'Extracting Details...', 'Finalising...');
 
       if (!resp.ok) {
         showScanScreen('error');
@@ -1264,13 +1488,15 @@
         return;
       }
 
+      setScanProgress(100, 'Done!', 'Fields extracted successfully.');
       populateScanPreview(parsed);
-      setTimeout(() => showScanScreen('preview'), 400);
+      setTimeout(() => showScanScreen('preview'), 350);
 
     } catch (err) {
       console.error('Scan Receipt error:', err);
       showScanScreen('error');
-      document.getElementById('scan-error-msg').textContent = 'OCR processing failed. Please try a clearer image.';
+      document.getElementById('scan-error-msg').textContent =
+        'OCR processing failed. Please try a well-lit, straight-on photo of the receipt.';
     }
   }
 

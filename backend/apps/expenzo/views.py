@@ -2368,14 +2368,18 @@ def _parse_receipt_text(text, ocr_confidence=0):
         'amount',
     )
 
-    # Fallback regex (handles ₹ sign or generic "Total XXX" text)
+    # Fallback regex — pass 1: labelled total patterns with/without ₹
     if amount is None:
-        for pat in [
-            r'(?:total|grand\s+total|net\s+amount|amount\s+due|payable|bill\s+amount)[:\s\(]+([0-9,]+(?:\.[0-9]{1,2})?)',
-            r'[₹]\s*([0-9,]+(?:\.[0-9]{1,2})?)',
-        ]:
-            fm = re.search(pat, text_lower)
-            if fm:
+        total_patterns = [
+            # explicit labels followed by colon/space then number
+            r'(?:grand\s+total|net\s+total|total\s+payable|amount\s+payable|amount\s+due|net\s+amount|total\s+amount|bill\s+amount)[:\s\(Rs\.₹]*([0-9,]+(?:\.[0-9]{1,2})?)',
+            r'(?<!\w)total[:\s\(Rs\.₹]+([0-9,]+(?:\.[0-9]{1,2})?)',
+            r'payable[:\s\(Rs\.₹]+([0-9,]+(?:\.[0-9]{1,2})?)',
+            # ₹ sign anywhere
+            r'₹\s*([0-9,]+(?:\.[0-9]{1,2})?)',
+        ]
+        for pat in total_patterns:
+            for fm in re.finditer(pat, text_lower):
                 try:
                     v = round(float(fm.group(1).replace(',', '')), 2)
                     if v > 0:
