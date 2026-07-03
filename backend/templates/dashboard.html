@@ -293,74 +293,68 @@
 
     <!-- Accounts & Payment Method Breakdown Block -->
     <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
-      <!-- Accounts Section -->
       <div class="spending-card-header">
         <div>
-          <h3 class="spending-title">Accounts</h3>
-          <p class="spending-subtitle">Current balances across your accounts</p>
+          <h3 class="spending-title">Accounts & Payment Methods</h3>
+          <p class="spending-subtitle">Current balances and usage analytics across your financial flows</p>
         </div>
       </div>
 
-      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 1.5rem;">
-        {% if not account_breakdown %}
-          <div class="no-spending-text" style="text-align: center; padding: 2rem 0;">
-            No account data recorded.
-          </div>
-        {% else %}
-          <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
-            {% for acc in account_breakdown %}
-              <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
+      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+        <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
+          
+          {% for item in merged_breakdown %}
+            <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
+              
+              {% if item.type == 'both' %}
+                <!-- Combined Account & Payment Method (Cash, Credit Card) -->
                 <div style="display: flex; flex-direction: column;">
-                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ acc.name }}</strong>
+                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
                   <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                    <span class="text-success">+₹{{ acc.income|floatformat:2 }}</span>
-                    <span class="text-danger">-₹{{ acc.expense|floatformat:2 }}</span>
+                    <span class="text-success">+₹{{ item.income|floatformat:2 }}</span>
+                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
+                    <span style="color: var(--text-muted)">•</span>
+                    <span style="color: var(--text-muted)">{{ item.count }} txns (monthly: -₹{{ item.pm_expense|floatformat:2 }})</span>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center;">
-                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if acc.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {% if acc.balance >= 0 %}+{% endif %}₹{{ acc.balance|floatformat:2 }}
+                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if item.balance >= 0 %}+{% endif %}₹{{ item.balance|floatformat:2 }}
                   </span>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      </div>
-
-      <!-- Divider -->
-      <div style="border-top: 1px solid var(--border-color); margin: 1.5rem 0;"></div>
-
-      <!-- Payment Method Section -->
-      <div class="spending-card-header">
-        <div>
-          <h3 class="spending-title">Payment Method Usage</h3>
-          <p class="spending-subtitle">Analytics for your transaction methods</p>
-        </div>
-      </div>
-
-      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 1.5rem;">
-        {% if not payment_method_breakdown %}
-          <div class="no-spending-text" style="text-align: center; padding: 2rem 0;">
-            No payment method data recorded.
-          </div>
-        {% else %}
-          <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
-            {% for pm in payment_method_breakdown %}
-              <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
+                
+              {% elif item.type == 'account' %}
+                <!-- Account Only (Bank Account) -->
                 <div style="display: flex; flex-direction: column;">
-                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ pm.name }}</strong>
+                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
                   <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                    <span class="text-danger">-₹{{ pm.expense|floatformat:2 }}</span>
+                    <span class="text-success">+₹{{ item.income|floatformat:2 }}</span>
+                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center;">
+                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if item.balance >= 0 %}+{% endif %}₹{{ item.balance|floatformat:2 }}
+                  </span>
+                </div>
+                
+              {% else %}
+                <!-- Payment Method Only (UPI, Debit Card, Bank Transfer) -->
+                <div style="display: flex; flex-direction: column;">
+                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
+                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; color: var(--text-muted); font-size: 0.85rem;">
-                  {{ pm.count }} txns
+                  {{ item.count }} txns
                 </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+              {% endif %}
+              
+            </div>
+          {% endfor %}
+          
+        </div>
       </div>
     </div>
 

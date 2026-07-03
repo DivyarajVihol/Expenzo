@@ -192,6 +192,40 @@ def dashboard_view(request):
     account_balances_dict = {acc['name']: acc['balance'] for acc in account_breakdown}
     account_balances_json = json.dumps(account_balances_dict)
     
+    # Construct unified/merged breakdown list of accounts and payment methods
+    acc_map = {acc['name']: acc for acc in account_breakdown}
+    pm_map = {pm['name']: pm for pm in payment_method_breakdown}
+    
+    merged_breakdown = []
+    ITEMS_ORDER = ['Cash', 'Bank Account', 'Credit Card', 'UPI', 'Debit Card', 'Bank Transfer', 'Others']
+    
+    for name in ITEMS_ORDER:
+        acc_data = acc_map.get(name)
+        pm_data = pm_map.get(name)
+        
+        if not acc_data and not pm_data:
+            continue
+            
+        item = {'name': name}
+        if acc_data and pm_data:
+            item['type'] = 'both'
+            item['income'] = acc_data['income']
+            item['expense'] = acc_data['expense']
+            item['balance'] = acc_data['balance']
+            item['count'] = pm_data['count']
+            item['pm_expense'] = pm_data['expense']
+        elif acc_data:
+            item['type'] = 'account'
+            item['income'] = acc_data['income']
+            item['expense'] = acc_data['expense']
+            item['balance'] = acc_data['balance']
+        else:
+            item['type'] = 'method'
+            item['expense'] = pm_data['expense']
+            item['count'] = pm_data['count']
+            
+        merged_breakdown.append(item)
+        
     context = {
         'recent_transactions': recent_transactions,
         'monthly_balance': monthly_balance,
@@ -203,7 +237,8 @@ def dashboard_view(request):
         'pm_chart': pm_chart_base64,
         'filter_type': filter_type,
         'search_query': search_query,
-        'account_balances_json': account_balances_json
+        'account_balances_json': account_balances_json,
+        'merged_breakdown': merged_breakdown
     }
     return render(request, 'dashboard.html', context)
 
