@@ -192,18 +192,6 @@ def dashboard_view(request):
     account_balances_dict = {acc['name']: acc['balance'] for acc in account_breakdown}
     account_balances_json = json.dumps(account_balances_dict)
     
-    # Reuse existing expenses queryset to serialize history for streak calculations
-    expense_history_data = [
-        {
-            'date': exp.date.strftime('%Y-%m-%d'),
-            'amount': exp.amount,
-            'category': exp.category,
-            'description': exp.description
-        }
-        for exp in expenses
-    ]
-    expense_history_json = json.dumps(expense_history_data)
-    
     context = {
         'recent_transactions': recent_transactions,
         'monthly_balance': monthly_balance,
@@ -215,8 +203,7 @@ def dashboard_view(request):
         'pm_chart': pm_chart_base64,
         'filter_type': filter_type,
         'search_query': search_query,
-        'account_balances_json': account_balances_json,
-        'expense_history_json': expense_history_json
+        'account_balances_json': account_balances_json
     }
     return render(request, 'dashboard.html', context)
 
@@ -2476,4 +2463,33 @@ def _parse_receipt_text(text, ocr_confidence=0):
         'receipt_no':     '',
         'confidence':     100,
     }
+
+
+@rate_limit(limit=60, window=60)
+@login_required
+def spending_streaks_view(request):
+    user = request.user
+    
+    # Process recurring items dynamically
+    process_recurring_finance(user)
+    
+    # Fetch all personal expenses
+    expenses = PersonalExpense.objects.filter(user=user).order_by('-date')
+    
+    # Serialize expenses for streak calculations
+    expense_history_data = [
+        {
+            'date': exp.date.strftime('%Y-%m-%d'),
+            'amount': exp.amount,
+            'category': exp.category,
+            'description': exp.description
+        }
+        for exp in expenses
+    ]
+    expense_history_json = json.dumps(expense_history_data)
+    
+    context = {
+        'expense_history_json': expense_history_json
+    }
+    return render(request, 'streaks.html', context)
 
