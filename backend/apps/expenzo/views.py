@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 
-logger = logging.getLogger('security')
+logger = logging.getLogger('security')  
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -2206,37 +2206,79 @@ def scan_receipt_api(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
     try:
-        body = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
 
-    raw_text = strip_tags(body.get('text', ''))[:6000]
-    ocr_confidence = float(body.get('ocr_confidence', 0))
+        raw_text = body.get('text')
+        if raw_text is None:
+            raw_text = ''
+        raw_text = strip_tags(str(raw_text))[:6000]
 
-    if not raw_text or len(raw_text.strip()) < 4:
-        return JsonResponse({'error': 'No readable text found. Please upload a clearer image.'}, status=400)
+        ocr_confidence = body.get('ocr_confidence', 0)
+        try:
+            ocr_confidence = float(ocr_confidence if ocr_confidence is not None else 0)
+        except (ValueError, TypeError):
+            ocr_confidence = 0.0
 
-    result = _parse_receipt_text(raw_text, ocr_confidence)
-    return JsonResponse(result)
+        if not raw_text or len(raw_text.strip()) < 4:
+            return JsonResponse({'error': 'No readable text found. Please upload a clearer image.'}, status=400)
+
+        result = _parse_receipt_text(raw_text, ocr_confidence)
+        return JsonResponse(result)
+    except Exception as e:
+        import traceback
+        print("EXCEPTION IN SCAN_RECEIPT_API:")
+        traceback.print_exc()
+        return JsonResponse({'error': f'Parser error: {str(e)}'}, status=400)
 
 
 def _try_parse_date_str(s):
     """Try multiple date formats; return 'YYYY-MM-DD' string or None."""
     import re
-    import dateparser
+    from datetime import datetime
     
     s = s.strip()
     s = re.sub(r'^[:\s\-]+|[:\s\-]+$', '', s)
     if not s:
         return None
-        
+
+    # Try common formats first with standard datetime to be fast and robust
+    # 1. YYYY-MM-DD or YYYY/MM/DD
+    m_iso = re.match(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$', s)
+    if m_iso:
+        try:
+            dt = datetime(int(m_iso.group(1)), int(m_iso.group(2)), int(m_iso.group(3)))
+            if 2000 <= dt.year <= 2100:
+                return dt.strftime('%Y-%m-%d')
+        except ValueError:
+            pass
+
+    # 2. DD-MM-YYYY or DD/MM/YYYY
+    m_dmy = re.match(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$', s)
+    if m_dmy:
+        try:
+            dt = datetime(int(m_dmy.group(3)), int(m_dmy.group(2)), int(m_dmy.group(1)))
+            if 2000 <= dt.year <= 2100:
+                return dt.strftime('%Y-%m-%d')
+        except ValueError:
+            try:
+                dt = datetime(int(m_dmy.group(3)), int(m_dmy.group(1)), int(m_dmy.group(2)))
+                if 2000 <= dt.year <= 2100:
+                    return dt.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+
+    # 3. Fallback to dateparser
+    import dateparser
     try:
         parsed_dt = dateparser.parse(
             s,
             settings={
                 "DATE_ORDER": "DMY",
                 "PREFER_DAY_OF_MONTH": "first",
-                "STRICT_PARSING": True
+                "STRICT_PARSING": False
             }
         )
         if parsed_dt:

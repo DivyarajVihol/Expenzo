@@ -1444,6 +1444,14 @@
 
       if (!resp.ok) {
         showScanScreen('error');
+        try {
+          const errData = await resp.json();
+          document.getElementById('scan-error-msg').textContent =
+            errData.error || `Server error (status ${resp.status})`;
+        } catch (e) {
+          document.getElementById('scan-error-msg').textContent =
+            `Server error (status ${resp.status})`;
+        }
         return;
       }
 
