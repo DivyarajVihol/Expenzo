@@ -1,0 +1,17 @@
+EXPENZO — Verify Your Email Address
+=====================================
+
+Hi {{ user_name }},
+
+Welcome to EXPENZO! Please verify your email address to activate your account.
+
+VERIFY YOUR EMAIL:
+{{ verification_url }}
+
+This link expires in 24 hours. If it expires, visit the login page and use
+the "Resend Verification Email" option.
+
+---
+If you didn't create an EXPENZO account, you can safely ignore this email.
+
+© {{ year }} EXPENZO — Track Smarter. Spend Better. Save More.

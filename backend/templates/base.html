@@ -49,11 +49,14 @@
                             <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center;">
                                 {% if user.profile.avatar_base64 %}
                                     <img src="{{ user.profile.avatar_base64 }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                {% elif user.profile.google_picture_url %}
+                                    <img src="{{ user.profile.google_picture_url }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
                                 {% elif user.profile.avatar %}
                                     <img src="{{ user.profile.avatar }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
                                 {% else %}
                                     <i data-lucide="user" style="color: var(--text-muted);"></i>
                                 {% endif %}
+
                             </div>
                             <div style="min-width: 0; flex: 1;">
                                 <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
