@@ -1,15 +1,9 @@
-import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils import timezone
 
 class UserProfile(models.Model):
-    SIGNUP_METHOD_CHOICES = (
-        ('email', 'Email'),
-        ('google', 'Google'),
-    )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.CharField(max_length=255, null=True, blank=True)
     avatar_base64 = models.TextField(null=True, blank=True)
@@ -18,10 +12,6 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=100, default="India")
     savings_target = models.FloatField(default=0.0)
     savings_current = models.FloatField(default=0.0)
-    # --- Email Verification & OAuth ---
-    is_email_verified = models.BooleanField(default=False)
-    signup_method = models.CharField(max_length=20, choices=SIGNUP_METHOD_CHOICES, default='email')
-    google_picture_url = models.URLField(max_length=500, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
@@ -175,25 +165,3 @@ class MemberUpiId(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.upi_id} ({self.nickname or 'No Nickname'})"
-
-
-class EmailVerificationToken(models.Model):
-    """
-    Stores secure email verification tokens.
-    One active token per user; old tokens are invalidated on resend.
-    """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
-    token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_used = models.BooleanField(default=False)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def is_expired(self):
-        from django.conf import settings
-        timeout = getattr(settings, 'EMAIL_VERIFICATION_TIMEOUT', 86400)  # 24 hours default
-        return (timezone.now() - self.created_at).total_seconds() > timeout
-
-    def __str__(self):
-        return f"VerificationToken for {self.user.email} (used={self.is_used})"

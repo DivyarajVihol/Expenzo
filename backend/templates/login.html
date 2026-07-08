@@ -623,12 +623,6 @@
         </div>
 
 
-        <!-- Forgot Password link -->
-        <div style="text-align:right;margin:-0.5rem 0 1.25rem;">
-          <a href="{% url 'password_reset' %}" class="forgot-link" style="font-size:0.85rem;">
-            Forgot Password?
-          </a>
-        </div>
 
         <!-- Primary Submit Button -->
         <button type="submit" class="btn-primary">
@@ -636,45 +630,7 @@
           <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
         </button>
 
-        <!-- OR divider -->
-        <div class="divider">OR</div>
 
-        <!-- Continue with Google -->
-        {% if google_enabled %}
-        <a href="{% url 'google_login' %}" class="btn-social" style="width:100%;height:52px;border-radius:14px;text-decoration:none;font-size:0.95rem;font-weight:600;">
-          <!-- Official Google SVG logo -->
-          <svg width="20" height="20" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
-            <path d="M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z" fill="#4285f4"/>
-            <path d="M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71 0-131.2-47.9-152.8-112.3H28.9v70.1c46.2 91.9 140.3 149.9 243.2 149.9z" fill="#34a853"/>
-            <path d="M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z" fill="#fbbc04"/>
-            <path d="M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58 28.9 150l90.4 70.1c21.5-64.5 81.8-112.4 152.8-112.4z" fill="#ea4335"/>
-          </svg>
-          Continue with Google
-        </a>
-        {% else %}
-        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border-color);border-radius:14px;padding:0.85rem;text-align:center;font-size:0.82rem;color:var(--text-secondary);">
-          <i data-lucide="info" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"></i>
-          Google Sign-in is not configured yet.
-        </div>
-        {% endif %}
-
-        <!-- Resend verification (shown only when unverified) -->
-        {% if show_resend %}
-        <div class="alert alert-error" style="margin-top:1.25rem;flex-direction:column;align-items:flex-start;gap:0.75rem;">
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <i data-lucide="mail-warning" style="width:18px;height:18px;flex-shrink:0;"></i>
-            <span>{{ error }}</span>
-          </div>
-          <form method="POST" action="{% url 'resend_verification' %}" style="width:100%;">
-            {% csrf_token %}
-            <input type="hidden" name="email" value="{{ resend_email }}">
-            <button type="submit" style="width:100%;height:40px;border-radius:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#FCA5A5;font-size:0.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.4rem;">
-              <i data-lucide="refresh-cw" style="width:15px;height:15px;"></i>
-              Resend Verification Email
-            </button>
-          </form>
-        </div>
-        {% endif %}
 
         <!-- Footer -->
         <div class="auth-footer">

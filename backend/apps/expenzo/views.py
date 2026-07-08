@@ -5,15 +5,14 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.cache import never_cache
 from django.utils import timezone as django_timezone
 from django.db.models import Q
 from datetime import datetime, timedelta
 import json
 import logging
-import re
-import secrets
 
-logger = logging.getLogger('security')
+logger = logging.getLogger('security')  
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -21,22 +20,15 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.utils.html import strip_tags
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
+from django.core.mail import send_mail
 from django.urls import reverse
-from django.core.cache import cache
+from django.core.cache import cache 
 from django.core.files.storage import FileSystemStorage
-from django.conf import settings
-
-# Google OAuth
-import urllib.parse
-import requests as http_requests
 
 from .models import (
     UserProfile, PersonalExpense, RecurringIncome, RecurringExpense,
     MonthlyRecurringProcessing, Group, GroupMember, GroupExpense,
-    GroupExpenseSplit, Settlement, GroupExpensePayment, MemberUpiId,
-    EmailVerificationToken,
+    GroupExpenseSplit, Settlement, GroupExpensePayment, MemberUpiId
 )
 from .recurring_processor import process_recurring_finance, recalculate_current_month
 from .charts import (
@@ -44,7 +36,6 @@ from .charts import (
     generate_group_net_standing_chart, generate_payment_method_bar_chart
 )
 from .decorators import rate_limit
-
 
 # Helper function to get get_object_or_404 substitute for clean usage
 def get_object_or_none(model, **kwargs):
@@ -55,6 +46,8 @@ def get_object_or_none(model, **kwargs):
 
 @rate_limit(limit=60, window=60)
 @login_required
+@never_cache
+@ensure_csrf_cookie
 def dashboard_view(request):
     user = request.user
     
@@ -1442,469 +1435,89 @@ def add_settlement_api(request, group_id):
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'POST required'}, status=405)
 
+@rate_limit(limit=30, window=60)
 
-# ============================================================================
-# AUTH HELPERS
-# ============================================================================
-
-def _send_verification_email(request, user):
-    """
-    Invalidates all old tokens for user, creates a fresh one,
-    and sends the HTML + plain-text verification email.
-    Returns True on success, False on failure.
-    """
-    # Invalidate previous unused tokens
-    EmailVerificationToken.objects.filter(user=user, is_used=False).update(is_used=True)
-
-    # Create new token
-    token_obj = EmailVerificationToken.objects.create(user=user)
-
-    # Build verification URL
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    verification_url = request.build_absolute_uri(
-        reverse('activate_account', kwargs={'uidb64': uid, 'token': str(token_obj.token)})
-    )
-
-    ctx = {
-        'user_name': user.first_name or user.username,
-        'verification_url': verification_url,
-        'year': django_timezone.now().year,
-    }
-    subject = 'Verify Your Email — EXPENZO'
-    text_body = render_to_string('email/verify_email.txt', ctx)
-    html_body = render_to_string('email/verify_email.html', ctx)
-
-    try:
-        msg = EmailMultiAlternatives(
-            subject=subject,
-            body=text_body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email],
-        )
-        msg.attach_alternative(html_body, 'text/html')
-        msg.send(fail_silently=False)
-        return True
-    except Exception as e:
-        logger.warning(f'SECURITY: Failed to send verification email to {user.email}: {e}')
-        return False
-
-
-# ============================================================================
-# REGISTER VIEW
-# ============================================================================
 
 @rate_limit(limit=10, window=60)
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
-
     if request.method == 'POST':
-        name      = strip_tags(request.POST.get('name', '')).strip()[:100]
-        username  = strip_tags(request.POST.get('username_display', '')).strip()[:50]
-        email     = strip_tags(request.POST.get('email', '')).strip().lower()[:200]
-        password  = request.POST.get('password', '')
-        confirm   = request.POST.get('confirm_password', '')
-        phone     = strip_tags(request.POST.get('phone', '')).strip()[:50]
-        avatar_b64 = request.POST.get('avatar_base64', '')
-
-        # ── Validation ─────────────────────────────────────────────────────
-        if not name:
-            return render(request, 'register.html', {'error': 'Full name is required.'})
-
-        if not username:
-            return render(request, 'register.html', {'error': 'Username is required.'})
-
-        # Username: alphanumeric + underscores only
-        if not re.match(r'^[a-zA-Z0-9_]{3,50}$', username):
-            return render(request, 'register.html', {
-                'error': 'Username must be 3–50 characters and contain only letters, numbers, and underscores.'
-            })
-
-        if not email or '@' not in email:
-            return render(request, 'register.html', {'error': 'A valid email address is required.'})
-
-        if password != confirm:
-            return render(request, 'register.html', {'error': 'Passwords do not match.'})
-
-        # Password strength via Django validators
+        name = strip_tags(request.POST.get('name', ''))[:100]
+        email = strip_tags(request.POST.get('email', '')).strip()[:200]
+        password = request.POST.get('password')
+        confirm_pass = request.POST.get('confirm_password')
+        
+        if password != confirm_pass:
+            return render(request, 'register.html', {'error': 'Passwords do not match'})
+            
+        if User.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
+            return render(request, 'register.html', {'error': 'User with this email already exists'})
+            
+        # Enforce password policies
         try:
             validate_password(password)
-        except ValidationError as exc:
-            return render(request, 'register.html', {'error': ' '.join(exc.messages)})
-
-        # Duplicate checks
-        if User.objects.filter(username__iexact=username).exists():
-            return render(request, 'register.html', {'error': 'This username is already taken. Please choose another.'})
-
-        if User.objects.filter(email__iexact=email).exists():
-            return render(request, 'register.html', {'error': 'An account with this email address already exists.'})
-
-        # ── Create user (inactive until email verified) ─────────────────────
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            first_name=name,
-        )
-        user.is_active = False   # Blocked until email verification
+        except ValidationError as e:
+            return render(request, 'register.html', {'error': '\n'.join(e.messages)})
+            
+        user = User.objects.create_user(username=email, email=email, password=password)
+        user.first_name = name
+        user.is_active = True # Bypass email activation on Render Free
         user.save()
-
-        # Update profile
+        
+        # Save phone and avatar to user profile
+        phone = strip_tags(request.POST.get('phone', '')).strip()[:50]
+        avatar_base64 = request.POST.get('avatar_base64', '')
         if phone:
             user.profile.phone = phone
-        if avatar_b64:
-            user.profile.avatar_base64 = avatar_b64
-        user.profile.signup_method = 'email'
-        user.profile.is_email_verified = False
+        if avatar_base64:
+            user.profile.avatar_base64 = avatar_base64
         user.profile.save()
-
-        # Send verification email
-        _send_verification_email(request, user)
-
-        logger.warning(f'SECURITY: New registration for {email} (username={username}), awaiting email verification.')
-        return render(request, 'email_sent.html', {'email': email})
-
+        
+        login(request, user)
+        return redirect('dashboard')
     return render(request, 'register.html')
 
-
-# ============================================================================
-# ACTIVATE ACCOUNT (email verification link handler)
-# ============================================================================
-
 def activate_account(request, uidb64, token):
-    """
-    Handles the click on the email verification link.
-    Validates uidb64, token UUID, expiry, and used status.
-    """
     try:
-        uid  = force_str(urlsafe_base64_decode(uidb64))
+        uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
 
-    if user is None:
-        return render(request, 'email_sent.html', {
-            'error': 'Invalid verification link. Please register again or request a new link.',
-            'email': '',
-        })
-
-    try:
-        import uuid as _uuid
-        token_uuid = _uuid.UUID(token)
-        token_obj  = EmailVerificationToken.objects.get(user=user, token=token_uuid)
-    except (ValueError, EmailVerificationToken.DoesNotExist):
-        return render(request, 'email_sent.html', {
-            'error': 'This verification link is invalid.',
-            'email': user.email,
-        })
-
-    if token_obj.is_used:
-        return render(request, 'email_sent.html', {
-            'error': 'This verification link has already been used. Please log in or request a new link.',
-            'email': user.email,
-        })
-
-    if token_obj.is_expired():
-        return render(request, 'email_sent.html', {
-            'error': 'This verification link has expired.',
-            'email': user.email,
-        })
-
-    # ── All checks passed — activate account ─────────────────────────────
-    token_obj.is_used = True
-    token_obj.save()
-
-    user.is_active = True
-    user.save()
-
-    user.profile.is_email_verified = True
-    user.profile.save()
-
-    logger.warning(f'SECURITY: Email verified for {user.email}.')
-    return render(request, 'email_verified.html')
-
-
-# ============================================================================
-# RESEND VERIFICATION EMAIL
-# ============================================================================
-
-@rate_limit(limit=3, window=300)   # Max 3 resends per 5 minutes per IP
-def resend_verification_view(request):
-    if request.method != 'POST':
-        return redirect('login')
-
-    email = strip_tags(request.POST.get('email', '')).strip().lower()[:200]
-    if not email:
-        return render(request, 'email_sent.html', {
-            'error': 'Email address is required.',
-            'email': '',
-        })
-
-    try:
-        user = User.objects.get(email__iexact=email)
-    except User.DoesNotExist:
-        # Don't reveal whether the account exists — show same success-like page
-        return render(request, 'email_sent.html', {
-            'email': email,
-            'message': 'If an unverified account exists for this email, a new link has been sent.',
-        })
-
-    if user.is_active and getattr(user, 'profile', None) and user.profile.is_email_verified:
-        return render(request, 'email_sent.html', {
-            'error': 'This account is already verified. Please log in.',
-            'email': email,
-        })
-
-    _send_verification_email(request, user)
-    logger.warning(f'SECURITY: Resent verification email to {email}.')
-    return render(request, 'email_sent.html', {
-        'email': email,
-        'message': 'A new verification link has been sent. Please check your inbox.',
-    })
-
-
-# ============================================================================
-# LOGIN VIEW
-# ============================================================================
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        login(request, user)
+        return redirect('dashboard')
+    else:
+        return render(request, 'login.html', {'error': 'Activation link is invalid or has expired.'})
 
 @rate_limit(limit=10, window=60)
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
-
-    google_enabled = bool(getattr(settings, 'GOOGLE_CLIENT_ID', ''))
-
     if request.method == 'POST':
-        email_input = strip_tags(request.POST.get('email', '')).strip()[:200]
-        password    = request.POST.get('password', '')
-
-        # Try authenticating with email as username (new accounts) or raw username
-        user = authenticate(request, username=email_input, password=password)
-
-        # Also try by email if username-based auth failed
-        if user is None:
-            try:
-                user_by_email = User.objects.get(email__iexact=email_input)
-                user = authenticate(request, username=user_by_email.username, password=password)
-            except User.DoesNotExist:
-                user_by_email = None
-
+        email = strip_tags(request.POST.get('email', '')).strip()[:200]
+        password = request.POST.get('password')
+        user = authenticate(request, username=email, password=password)
         if user is not None:
-            # Check email verified
-            profile = getattr(user, 'profile', None)
-            if profile and not profile.is_email_verified and profile.signup_method == 'email':
-                logger.warning(f'SECURITY: Unverified login attempt for {email_input}.')
-                return render(request, 'login.html', {
-                    'error': 'Please verify your email before logging into EXPENZO.',
-                    'show_resend': True,
-                    'resend_email': user.email,
-                    'google_enabled': google_enabled,
-                })
             login(request, user)
-            logger.warning(f'SECURITY: Successful login for {email_input}.')
+            logger.warning(f"SECURITY: Successful login for {email}.")
             return redirect('dashboard')
         else:
-            # Check if user exists but is inactive/unverified
-            lookup = None
-            try:
-                lookup = User.objects.get(email__iexact=email_input)
-            except User.DoesNotExist:
-                try:
-                    lookup = User.objects.get(username__iexact=email_input)
-                except User.DoesNotExist:
-                    pass
-
-            if lookup and not lookup.is_active and lookup.check_password(password):
-                return render(request, 'login.html', {
-                    'error': 'Please verify your email before logging into EXPENZO.',
-                    'show_resend': True,
-                    'resend_email': lookup.email,
-                    'google_enabled': google_enabled,
-                })
-
-            logger.warning(f'SECURITY: Failed login attempt for {email_input}.')
-            return render(request, 'login.html', {
-                'error': 'Invalid email or password.',
-                'google_enabled': google_enabled,
-            })
-
-    return render(request, 'login.html', {'google_enabled': google_enabled})
-
-
-# ============================================================================
-# LOGOUT VIEW
-# ============================================================================
+            # Check if it failed because the user is inactive
+            user_obj = get_object_or_none(User, username=email)
+            if user_obj and not user_obj.is_active and user_obj.check_password(password):
+                return render(request, 'login.html', {'error': 'Account is not activated. Please check your email inbox for the activation link.'})
+                
+            logger.warning(f"SECURITY: Failed login attempt for {email}.")
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
+    return render(request, 'login.html')
 
 def logout_view(request):
     logout(request)
     return redirect('login')
-
-
-# ============================================================================
-# GOOGLE OAUTH 2.0
-# ============================================================================
-
-def google_login_view(request):
-    """
-    Redirects the user to Google's OAuth consent screen.
-    If Google OAuth is not configured, redirects back to login with an info message.
-    """
-    client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '')
-    if not client_id:
-        return render(request, 'login.html', {
-            'error': 'Google Sign-in is not configured on this server yet.',
-            'google_enabled': False,
-        })
-
-    # CSRF state token stored in session
-    state = secrets.token_urlsafe(32)
-    request.session['google_oauth_state'] = state
-
-    params = {
-        'client_id':     client_id,
-        'redirect_uri':  settings.GOOGLE_REDIRECT_URI,
-        'response_type': 'code',
-        'scope':         'openid email profile',
-        'state':         state,
-        'access_type':   'online',
-        'prompt':        'select_account',
-    }
-    auth_url = settings.GOOGLE_AUTH_URL + '?' + urllib.parse.urlencode(params)
-    return redirect(auth_url)
-
-
-def google_callback_view(request):
-    """
-    Handles the OAuth callback from Google.
-    Creates or retrieves the user account, sets email as verified, and logs in.
-    """
-    google_enabled = bool(getattr(settings, 'GOOGLE_CLIENT_ID', ''))
-
-    # ── CSRF state check ────────────────────────────────────────────────────
-    state_in_session = request.session.pop('google_oauth_state', None)
-    state_returned   = request.GET.get('state', '')
-    if not state_in_session or state_in_session != state_returned:
-        logger.warning('SECURITY: Google OAuth state mismatch — possible CSRF.')
-        return render(request, 'login.html', {
-            'error': 'Authentication failed (state mismatch). Please try again.',
-            'google_enabled': google_enabled,
-        })
-
-    # ── Error from Google ────────────────────────────────────────────────────
-    error = request.GET.get('error', '')
-    if error:
-        return render(request, 'login.html', {
-            'error': f'Google sign-in was cancelled or denied ({error}).',
-            'google_enabled': google_enabled,
-        })
-
-    code = request.GET.get('code', '')
-    if not code:
-        return render(request, 'login.html', {
-            'error': 'Google did not return an authorisation code. Please try again.',
-            'google_enabled': google_enabled,
-        })
-
-    # ── Exchange code for tokens ─────────────────────────────────────────────
-    try:
-        token_resp = http_requests.post(settings.GOOGLE_TOKEN_URL, data={
-            'code':          code,
-            'client_id':     settings.GOOGLE_CLIENT_ID,
-            'client_secret': settings.GOOGLE_CLIENT_SECRET,
-            'redirect_uri':  settings.GOOGLE_REDIRECT_URI,
-            'grant_type':    'authorization_code',
-        }, timeout=10)
-        token_data = token_resp.json()
-    except Exception as exc:
-        logger.warning(f'SECURITY: Google token exchange failed: {exc}')
-        return render(request, 'login.html', {
-            'error': 'Could not connect to Google. Please check your internet connection and try again.',
-            'google_enabled': google_enabled,
-        })
-
-    if 'access_token' not in token_data:
-        logger.warning(f'SECURITY: Google token response missing access_token: {token_data}')
-        return render(request, 'login.html', {
-            'error': 'Google authentication failed. Please try again.',
-            'google_enabled': google_enabled,
-        })
-
-    # ── Fetch user info from Google ──────────────────────────────────────────
-    try:
-        userinfo_resp = http_requests.get(
-            settings.GOOGLE_USERINFO_URL,
-            headers={'Authorization': f'Bearer {token_data["access_token"]}'},
-            timeout=10,
-        )
-        userinfo = userinfo_resp.json()
-    except Exception as exc:
-        logger.warning(f'SECURITY: Google userinfo fetch failed: {exc}')
-        return render(request, 'login.html', {
-            'error': 'Could not retrieve your Google profile. Please try again.',
-            'google_enabled': google_enabled,
-        })
-
-    google_email = userinfo.get('email', '').strip().lower()
-    google_name  = userinfo.get('name', '').strip()[:100]
-    google_pic   = userinfo.get('picture', '')
-
-    if not google_email or not userinfo.get('email_verified', False):
-        return render(request, 'login.html', {
-            'error': 'Your Google account email is not verified. Please verify it with Google first.',
-            'google_enabled': google_enabled,
-        })
-
-    # ── Find or create user ──────────────────────────────────────────────────
-    try:
-        user = User.objects.get(email__iexact=google_email)
-        # Existing user — update Google picture
-        profile = getattr(user, 'profile', None)
-        if profile:
-            if google_pic:
-                profile.google_picture_url = google_pic
-            # If they originally signed up with email, just update the picture;
-            # don't change their signup_method so their password still works.
-            profile.is_email_verified = True   # Google-verified implies email is verified
-            if not user.is_active:
-                user.is_active = True
-                user.save()
-            profile.save()
-    except User.DoesNotExist:
-        # New user via Google — derive a unique username from email prefix
-        base_username = re.sub(r'[^a-zA-Z0-9_]', '_', google_email.split('@')[0])[:40]
-        username = base_username
-        suffix = 1
-        while User.objects.filter(username__iexact=username).exists():
-            username = f'{base_username}_{suffix}'
-            suffix += 1
-
-        user = User.objects.create_user(
-            username=username,
-            email=google_email,
-            password=None,  # No password — Google-only account
-            first_name=google_name,
-        )
-        user.is_active = True
-        user.save()
-
-        profile = user.profile
-        profile.signup_method       = 'google'
-        profile.is_email_verified   = True
-        profile.google_picture_url  = google_pic
-        profile.save()
-
-        logger.warning(f'SECURITY: New Google account created for {google_email}.')
-
-    # ── Log in ───────────────────────────────────────────────────────────────
-    # Need to specify backend since there's no password
-    from django.contrib.auth import get_backends
-    backend = get_backends()[0].__class__.__module__ + '.' + get_backends()[0].__class__.__name__
-    user.backend = 'django.contrib.auth.backends.ModelBackend'
-    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-    logger.warning(f'SECURITY: Google login for {google_email}.')
-    return redirect('dashboard')
-
-
 
 @rate_limit(limit=30, window=60)
 @login_required
@@ -2630,11 +2243,13 @@ def _try_parse_date_str(s):
     from datetime import datetime
     
     s = s.strip()
+    # Replace multiple spaces with single space
+    s = re.sub(r'\s+', ' ', s)
     s = re.sub(r'^[:\s\-]+|[:\s\-]+$', '', s)
     if not s:
         return None
 
-    # Try common formats first with standard datetime to be fast and robust
+    # Try common ISO and numerical formats first
     # 1. YYYY-MM-DD or YYYY/MM/DD
     m_iso = re.match(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$', s)
     if m_iso:
@@ -2645,7 +2260,7 @@ def _try_parse_date_str(s):
         except ValueError:
             pass
 
-    # 2. DD-MM-YYYY or DD/MM/YYYY
+    # 2. DD-MM-YYYY or DD/MM/YYYY or MM/DD/YYYY
     m_dmy = re.match(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$', s)
     if m_dmy:
         try:
@@ -2660,9 +2275,47 @@ def _try_parse_date_str(s):
             except ValueError:
                 pass
 
-    # 3. Fallback to dateparser
-    import dateparser
+    # 3. Pure Python word-based month parsing
+    months_map = {
+        'jan': 1, 'january': 1, 'feb': 2, 'february': 2,
+        'mar': 3, 'march': 3, 'apr': 4, 'april': 4,
+        'may': 5, 'jun': 6, 'june': 6, 'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8, 'sep': 9, 'september': 9,
+        'oct': 10, 'october': 10, 'nov': 11, 'november': 11,
+        'dec': 12, 'december': 12
+    }
+
+    # Format: DD Month YYYY (e.g. 3 July 2026, 03 July 2026, 3-July-2026)
+    m_word1 = re.match(r'^(\d{1,2})[-/\s]+([a-zA-Z]{3,9})[-/\s]+(\d{4})$', s)
+    if m_word1:
+        d = int(m_word1.group(1))
+        m_str = m_word1.group(2).lower()
+        y = int(m_word1.group(3))
+        if m_str in months_map:
+            try:
+                dt = datetime(y, months_map[m_str], d)
+                if 2000 <= dt.year <= 2100:
+                    return dt.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+
+    # Format: Month DD YYYY (e.g. July 3 2026, July 03 2026, July 3, 2026)
+    m_word2 = re.match(r'^([a-zA-Z]{3,9})[-/\s]+(\d{1,2})[\s,]+(\d{4})$', s)
+    if m_word2:
+        m_str = m_word2.group(1).lower()
+        d = int(m_word2.group(2))
+        y = int(m_word2.group(3))
+        if m_str in months_map:
+            try:
+                dt = datetime(y, months_map[m_str], d)
+                if 2000 <= dt.year <= 2100:
+                    return dt.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+
+    # 4. Fallback to dateparser (only if installed)
     try:
+        import dateparser
         parsed_dt = dateparser.parse(
             s,
             settings={
@@ -2677,7 +2330,7 @@ def _try_parse_date_str(s):
             d = parsed_dt.day
             if 2000 <= y <= 2100:
                 return f"{y:04d}-{mo:02d}-{d:02d}"
-    except Exception:
+    except (ImportError, Exception):
         pass
             
     return None

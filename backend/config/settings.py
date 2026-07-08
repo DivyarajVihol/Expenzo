@@ -155,35 +155,14 @@ if not DEBUG:
 # Password Reset Token Timeout (1 hour)
 PASSWORD_RESET_TIMEOUT = 3600
 
-# Email Backend — falls back to console when SMTP creds are not configured
-_EMAIL_USER = os.environ.get('EMAIL_HOST_USER', '')
-_EMAIL_PASS = os.environ.get('EMAIL_HOST_PASSWORD', '')
-
-if _EMAIL_USER and _EMAIL_PASS:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = _EMAIL_USER
-    EMAIL_HOST_PASSWORD = _EMAIL_PASS
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'EXPENZO <{_EMAIL_USER}>')
-else:
-    # Development fallback — prints emails to the console
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    EMAIL_HOST_USER = ''
-    DEFAULT_FROM_EMAIL = 'EXPENZO <noreply@expenzo.local>'
-
-# Email verification link valid for 24 hours (86400 seconds)
-EMAIL_VERIFICATION_TIMEOUT = int(os.environ.get('EMAIL_VERIFICATION_TIMEOUT', 86400))
-
-# --- GOOGLE OAUTH 2.0 ---
-GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
-GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'http://127.0.0.1:8000/auth/google/callback/')
-GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
-GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
-GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo'
-
+# Email Backend (Output to console for development)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('EMAIL_HOST_USER', 'noreply@expenzo.local')
 
 # --- SECURITY LOGGING CONFIGURATION ---
 import os
