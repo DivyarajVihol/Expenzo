@@ -38,7 +38,7 @@ urlpatterns = [
     path('api/groups/<int:group_id>/edit/', views.edit_group_api, name='api_edit_group'),
     path('api/groups/<int:group_id>/member/<int:member_id>/remove/', views.api_remove_member, name='api_remove_member'),
     path('api/groups/<int:group_id>/leave/', views.api_leave_group, name='api_leave_group'),
-    path('api/savings/save/', views.save_savings_goal_api, name='api_save_savings_goal'),
+
     path('api/upi/list/', views.get_upi_ids_api, name='api_get_upi_ids'),
     path('api/upi/add/', views.add_upi_id_api, name='api_add_upi_id'),
     path('api/upi/set-active/<int:upi_id>/', views.set_active_upi_api, name='api_set_active_upi'),
@@ -47,4 +47,9 @@ urlpatterns = [
     path('profile/export/excel/', views.export_expenses_excel, name='export_expenses_excel'),
     path('groups/<int:group_id>/export/pdf/', views.export_group_pdf, name='export_group_pdf'),
     path('groups/<int:group_id>/export/excel/', views.export_group_excel, name='export_group_excel'),
+
+    path('streaks/', views.spending_streaks_view, name='spending_streaks'),
+    
+    # Scan Receipt — OCR text parsing (dedicated endpoint, does not modify existing expense APIs)
+    path('api/scan-receipt/', views.scan_receipt_api, name='api_scan_receipt'),
 ]

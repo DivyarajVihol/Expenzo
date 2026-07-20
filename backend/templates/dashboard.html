@@ -183,6 +183,7 @@
   .tab-btn.active::after {
     display: none !important;
   }
+
 </style>
 {% endblock %}
 
@@ -235,6 +236,7 @@
   <a href="{% url 'history' %}" class="tab-btn">Expense History</a>
   <a href="{% url 'recurring' %}" class="tab-btn">Recurring Finance</a>
   <a href="{% url 'personal_charts' %}" class="tab-btn">Charts</a>
+  <a href="{% url 'spending_streaks' %}" class="tab-btn">Spending Streaks</a>
 </div>
 
 <!-- Main Grid Layout -->
@@ -263,7 +265,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
           <button class="btn btn-secondary btn-add-income" onclick="openTransactionModal('income')" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.1); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
             <i data-lucide="plus" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
             Income
@@ -271,6 +273,10 @@
           <button class="btn btn-primary btn-quick-expense" onclick="openTransactionModal('Food')" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 0.25rem;">
             <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
             Expense
+          </button>
+          <button class="btn btn-primary" onclick="openScanReceiptModal()" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 0.25rem;" title="Scan a receipt to auto-fill expense details">
+            <i data-lucide="scan-line" style="width: 14px; height: 14px;"></i>
+            Scan Receipt
           </button>
         </div>
 
@@ -280,111 +286,79 @@
         </div>
       </div>
 
-      <!-- Savings Goal Card -->
-      <div class="glass-card savings-card">
-        <div class="savings-card-header">
-          <div>
-            <h4 class="savings-title">Savings Goal</h4>
-            <p class="savings-subtitle">Track progress to your target</p>
-          </div>
-          <button onclick="openSavingsModal()" class="btn-edit-savings">
-            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
-          </button>
-        </div>
 
-        <div class="savings-gauge-section">
-          <!-- Circular Gauge Chart generated via Matplotlib/Seaborn -->
-          <div class="gauge-chart-wrapper">
-            {% if gauge_chart %}
-              <img src="data:image/png;base64,{{ gauge_chart }}" alt="Savings Gauge" style="width: 80px; height: 80px;">
-            {% else %}
-              <div style="font-size: 0.85rem; color: var(--text-muted)">0%</div>
-            {% endif %}
-          </div>
-
-          <div class="savings-text-info">
-            <div class="savings-info-label">Current Savings</div>
-            <div class="savings-info-value">₹{{ savings_current|floatformat:2 }}</div>
-            <div class="savings-info-target">
-              Goal: ₹{{ savings_target|floatformat:2 }}
-            </div>
-          </div>
-        </div>
-      </div>
       
     </div>
 
 
-    <!-- Accounts Breakdown Block -->
+    <!-- Accounts & Payment Method Breakdown Block -->
     <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
       <div class="spending-card-header">
         <div>
-          <h3 class="spending-title">Accounts</h3>
-          <p class="spending-subtitle">Current balances across your accounts</p>
+          <h3 class="spending-title">Accounts & Payment Methods</h3>
+          <p class="spending-subtitle">Current balances and usage analytics across your financial flows</p>
         </div>
       </div>
 
-      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 1.5rem;">
-        {% if not account_breakdown %}
-          <div class="no-spending-text" style="text-align: center; padding: 2rem 0;">
-            No account data recorded.
-          </div>
-        {% else %}
-          <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
-            {% for acc in account_breakdown %}
-              <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
+      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+        <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
+          
+          {% for item in merged_breakdown %}
+            <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
+              
+              {% if item.type == 'both' %}
+                <!-- Combined Account & Payment Method (Cash, Credit Card) -->
                 <div style="display: flex; flex-direction: column;">
-                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ acc.name }}</strong>
+                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
                   <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                    <span class="text-success">+₹{{ acc.income|floatformat:2 }}</span>
-                    <span class="text-danger">-₹{{ acc.expense|floatformat:2 }}</span>
+                    <span class="text-success">+₹{{ item.income|floatformat:2 }}</span>
+                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
+                    <span style="color: var(--text-muted)">•</span>
+                    <span style="color: var(--text-muted)">{{ item.count }} txns (monthly: -₹{{ item.pm_expense|floatformat:2 }})</span>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center;">
-                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if acc.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {% if acc.balance >= 0 %}+{% endif %}₹{{ acc.balance|floatformat:2 }}
+                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if item.balance >= 0 %}+{% endif %}₹{{ item.balance|floatformat:2 }}
                   </span>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      </div>
-    </div>
-    
-    <!-- Payment Method Analytics Block -->
-    <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
-      <div class="spending-card-header">
-        <div>
-          <h3 class="spending-title">Payment Method Usage</h3>
-          <p class="spending-subtitle">Analytics for your transaction methods</p>
-        </div>
-      </div>
-
-      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 1.5rem;">
-        {% if not payment_method_breakdown %}
-          <div class="no-spending-text" style="text-align: center; padding: 2rem 0;">
-            No payment method data recorded.
-          </div>
-        {% else %}
-          <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
-            {% for pm in payment_method_breakdown %}
-              <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
+                
+              {% elif item.type == 'account' %}
+                <!-- Account Only (Bank Account) -->
                 <div style="display: flex; flex-direction: column;">
-                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ pm.name }}</strong>
+                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
                   <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                    <span class="text-danger">-₹{{ pm.expense|floatformat:2 }}</span>
+                    <span class="text-success">+₹{{ item.income|floatformat:2 }}</span>
+                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center;">
+                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if item.balance >= 0 %}+{% endif %}₹{{ item.balance|floatformat:2 }}
+                  </span>
+                </div>
+                
+              {% else %}
+                <!-- Payment Method Only (UPI, Debit Card, Bank Transfer) -->
+                <div style="display: flex; flex-direction: column;">
+                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
+                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; color: var(--text-muted); font-size: 0.85rem;">
-                  {{ pm.count }} txns
+                  {{ item.count }} txns
                 </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+              {% endif %}
+              
+            </div>
+          {% endfor %}
+          
+        </div>
       </div>
     </div>
+
+
 
 
 
@@ -470,49 +444,166 @@
 
 </div>
 
-<!-- Savings Goal Modal -->
-<div class="modal-overlay" id="savings-modal" style="display: none;">
-  <div class="modal-content">
+
+
+<!-- ===== SCAN RECEIPT MODAL ===== -->
+<div class="modal-overlay" id="scan-receipt-modal" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="max-width:540px; width:95%; max-height:90vh; overflow-y:auto;">
+
+    <!-- Header -->
     <div class="modal-header">
-      <h3 class="chart-card-title">Adjust Savings Goal</h3>
-      <button onclick="closeSavingsModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
-        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <i data-lucide="scan-line" style="width:20px;height:20px;color:var(--accent-primary);"></i>
+        <h3 class="chart-card-title" style="margin:0;" id="scan-modal-title">Scan Receipt</h3>
+      </div>
+      <button onclick="closeScanReceiptModal()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;">
+        <i data-lucide="x" style="width:20px;height:20px;"></i>
       </button>
     </div>
-    <form id="savings-form" onsubmit="saveSavingsGoal(event)">
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Goal Target Amount</label>
-          <input
-            type="number"
-            id="savings-target-input"
-            class="input-control"
-            placeholder="e.g. 50000"
-            value="{{ savings_target }}"
-            required
-            min="0"
-          />
+
+    <!-- SCREEN 1: Upload -->
+    <div id="scan-screen-upload" class="modal-body">
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1.25rem;">
+        Upload a photo of your receipt and we'll automatically extract the expense details.
+      </p>
+
+      <!-- Drag & Drop Zone -->
+      <div id="scan-dropzone"
+           ondragover="event.preventDefault();this.classList.add('drag-active')"
+           ondragleave="this.classList.remove('drag-active')"
+           ondrop="handleReceiptDrop(event)"
+           onclick="document.getElementById('scan-file-input').click()"
+           style="border:2px dashed rgba(129,140,248,0.4);border-radius:14px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:rgba(129,140,248,0.04);">
+        <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--accent-primary);margin:0 auto 0.75rem;display:block;opacity:0.8;"></i>
+        <p style="font-size:0.95rem;font-weight:600;color:var(--text-primary);margin:0 0 0.35rem;">Drop receipt here or click to browse</p>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">PDF, PNG, JPG, JPEG, WEBP &nbsp;·&nbsp; Max 10 MB</p>
+      </div>
+
+      <!-- Hidden file input - accepts camera on mobile -->
+      <input type="file" id="scan-file-input" accept="image/png,image/jpeg,image/webp,application/pdf" style="display:none;" onchange="handleReceiptFile(this.files[0])">
+
+      <!-- Image preview thumbnail (shown after selection) -->
+      <div id="scan-preview-thumb" style="display:none;margin-top:1rem;text-align:center;">
+        <img id="scan-thumb-img" style="max-height:120px;border-radius:10px;border:1px solid var(--border-color);" alt="Receipt preview">
+        <p id="scan-thumb-name" style="font-size:0.78rem;color:var(--text-muted);margin:0.4rem 0 0;"></p>
+      </div>
+
+      <div class="modal-footer" style="margin-top:1.25rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeScanReceiptModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="scan-process-btn" onclick="processReceipt()" disabled
+                style="opacity:0.5;transition:opacity 0.2s;">
+          <i data-lucide="cpu" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
+          Scan Receipt
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: Loading / OCR Progress -->
+    <div id="scan-screen-loading" class="modal-body" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(129,140,248,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+        <i data-lucide="scan-line" style="width:32px;height:32px;color:var(--accent-primary);" id="scan-loading-icon"></i>
+      </div>
+      <h4 id="scan-loading-msg" style="font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 0.35rem;">Scanning Receipt...</h4>
+      <p id="scan-loading-sub" style="font-size:0.82rem;color:var(--text-secondary);margin:0 0 1.5rem;">Please wait while we read your receipt.</p>
+      <!-- Progress bar -->
+      <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;max-width:300px;margin:0 auto;">
+        <div id="scan-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent-primary),#c084fc);border-radius:999px;transition:width 0.4s ease;"></div>
+      </div>
+      <p id="scan-progress-label" style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem;">0%</p>
+    </div>
+
+    <!-- SCREEN 3: Preview / Edit Form -->
+    <div id="scan-screen-preview" class="modal-body" style="display:none;">
+
+      <!-- OCR Confidence badge -->
+      <div id="scan-confidence-bar" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;padding:0.6rem 0.85rem;border-radius:10px;background:rgba(129,140,248,0.07);border:1px solid rgba(129,140,248,0.15);">
+        <i data-lucide="shield-check" style="width:15px;height:15px;color:var(--accent-primary);flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:var(--text-secondary);flex:1;">OCR Accuracy</span>
+        <span id="scan-confidence-val" style="font-size:0.85rem;font-weight:700;color:var(--accent-primary);">—</span>
+      </div>
+      <div id="scan-low-confidence-note" style="display:none;font-size:0.78rem;color:#fb923c;margin-bottom:0.85rem;padding:0.5rem 0.75rem;background:rgba(251,146,60,0.08);border-radius:8px;border:1px solid rgba(251,146,60,0.2);">
+        <i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>
+        Please verify the extracted information before saving.
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Merchant / Store Name</label>
+          <input type="text" id="scan-merchant" class="input-control" placeholder="e.g. Swiggy, Zomato, D-Mart">
         </div>
         <div class="form-group">
-          <label class="form-label">Current Saved Amount</label>
-          <input
-            type="number"
-            id="savings-current-input"
-            class="input-control"
-            placeholder="e.g. 12000"
-            value="{{ savings_current }}"
-            required
-            min="0"
-          />
+          <label class="form-label">Amount (₹) <span style="color:var(--accent-danger);">*</span></label>
+          <input type="number" id="scan-amount" class="input-control" placeholder="0.00" min="0.01" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tax Amount (₹)</label>
+          <input type="number" id="scan-tax" class="input-control" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date <span style="color:var(--accent-danger);">*</span></label>
+          <input type="date" id="scan-date" class="input-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="scan-category" class="input-control" style="background:#0d121f;">
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Rent">Rent</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Health">Health</option>
+            <option value="Education">Education</option>
+            <option value="Investment">Investment</option>
+            <option value="Others" selected>Others</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select id="scan-payment" class="input-control" style="background:#0d121f;">
+            <option value="UPI">UPI</option>
+            <option value="Cash">Cash</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Debit Card">Debit Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Notes / Description</label>
+          <input type="text" id="scan-notes" class="input-control" placeholder="Auto-filled from receipt — edit as needed">
+        </div>
+        <div class="form-group" id="scan-receipt-no-group" style="grid-column:1/-1;display:none;">
+          <label class="form-label">Receipt / Invoice No.</label>
+          <input type="text" id="scan-receipt-no" class="input-control" readonly style="opacity:0.6;">
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeSavingsModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
+
+      <div class="modal-footer" style="margin-top:0.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="resetScanModal()">
+          <i data-lucide="arrow-left" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>
+          Back
+        </button>
+        <button type="button" class="btn btn-primary" onclick="saveScanExpense()" id="scan-save-btn">
+          <i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>
+          Save Expense
+        </button>
       </div>
-    </form>
+    </div>
+
+    <!-- SCREEN 4: Error -->
+    <div id="scan-screen-error" class="modal-body" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
+      <i data-lucide="file-x" style="width:48px;height:48px;color:var(--accent-danger);margin:0 auto 1rem;display:block;"></i>
+      <h4 style="font-size:1rem;color:var(--text-primary);margin:0 0 0.5rem;">Unable to Read Receipt</h4>
+      <p id="scan-error-msg" style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 1.5rem;">Please upload a clearer image and try again.</p>
+      <div style="display:flex;gap:0.75rem;justify-content:center;">
+        <button type="button" class="btn btn-secondary" onclick="resetScanModal()">Try Again</button>
+        <button type="button" class="btn btn-primary" onclick="showScanPreviewManual()">Enter Manually</button>
+      </div>
+    </div>
+
   </div>
 </div>
+<!-- ===== END SCAN RECEIPT MODAL ===== -->
 
 <!-- Add Expense/Income Transaction Modal -->
 <div class="modal-overlay" id="transaction-modal" style="display: none;">
@@ -670,13 +761,7 @@
     window.location.href = url.toString();
   }
 
-  function openSavingsModal() {
-    document.getElementById('savings-modal').style.display = 'flex';
-  }
 
-  function closeSavingsModal() {
-    document.getElementById('savings-modal').style.display = 'none';
-  }
 
   function togglePaymentMethod() {
     const accountSelect = document.getElementById('tx-account');
@@ -818,46 +903,29 @@
     document.getElementById('transaction-modal').style.display = 'none';
   }
 
-  async function saveSavingsGoal(e) {
-    e.preventDefault();
-    const target = document.getElementById('savings-target-input').value;
-    const current = document.getElementById('savings-current-input').value;
 
-    try {
-      const res = await fetch("{% url 'api_save_savings_goal' %}", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ target, current })
-      });
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to save savings goal');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error saving savings goal');
-    }
-  }
 
   const accountBalances = JSON.parse('{{ account_balances_json|escapejs }}' || '{}');
 
   let pendingTransactionEvent = null;
   let currentEditOriginalAmount = 0;
   let currentEditOriginalAccount = '';
+  let isScanReceiptSubmission = false;
 
   function cancelNegativeBalance() {
     document.getElementById('negative-balance-modal').style.display = 'none';
     pendingTransactionEvent = null;
+    isScanReceiptSubmission = false;
   }
 
   function confirmNegativeBalance() {
     document.getElementById('negative-balance-modal').style.display = 'none';
-    saveTransaction(null); // passing null bypasses the check
+    if (isScanReceiptSubmission) {
+      isScanReceiptSubmission = false;
+      saveScanExpense(true); // Bypass check
+    } else {
+      saveTransaction(null); // passing null bypasses the check
+    }
   }
 
   async function saveTransaction(e) {
@@ -956,5 +1024,622 @@
       closeDeleteModal();
     }
   });
+
+  /* =====================================================
+     SCAN RECEIPT ENGINE  —  v2 (improved OCR pipeline)
+  ===================================================== */
+
+  let scanReceiptFile = null;
+
+  // Drag-active CSS (injected once)
+  (function() {
+    const s = document.createElement('style');
+    s.textContent = `
+      #scan-dropzone.drag-active { border-color: var(--accent-primary); background: rgba(129,140,248,0.1); }
+      @keyframes scanPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+      .scan-field-warn { border-color: #fb923c !important; box-shadow: 0 0 0 2px rgba(251,146,60,0.2) !important; }
+    `;
+    document.head.appendChild(s);
+  })();
+
+  function openScanReceiptModal() {
+    resetScanModal();
+    document.getElementById('scan-receipt-modal').style.display = 'flex';
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function closeScanReceiptModal() {
+    document.getElementById('scan-receipt-modal').style.display = 'none';
+    scanReceiptFile = null;
+  }
+
+  function showScanScreen(name) {
+    ['upload','loading','preview','error'].forEach(s => {
+      document.getElementById('scan-screen-' + s).style.display = (s === name ? '' : 'none');
+    });
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function resetScanModal() {
+    scanReceiptFile = null;
+    document.getElementById('scan-file-input').value = '';
+    document.getElementById('scan-preview-thumb').style.display = 'none';
+    document.getElementById('scan-process-btn').disabled = true;
+    document.getElementById('scan-process-btn').style.opacity = '0.5';
+    showScanScreen('upload');
+  }
+
+  async function renderPdfPageToCanvas(file) {
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1);
+    
+    const scale = 2.0;
+    const viewport = page.getViewport({ scale });
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    
+    return new Promise((resolve) => {
+      canvas.toBlob(blob => resolve(blob), 'image/png');
+    });
+  }
+
+  function handleReceiptFile(file) {
+    if (!file) return;
+    if (!file.type.match(/^image\/(png|jpeg|webp)$/) && file.type !== 'application/pdf') {
+      alert('Unsupported format. Please use PDF, PNG, JPG, JPEG, or WEBP.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File too large. Maximum size is 10 MB.');
+      return;
+    }
+    scanReceiptFile = file;
+    
+    if (file.type === 'application/pdf') {
+      document.getElementById('scan-thumb-name').textContent = 'Generating PDF preview...';
+      document.getElementById('scan-preview-thumb').style.display = 'block';
+      document.getElementById('scan-process-btn').disabled = true;
+      document.getElementById('scan-process-btn').style.opacity = '0.5';
+
+      renderPdfPageToCanvas(file).then(blob => {
+        const url = URL.createObjectURL(blob);
+        document.getElementById('scan-thumb-img').src = url;
+        document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        document.getElementById('scan-process-btn').disabled = false;
+        document.getElementById('scan-process-btn').style.opacity = '1';
+      }).catch(err => {
+        console.error(err);
+        document.getElementById('scan-thumb-img').src = 'https://cdn-icons-png.flaticon.com/512/337/337946.png';
+        document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        document.getElementById('scan-process-btn').disabled = false;
+        document.getElementById('scan-process-btn').style.opacity = '1';
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('scan-thumb-img').src = e.target.result;
+        document.getElementById('scan-thumb-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        document.getElementById('scan-preview-thumb').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+      document.getElementById('scan-process-btn').disabled = false;
+      document.getElementById('scan-process-btn').style.opacity = '1';
+    }
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function handleReceiptDrop(e) {
+    e.preventDefault();
+    document.getElementById('scan-dropzone').classList.remove('drag-active');
+    const file = e.dataTransfer.files[0];
+    if (file) handleReceiptFile(file);
+  }
+
+  function setScanProgress(pct, msg, sub) {
+    document.getElementById('scan-progress-bar').style.width = pct + '%';
+    document.getElementById('scan-progress-label').textContent = pct + '%';
+    if (msg) document.getElementById('scan-loading-msg').textContent = msg;
+    if (sub) document.getElementById('scan-loading-sub').textContent = sub;
+  }
+
+  /* ── Image Preprocessing Pipeline ───────────────────────────────
+     Runs entirely in the browser via Canvas 2D API.
+     Steps: EXIF rotation → upscale → grayscale → auto-levels
+            → dark-receipt inversion → unsharp-mask sharpening
+  ─────────────────────────────────────────────────────────────── */
+
+  /** Read JPEG EXIF orientation tag (returns 1–8, default 1 = normal). */
+  function _readExifOrientation(arrayBuffer) {
+    try {
+      const view = new DataView(arrayBuffer);
+      if (view.getUint16(0, false) !== 0xFFD8) return 1; // not JPEG
+      let offset = 2;
+      while (offset < arrayBuffer.byteLength - 4) {
+        const marker = view.getUint16(offset, false);
+        const segLen  = view.getUint16(offset + 2, false);
+        if (marker === 0xFFE1) {
+          // APP1 — may contain EXIF
+          if (view.getUint32(offset + 4, false) !== 0x45786966) break; // 'Exif'
+          const exifBase = offset + 10;
+          const little   = view.getUint16(exifBase, false) === 0x4949;
+          const ifdOffset = view.getUint32(exifBase + 4, little);
+          const numTags   = view.getUint16(exifBase + ifdOffset, little);
+          for (let t = 0; t < numTags; t++) {
+            const tagOff = exifBase + ifdOffset + 2 + t * 12;
+            if (view.getUint16(tagOff, little) === 0x0112) { // Orientation
+              return view.getUint16(tagOff + 8, little);
+            }
+          }
+          break;
+        }
+        offset += 2 + segLen;
+      }
+    } catch (_) { /* ignore parse errors */ }
+    return 1;
+  }
+
+  /** Apply EXIF transform to a canvas context before drawing. */
+  function _applyExifTransform(ctx, orientation, srcW, srcH) {
+    switch (orientation) {
+      case 2: ctx.transform(-1, 0,  0,  1, srcW,    0); break;
+      case 3: ctx.transform(-1, 0,  0, -1, srcW, srcH); break;
+      case 4: ctx.transform( 1, 0,  0, -1,    0, srcH); break;
+      case 5: ctx.transform( 0, 1,  1,  0,    0,    0); break;
+      case 6: ctx.transform( 0, 1, -1,  0, srcH,    0); break;
+      case 7: ctx.transform( 0,-1, -1,  0, srcH, srcW); break;
+      case 8: ctx.transform( 0,-1,  1,  0,    0, srcW); break;
+      // case 1: identity — no transform needed
+    }
+  }
+
+  /**
+   * Full preprocessing pipeline.
+   * Returns a Promise<Blob> of the enhanced grayscale PNG.
+   */
+  function preprocessReceiptImage(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onerror = reject;
+      fr.onload = evt => {
+        const buf  = evt.target.result;
+        const orient = _readExifOrientation(buf);
+
+        const blob = new Blob([buf], { type: file.type });
+        const url  = URL.createObjectURL(blob);
+        const img  = new Image();
+        img.onerror = reject;
+        img.onload  = () => {
+          URL.revokeObjectURL(url);
+
+          const srcW = img.naturalWidth;
+          const srcH = img.naturalHeight;
+          // rotated 90/270 → swap dims
+          const rotated = orient >= 5 && orient <= 8;
+          const canvW = rotated ? srcH : srcW;
+          const canvH = rotated ? srcW : srcH;
+
+          // ── Step 1: Draw with EXIF correction ──────────────────
+          const c1 = document.createElement('canvas');
+          c1.width  = canvW;
+          c1.height = canvH;
+          const x1 = c1.getContext('2d');
+          _applyExifTransform(x1, orient, srcW, srcH);
+          x1.drawImage(img, 0, 0);
+
+          // ── Step 2: Upscale if narrower than 1400 px ───────────
+          // Tesseract accuracy improves significantly at higher resolution
+          const TARGET_W = 1400;
+          let c2 = c1;
+          if (c1.width < TARGET_W) {
+            const scale = TARGET_W / c1.width;
+            c2 = document.createElement('canvas');
+            c2.width  = Math.round(c1.width  * scale);
+            c2.height = Math.round(c1.height * scale);
+            const x2 = c2.getContext('2d');
+            x2.imageSmoothingEnabled  = true;
+            x2.imageSmoothingQuality  = 'high';
+            x2.drawImage(c1, 0, 0, c2.width, c2.height);
+          }
+
+          // ── Step 3: Pixel-level enhancements ───────────────────
+          const W = c2.width, H = c2.height;
+          const x3 = c2.getContext('2d');
+          const imgData = x3.getImageData(0, 0, W, H);
+          const d = imgData.data;
+
+          // 3a. Grayscale (luminance-weighted)
+          for (let i = 0; i < d.length; i += 4) {
+            const g = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+            d[i] = d[i+1] = d[i+2] = g;
+          }
+
+          // 3b. Auto-levels: stretch histogram so darkest→0, brightest→255
+          let lo = 255, hi = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i] < lo) lo = d[i];
+            if (d[i] > hi) hi = d[i];
+          }
+          const span = hi - lo;
+          if (span > 10 && span < 250) {        // only stretch if meaningful range
+            const inv = 255 / span;
+            for (let i = 0; i < d.length; i += 4) {
+              const v = Math.min(255, Math.max(0, Math.round((d[i] - lo) * inv)));
+              d[i] = d[i+1] = d[i+2] = v;
+            }
+          }
+
+          // 3c. Detect dark-background receipts (thermal paper dark-mode)
+          //     If >55% of sampled pixels are dark → invert
+          let darkCount = 0, totalSampled = 0;
+          for (let i = 0; i < d.length; i += 4 * 20) { // sample every 20th pixel
+            if (d[i] < 128) darkCount++;
+            totalSampled++;
+          }
+          if (darkCount / totalSampled > 0.55) {
+            for (let i = 0; i < d.length; i += 4) {
+              d[i] = d[i+1] = d[i+2] = 255 - d[i];
+            }
+          }
+
+          // 3d. Unsharp-mask sharpening (3×3 sharpen kernel)
+          //     Only applied on a copy so original edge pixels are safe
+          const sharpenK = [-1,-1,-1, -1,9,-1, -1,-1,-1];
+          const src = new Uint8ClampedArray(d); // snapshot before sharpen
+          for (let y = 1; y < H - 1; y++) {
+            for (let x = 0; x < W; x++) {
+              let sum = 0;
+              for (let ky = -1; ky <= 1; ky++) {
+                for (let kx = -1; kx <= 1; kx++) {
+                  const px = Math.min(W - 1, Math.max(0, x + kx));
+                  const idx = ((y + ky) * W + px) * 4;
+                  sum += src[idx] * sharpenK[(ky + 1) * 3 + (kx + 1)];
+                }
+              }
+              const out = (y * W + x) * 4;
+              const v = Math.min(255, Math.max(0, sum));
+              d[out] = d[out+1] = d[out+2] = v;
+            }
+          }
+
+          x3.putImageData(imgData, 0, 0);
+
+          c2.toBlob(blob => resolve(blob), 'image/png', 1.0);
+        };
+        img.src = url;
+      };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  /* ── Multi-pass Tesseract OCR ────────────────────────────────────
+     Tries PSM 4 (single column — ideal for receipts) and PSM 6
+     (single block — better for dense text). Picks the higher
+     confidence result automatically.
+  ─────────────────────────────────────────────────────────────── */
+
+  async function runOCR(imageBlob, progressCallback) {
+    const { createWorker } = window.Tesseract;
+
+    // PSM 4 = Assume a single column of text (best for most receipts)
+    progressCallback(12, 'Scanning Receipt...', 'Pass 1/2 — column layout...');
+    const w1 = await createWorker('eng', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          progressCallback(
+            Math.round(12 + m.progress * 28),
+            'Scanning Receipt...', 'Reading text (pass 1)...'
+          );
+        }
+      }
+    });
+    await w1.setParameters({
+      tessedit_pageseg_mode: '4',     // single column
+      preserve_interword_spaces: '1',
+      tessedit_do_invert: '0',        // we handle inversion ourselves
+    });
+    const r1 = await w1.recognize(imageBlob);
+    await w1.terminate();
+
+    progressCallback(42, 'Scanning Receipt...', 'Pass 2/2 — block layout...');
+
+    // PSM 6 = Assume a single uniform block (good for dense tabular receipts)
+    const w2 = await createWorker('eng', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          progressCallback(
+            Math.round(42 + m.progress * 28),
+            'Scanning Receipt...', 'Reading text (pass 2)...'
+          );
+        }
+      }
+    });
+    await w2.setParameters({
+      tessedit_pageseg_mode: '6',
+      preserve_interword_spaces: '1',
+      tessedit_do_invert: '0',
+    });
+    const r2 = await w2.recognize(imageBlob);
+    await w2.terminate();
+
+    // Use the result with higher confidence; prefer PSM 4 on a tie
+    const best = r1.data.confidence >= r2.data.confidence ? r1.data : r2.data;
+    return { text: best.text, confidence: best.confidence };
+  }
+
+  async function processReceipt() {
+    if (!scanReceiptFile) return;
+    showScanScreen('loading');
+    setScanProgress(0, 'Preparing Image...', 'Applying preprocessing...');
+
+    try {
+      // ── 1. Lazy-load Tesseract.js ─────────────────────────────
+      if (!window.Tesseract) {
+        setScanProgress(4, 'Preparing Image...', 'Loading OCR engine...');
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      // ── 2. Preprocess the image ───────────────────────────────
+      setScanProgress(6, 'Preparing Image...', 'Enhancing image quality...');
+      let imageBlob = scanReceiptFile;
+      if (scanReceiptFile.type === 'application/pdf') {
+        setScanProgress(5, 'Preparing Document...', 'Converting PDF to image...');
+        imageBlob = await renderPdfPageToCanvas(scanReceiptFile);
+      }
+
+      setScanProgress(7, 'Preparing Image...', 'Enhancing image quality...');
+      let processedBlob;
+      try {
+        processedBlob = await preprocessReceiptImage(imageBlob);
+      } catch (prepErr) {
+        console.warn('Preprocessing failed, using original:', prepErr);
+        processedBlob = imageBlob; // fall back to raw file
+      }
+
+      // ── 3. Run OCR (two passes) ───────────────────────────────
+      const { text, confidence } = await runOCR(processedBlob, setScanProgress);
+
+      setScanProgress(72, 'Extracting Details...', 'Analysing receipt text...');
+
+      if (!text || text.trim().length < 5) {
+        showScanScreen('error');
+        document.getElementById('scan-error-msg').textContent =
+          'Unable to read any text from this image. Please upload a clearer, well-lit photo.';
+        return;
+      }
+
+      // ── 4. Send to backend for structured parsing ─────────────
+      setScanProgress(82, 'Extracting Details...', 'Identifying fields...');
+      const resp = await fetch("{% url 'api_scan_receipt' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ text, ocr_confidence: confidence })
+      });
+
+      setScanProgress(96, 'Extracting Details...', 'Finalising...');
+
+      if (!resp.ok) {
+        showScanScreen('error');
+        try {
+          const errData = await resp.json();
+          document.getElementById('scan-error-msg').textContent =
+            errData.error || `Server error (status ${resp.status})`;
+        } catch (e) {
+          document.getElementById('scan-error-msg').textContent =
+            `Server error (status ${resp.status})`;
+        }
+        return;
+      }
+
+      const parsed = await resp.json();
+      if (parsed.error) {
+        showScanScreen('error');
+        document.getElementById('scan-error-msg').textContent = parsed.error;
+        return;
+      }
+
+      setScanProgress(100, 'Done!', 'Fields extracted successfully.');
+      populateScanPreview(parsed);
+      setTimeout(() => showScanScreen('preview'), 350);
+
+    } catch (err) {
+      console.error('Scan Receipt error:', err);
+      showScanScreen('error');
+      document.getElementById('scan-error-msg').textContent =
+        'OCR processing failed. Please try a well-lit, straight-on photo of the receipt.';
+    }
+  }
+
+  function populateScanPreview(d) {
+    const merchantInput = document.getElementById('scan-merchant');
+    const amountInput = document.getElementById('scan-amount');
+    const dateInput = document.getElementById('scan-date');
+    const taxInput = document.getElementById('scan-tax');
+    const notesInput = document.getElementById('scan-notes');
+    const noteEl = document.getElementById('scan-low-confidence-note');
+    const confBar = document.getElementById('scan-confidence-bar');
+    const confVal = document.getElementById('scan-confidence-val');
+
+    // Clear previous warning highlights
+    merchantInput.classList.remove('scan-field-warn');
+    amountInput.classList.remove('scan-field-warn');
+    dateInput.classList.remove('scan-field-warn');
+
+    merchantInput.value = d.merchant || '';
+    amountInput.value = d.amount != null ? d.amount : '';
+    taxInput.value = d.tax != null ? d.tax : '';
+    
+    // Parse date (leave empty if not provided)
+    dateInput.value = d.date || '';
+    notesInput.value = d.merchant ? ('Receipt: ' + d.merchant) : '';
+
+    // Category
+    const catSel = document.getElementById('scan-category');
+    const opts = Array.from(catSel.options).map(o => o.value);
+    catSel.value = opts.includes(d.category) ? d.category : 'Others';
+
+    // Payment method
+    const pmSel = document.getElementById('scan-payment');
+    const pmOpts = Array.from(pmSel.options).map(o => o.value);
+    pmSel.value = pmOpts.includes(d.payment_method) ? d.payment_method : 'UPI';
+
+    // Receipt no
+    if (d.receipt_no) {
+      document.getElementById('scan-receipt-no').value = d.receipt_no;
+      document.getElementById('scan-receipt-no-group').style.display = 'block';
+    } else {
+      document.getElementById('scan-receipt-no-group').style.display = 'none';
+    }
+
+    // Validation checks (highlight if empty)
+    if (!merchantInput.value) {
+      merchantInput.classList.add('scan-field-warn');
+    }
+    const amt = parseFloat(amountInput.value);
+    if (isNaN(amt) || amt <= 0) {
+      amountInput.classList.add('scan-field-warn');
+    }
+    if (!dateInput.value) {
+      dateInput.classList.add('scan-field-warn');
+    }
+
+    // Update confidence bar label text and hide percentage display
+    if (confBar) {
+      const labelSpan = confBar.querySelector('span:not(#scan-confidence-val)');
+      if (labelSpan) {
+        labelSpan.textContent = "Receipt scanned successfully.";
+      }
+    }
+    if (confVal) {
+      confVal.style.display = 'none';
+    }
+
+    // Display verify note message
+    if (noteEl) {
+      if (!dateInput.value) {
+        noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Unable to detect the receipt date. Please select it manually.`;
+      } else {
+        noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Please verify the extracted information before saving.`;
+      }
+      noteEl.style.display = 'flex';
+      noteEl.style.color = '#fb923c';
+      noteEl.style.background = 'rgba(251,146,60,0.08)';
+      noteEl.style.borderColor = 'rgba(251,146,60,0.2)';
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function showScanPreviewManual() {
+    populateScanPreview({ merchant:'', amount:null, tax:null, date:'', category:'Others', payment_method:'UPI', receipt_no:'', confidence:0 });
+    showScanScreen('preview');
+  }
+
+  async function saveScanExpense(bypassCheck = false) {
+    const amount = parseFloat(document.getElementById('scan-amount').value);
+    if (!amount || amount <= 0) {
+      alert('Please enter a valid amount before saving.');
+      document.getElementById('scan-amount').focus();
+      return;
+    }
+    const date = document.getElementById('scan-date').value;
+    if (!date) {
+      alert('Please select a date.');
+      document.getElementById('scan-date').focus();
+      return;
+    }
+
+    const merchant  = document.getElementById('scan-merchant').value.trim();
+    const category  = document.getElementById('scan-category').value;
+    const payment   = document.getElementById('scan-payment').value;
+    const notes     = document.getElementById('scan-notes').value.trim();
+    const description = notes || (merchant ? 'Receipt: ' + merchant : 'Scanned Receipt');
+
+    let account = 'Bank Account';
+    if (payment === 'Cash') {
+      account = 'Cash';
+    } else if (payment === 'Credit Card') {
+      account = 'Credit Card';
+    }
+
+    // Check for negative balance warning
+    if (!bypassCheck) {
+      const balance = accountBalances[account] || 0;
+      if (amount > balance) {
+        document.getElementById('nb-current-balance').innerText = `₹${balance.toFixed(2)}`;
+        document.getElementById('nb-expense-amount').innerText = `₹${amount.toFixed(2)}`;
+        document.getElementById('nb-new-balance').innerText = `₹${(balance - amount).toFixed(2)}`;
+        
+        let methodName = account === 'Bank Account' ? payment : account;
+        document.getElementById('negative-balance-message').innerText = `This expense will make your ${methodName} balance negative. Do you want to continue?`;
+        
+        document.getElementById('negative-balance-modal').style.display = 'flex';
+        isScanReceiptSubmission = true;
+        return; // Halt submission
+      }
+    }
+
+    const saveBtn = document.getElementById('scan-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      const res = await fetch("{% url 'api_add_expense' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({
+          amount,
+          category,
+          account,
+          paymentMethod: payment,
+          description,
+          date
+        })
+      });
+
+      if (res.ok) {
+        closeScanReceiptModal();
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to save expense. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>Save Expense';
+        if (window.lucide) window.lucide.createIcons();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving expense.');
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>Save Expense';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
+
+
 </script>
 {% endblock %}

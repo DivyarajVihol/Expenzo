@@ -4,14 +4,15 @@ from django.contrib.auth import login, authenticate, logout, update_session_auth
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.cache import never_cache
 from django.utils import timezone as django_timezone
 from django.db.models import Q
 from datetime import datetime, timedelta
 import json
 import logging
 
-logger = logging.getLogger('security')
+logger = logging.getLogger('security')  
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -31,7 +32,7 @@ from .models import (
 )
 from .recurring_processor import process_recurring_finance, recalculate_current_month
 from .charts import (
-    generate_savings_gauge_chart, generate_spending_pie_chart,
+    generate_spending_pie_chart,
     generate_group_net_standing_chart, generate_payment_method_bar_chart
 )
 from .decorators import rate_limit
@@ -45,6 +46,8 @@ def get_object_or_none(model, **kwargs):
 
 @rate_limit(limit=60, window=60)
 @login_required
+@never_cache
+@ensure_csrf_cookie
 def dashboard_view(request):
     user = request.user
     
@@ -186,34 +189,59 @@ def dashboard_view(request):
     # Generate charts
     pie_chart_base64 = generate_spending_pie_chart(pie_categories, pie_values)
     
-    profile = user.profile
-    savings_target = profile.savings_target
-    savings_current = profile.savings_current
-    savings_percent = min(100, round((savings_current / savings_target) * 100)) if savings_target > 0 else 0
-    
-    gauge_chart_base64 = generate_savings_gauge_chart(savings_percent)
     active_month_label = now.strftime("%B %Y")
     
     import json
     account_balances_dict = {acc['name']: acc['balance'] for acc in account_breakdown}
     account_balances_json = json.dumps(account_balances_dict)
     
+    # Construct unified/merged breakdown list of accounts and payment methods
+    acc_map = {acc['name']: acc for acc in account_breakdown}
+    pm_map = {pm['name']: pm for pm in payment_method_breakdown}
+    
+    merged_breakdown = []
+    ITEMS_ORDER = ['Cash', 'Bank Account', 'Credit Card', 'UPI', 'Debit Card', 'Bank Transfer', 'Others']
+    
+    for name in ITEMS_ORDER:
+        acc_data = acc_map.get(name)
+        pm_data = pm_map.get(name)
+        
+        if not acc_data and not pm_data:
+            continue
+            
+        item = {'name': name}
+        if acc_data and pm_data:
+            item['type'] = 'both'
+            item['income'] = acc_data['income']
+            item['expense'] = acc_data['expense']
+            item['balance'] = acc_data['balance']
+            item['count'] = pm_data['count']
+            item['pm_expense'] = pm_data['expense']
+        elif acc_data:
+            item['type'] = 'account'
+            item['income'] = acc_data['income']
+            item['expense'] = acc_data['expense']
+            item['balance'] = acc_data['balance']
+        else:
+            item['type'] = 'method'
+            item['expense'] = pm_data['expense']
+            item['count'] = pm_data['count']
+            
+        merged_breakdown.append(item)
+        
     context = {
         'recent_transactions': recent_transactions,
         'monthly_balance': monthly_balance,
-        'savings_target': savings_target,
-        'savings_current': savings_current,
-        'savings_percent': savings_percent,
         'active_month_label': active_month_label,
         'category_breakdown': category_breakdown,
         'pie_chart': pie_chart_base64,
-        'gauge_chart': gauge_chart_base64,
         'account_breakdown': account_breakdown,
         'payment_method_breakdown': payment_method_breakdown,
         'pm_chart': pm_chart_base64,
         'filter_type': filter_type,
         'search_query': search_query,
-        'account_balances_json': account_balances_json
+        'account_balances_json': account_balances_json,
+        'merged_breakdown': merged_breakdown
     }
     return render(request, 'dashboard.html', context)
 
@@ -296,7 +324,8 @@ def charts_view(request):
         all_expenses_data.append({
             'date': exp.date.strftime('%Y-%m-%d') if exp.date else '',
             'amount': float(exp.amount),
-            'category': exp.category
+            'category': exp.category,
+            'description': exp.description or ''
         })
     all_expenses_json = json.dumps(all_expenses_data)
     
@@ -1407,29 +1436,7 @@ def add_settlement_api(request, group_id):
     return JsonResponse({'error': 'POST required'}, status=405)
 
 @rate_limit(limit=30, window=60)
-@login_required
-def save_savings_goal_api(request):
-    if request.method == 'POST':
-        try:
-            body = json.loads(request.body)
-            try:
-                target = float(body.get('target', 0))
-                current = float(body.get('current', 0))
-            except (ValueError, TypeError):
-                return JsonResponse({'error': 'Invalid float value.'}, status=400)
-            
-            profile = request.user.profile
-            profile.savings_target = target
-            profile.savings_current = current
-            profile.save()
-            
-            return JsonResponse({'status': 'success'})
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
-        except Exception as e:
-            logger.error(f"SECURITY: API Exception in {request.path} by user {request.user.id if request.user.is_authenticated else 'Anonymous'}: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
-    return JsonResponse({'error': 'POST required'}, status=405)
+
 
 @rate_limit(limit=10, window=60)
 def register_view(request):
@@ -2188,3 +2195,422 @@ def export_group_excel(request, group_id):
     response['Content-Disposition'] = f'attachment; filename="expenzo_group_{group.name}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
     wb.save(response)
     return response
+
+
+# ──────────────────────────────────────────────────────────────
+#  SCAN RECEIPT  –  OCR text parsing endpoint
+#  Accepts raw text extracted by client-side Tesseract.js,
+#  parses structured expense fields, returns JSON.
+#  Does NOT modify any existing model or API.
+# ──────────────────────────────────────────────────────────────
+@login_required
+def scan_receipt_api(request):
+    """Parse OCR-extracted receipt text and return structured expense data."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+        raw_text = body.get('text')
+        if raw_text is None:
+            raw_text = ''
+        raw_text = strip_tags(str(raw_text))[:6000]
+
+        ocr_confidence = body.get('ocr_confidence', 0)
+        try:
+            ocr_confidence = float(ocr_confidence if ocr_confidence is not None else 0)
+        except (ValueError, TypeError):
+            ocr_confidence = 0.0
+
+        if not raw_text or len(raw_text.strip()) < 4:
+            return JsonResponse({'error': 'No readable text found. Please upload a clearer image.'}, status=400)
+
+        result = _parse_receipt_text(raw_text, ocr_confidence)
+        return JsonResponse(result)
+    except Exception as e:
+        import traceback
+        print("EXCEPTION IN SCAN_RECEIPT_API:")
+        traceback.print_exc()
+        return JsonResponse({'error': f'Parser error: {str(e)}'}, status=400)
+
+
+def _try_parse_date_str(s):
+    """Try multiple date formats; return 'YYYY-MM-DD' string or None."""
+    import re
+    from datetime import datetime
+    
+    s = s.strip()
+    # Replace multiple spaces with single space
+    s = re.sub(r'\s+', ' ', s)
+    s = re.sub(r'^[:\s\-]+|[:\s\-]+$', '', s)
+    if not s:
+        return None
+
+    # Try common ISO and numerical formats first
+    # 1. YYYY-MM-DD or YYYY/MM/DD
+    m_iso = re.match(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$', s)
+    if m_iso:
+        try:
+            dt = datetime(int(m_iso.group(1)), int(m_iso.group(2)), int(m_iso.group(3)))
+            if 2000 <= dt.year <= 2100:
+                return dt.strftime('%Y-%m-%d')
+        except ValueError:
+            pass
+
+    # 2. DD-MM-YYYY or DD/MM/YYYY or MM/DD/YYYY
+    m_dmy = re.match(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$', s)
+    if m_dmy:
+        try:
+            dt = datetime(int(m_dmy.group(3)), int(m_dmy.group(2)), int(m_dmy.group(1)))
+            if 2000 <= dt.year <= 2100:
+                return dt.strftime('%Y-%m-%d')
+        except ValueError:
+            try:
+                dt = datetime(int(m_dmy.group(3)), int(m_dmy.group(1)), int(m_dmy.group(2)))
+                if 2000 <= dt.year <= 2100:
+                    return dt.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+
+    # 3. Pure Python word-based month parsing
+    months_map = {
+        'jan': 1, 'january': 1, 'feb': 2, 'february': 2,
+        'mar': 3, 'march': 3, 'apr': 4, 'april': 4,
+        'may': 5, 'jun': 6, 'june': 6, 'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8, 'sep': 9, 'september': 9,
+        'oct': 10, 'october': 10, 'nov': 11, 'november': 11,
+        'dec': 12, 'december': 12
+    }
+
+    # Format: DD Month YYYY (e.g. 3 July 2026, 03 July 2026, 3-July-2026)
+    m_word1 = re.match(r'^(\d{1,2})[-/\s]+([a-zA-Z]{3,9})[-/\s]+(\d{4})$', s)
+    if m_word1:
+        d = int(m_word1.group(1))
+        m_str = m_word1.group(2).lower()
+        y = int(m_word1.group(3))
+        if m_str in months_map:
+            try:
+                dt = datetime(y, months_map[m_str], d)
+                if 2000 <= dt.year <= 2100:
+                    return dt.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+
+    # Format: Month DD YYYY (e.g. July 3 2026, July 03 2026, July 3, 2026)
+    m_word2 = re.match(r'^([a-zA-Z]{3,9})[-/\s]+(\d{1,2})[\s,]+(\d{4})$', s)
+    if m_word2:
+        m_str = m_word2.group(1).lower()
+        d = int(m_word2.group(2))
+        y = int(m_word2.group(3))
+        if m_str in months_map:
+            try:
+                dt = datetime(y, months_map[m_str], d)
+                if 2000 <= dt.year <= 2100:
+                    return dt.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+
+    # 4. Fallback to dateparser (only if installed)
+    try:
+        import dateparser
+        parsed_dt = dateparser.parse(
+            s,
+            settings={
+                "DATE_ORDER": "DMY",
+                "PREFER_DAY_OF_MONTH": "first",
+                "STRICT_PARSING": False
+            }
+        )
+        if parsed_dt:
+            y = parsed_dt.year
+            mo = parsed_dt.month
+            d = parsed_dt.day
+            if 2000 <= y <= 2100:
+                return f"{y:04d}-{mo:02d}-{d:02d}"
+    except (ImportError, Exception):
+        pass
+            
+    return None
+
+
+def _parse_receipt_text(text, ocr_confidence=0):
+    """
+    Rule-based receipt parser converting raw OCR text into structured expense fields.
+    """
+    import re
+
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+    text_lower = text.lower()
+
+    # ── 1. Merchant Extraction ─────────────────────────────────────
+    # Check for explicit vendor/merchant labels first, then fall back
+    merchant = None
+    merchant_labels = [
+        r'vendor\s+name', r'vendor', r'merchant\s+name', r'merchant',
+        r'store\s+name', r'store', r'seller\s+name', r'seller',
+        r'shop\s+name', r'shop'
+    ]
+    ignore_merchant_patterns = [
+        r'\bwelcome\b', r'\bthank\b', r'\binvoice\b', r'\breceipt\b', r'\bbill\b',
+        r'\btax\b', r'\bgst\b', r'\bvat\b', r'\bphone\b', r'\btel\b', r'\bmob\b',
+        r'\bdate\b', r'\btime\b', r'\bcash\s+memo\b', r'\bduplicate\b', r'\boriginal\b',
+        r'\btotal\b', r'\bamount\b', r'\bpayable\b', r'\bpaid\b', r'\bgrand\b', r'\bsubtotal\b',
+        r'\bchange\b', r'\bcard\b', r'\bupi\b', r'\bcash\b', r'\bpayment\b'
+    ]
+
+    for label in merchant_labels:
+        for line in lines:
+            low_line = line.lower()
+            m = re.search(r'\b' + label + r'\b[:\s\-]*', low_line)
+            if m:
+                val = line[m.end():].strip()
+                if val and len(val) >= 2 and not any(re.search(pat, val.lower()) for pat in ignore_merchant_patterns):
+                    merchant = val
+                    break
+        if merchant:
+            break
+
+    if not merchant:
+        top_lines = lines[:8]
+        for line in top_lines:
+            line_clean = line.strip()
+            if not line_clean:
+                continue
+            if not re.search(r'[a-zA-Z]', line_clean):
+                continue
+            if re.match(r'^[\W\d_]+$', line_clean):
+                continue
+            
+            low_line = line_clean.lower()
+            if any(re.search(pat, low_line) for pat in ignore_merchant_patterns):
+                continue
+                
+            merchant = line_clean
+            break
+
+    # ── 2. Date Extraction ─────────────────────────────────────────
+    # Recognize labels: Date, DATE, Invoice Date, Bill Date, Transaction Date, Txn Date
+    # Support formats: dd/mm/yyyy, d/m/yyyy, yyyy-mm-dd, 05/05/2026, 5/5/2026, May 5 2026
+    # Never guess dates. Never swap day and month unless format is explicitly known.
+    # Leave empty if not found.
+    date_val = None
+    date_labels = [
+        r'transaction\s+date', r'invoice\s+date', r'bill\s+date', r'txn\s+date', r'date'
+    ]
+    exclude_date_words = {
+        'receipt no', 'receipt number', 'receipt#', 'bill no', 'bill number', 'bill#',
+        'invoice no', 'invoice number', 'invoice#', 'time', 'volume', 'rate', 'amount',
+        'mobile', 'vehicle', 'veh no', 'veh#'
+    }
+    
+    # Try finding by labels first
+    for label in date_labels:
+        for line in lines:
+            low_line = line.lower()
+            if any(w in low_line for w in exclude_date_words):
+                continue
+                
+            m = re.search(r'\b' + label + r'\b[:\s\-]*', low_line)
+            if m:
+                # Extract immediately following text
+                after_text = line[m.end():].strip()
+                
+                # Check for standard date pattern matches inside after_text
+                # ISO check
+                m_iso = re.search(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', after_text)
+                if m_iso:
+                    parsed = _try_parse_date_str(m_iso.group(0))
+                    if parsed:
+                        date_val = parsed
+                        break
+                        
+                # Word month check
+                m_word = re.search(r'\b(?:[a-z]{3,9}\s+\d{1,2}|\d{1,2}\s+[a-z]{3,9})[\s,]+\d{4}\b', after_text, re.IGNORECASE)
+                if m_word:
+                    parsed = _try_parse_date_str(m_word.group(0))
+                    if parsed:
+                        date_val = parsed
+                        break
+                        
+                # Slashes/Dashes check
+                m_num = re.search(r'\b\d{1,2}[-/.]\d{1,2}[-/.]\d{4}\b', after_text)
+                if m_num:
+                    # Clean trailing periods or separators
+                    cleaned_num = m_num.group(0).replace('.', '-')
+                    parsed = _try_parse_date_str(cleaned_num)
+                    if parsed:
+                        date_val = parsed
+                        break
+        if date_val:
+            break
+
+    # If no labeled date, search remaining text
+    if not date_val:
+        for line in lines:
+            low_line = line.lower()
+            if any(w in low_line for w in exclude_date_words):
+                continue
+                
+            m_iso = re.search(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', line)
+            if m_iso:
+                parsed = _try_parse_date_str(m_iso.group(0))
+                if parsed:
+                    date_val = parsed
+                    break
+            
+            m_word = re.search(r'\b(?:[a-z]{3,9}\s+\d{1,2}|\d{1,2}\s+[a-z]{3,9})[\s,]+\d{4}\b', line, re.IGNORECASE)
+            if m_word:
+                parsed = _try_parse_date_str(m_word.group(0))
+                if parsed:
+                    date_val = parsed
+                    break
+                    
+            m_num = re.search(r'\b\d{1,2}[-/.]\d{1,2}[-/.]\d{4}\b', line)
+            if m_num:
+                cleaned_num = m_num.group(0).replace('.', '-')
+                parsed = _try_parse_date_str(cleaned_num)
+                if parsed:
+                    date_val = parsed
+                    break
+
+    # ── 3. Amount Extraction ───────────────────────────────────────
+    # Prioritize labels: Total, Grand Total, Amount, Amount(Rs.), Net Amount, Amount Payable
+    # Ignore: Rate, Volume, Tax, Subtotal, Discount, MRP
+    # If multiple exist, select the final payable amount.
+    amount = None
+    priorities = ['grand total', 'amount payable', 'net amount', 'amount(rs.)', 'amount', 'total']
+    ignore_amt_words = {'rate', 'volume', 'tax', 'subtotal', 'discount', 'mrp', 'cgst', 'sgst', 'igst', 'gst', 'vat'}
+    
+    amount_candidates = []
+    
+    for line in lines:
+        low_line = line.lower()
+        if any(w in low_line for w in ignore_amt_words):
+            continue
+            
+        for label in priorities:
+            # Match the label exactly in text (with lax spacing/symbols)
+            clean_line_no_spaces = re.sub(r'[^a-z0-9]', '', low_line)
+            clean_label = re.sub(r'[^a-z0-9]', '', label)
+            if clean_label in clean_line_no_spaces:
+                nums = re.findall(r'([0-9,]+\.[0-9]{2}|[0-9,]+)', line)
+                if nums:
+                    try:
+                        val = float(nums[-1].replace(',', ''))
+                        if val > 0:
+                            amount_candidates.append(val)
+                            break
+                    except ValueError:
+                        pass
+                        
+    if amount_candidates:
+        # Multiple amounts exist: Select the final payable amount (last match in the document)
+        amount = amount_candidates[-1]
+        
+    # Generic fallback if no prioritized labels match
+    if amount is None:
+        for line in reversed(lines):
+            low_line = line.lower()
+            if any(w in low_line for w in ignore_amt_words):
+                continue
+            if 'total' in low_line or 'payable' in low_line or 'amount' in low_line:
+                nums = re.findall(r'([0-9,]+\.[0-9]{2}|[0-9,]+)', line)
+                if nums:
+                    try:
+                        val = float(nums[-1].replace(',', ''))
+                        if val > 0:
+                            amount = val
+                            break
+                    except ValueError:
+                        pass
+
+    # ── 4. Payment Method ──────────────────────────────────────────
+    # Detect: Cash, UPI, Credit Card, Debit Card, Wallet, Net Banking
+    payment_method = None
+    pm_mapping = {
+        'cash': 'Cash',
+        'upi': 'UPI',
+        'gpay': 'UPI',
+        'phonepe': 'UPI',
+        'paytm': 'UPI',
+        'credit card': 'Credit Card',
+        'visa': 'Credit Card',
+        'mastercard': 'Credit Card',
+        'debit card': 'Debit Card',
+        'wallet': 'Wallet',
+        'net banking': 'Net Banking',
+        'netbanking': 'Net Banking',
+        'bank transfer': 'Net Banking'
+    }
+    
+    for kw, method in pm_mapping.items():
+        if re.search(r'\b' + re.escape(kw) + r'\b', text_lower):
+            payment_method = method
+            break
+
+    # ── 5. Category Mapping ────────────────────────────────────────
+    # Petrol, Fuel, Diesel, Uber, Ola, Metro → Transport (Travel)
+    # Restaurant, Cafe, Food Court → Food
+    # Medical Store, Pharmacy → Healthcare (Health)
+    # Electricity, Gas Bill, Water Bill → Bills (Utilities)
+    # Movie, Cinema, Netflix → Entertainment
+    # Shopping Mall, Amazon, Flipkart → Shopping
+    category_mapping = [
+        ('Travel', ['petrol', 'fuel', 'diesel', 'uber', 'ola', 'metro']),
+        ('Food', ['restaurant', 'cafe', 'food court']),
+        ('Health', ['medical store', 'pharmacy']),
+        ('Utilities', ['electricity', 'gas bill', 'water bill', 'newspaper', 'news']),
+        ('Entertainment', ['movie', 'cinema', 'netflix']),
+        ('Shopping', ['shopping mall', 'amazon', 'flipkart'])
+    ]
+    
+    category = None
+    for cat, keywords in category_mapping:
+        if any(kw in text_lower for kw in keywords):
+            category = cat
+            break
+
+    return {
+        'merchant':       merchant or '',
+        'amount':         amount,
+        'tax':            None,
+        'date':           date_val or '',
+        'currency':       'INR',
+        'category':       category or '',
+        'payment_method': payment_method or '',
+        'receipt_no':     '',
+        'confidence':     100,
+    }
+
+
+@rate_limit(limit=60, window=60)
+@login_required
+def spending_streaks_view(request):
+    user = request.user
+    
+    # Process recurring items dynamically
+    process_recurring_finance(user)
+    
+    # Fetch all personal expenses
+    expenses = PersonalExpense.objects.filter(user=user).order_by('-date')
+    
+    # Serialize expenses for streak calculations
+    expense_history_data = [
+        {
+            'date': exp.date.strftime('%Y-%m-%d'),
+            'amount': exp.amount,
+            'category': exp.category,
+            'description': exp.description
+        }
+        for exp in expenses
+    ]
+    expense_history_json = json.dumps(expense_history_data)
+    
+    context = {
+        'expense_history_json': expense_history_json
+    }
+    return render(request, 'streaks.html', context)
+

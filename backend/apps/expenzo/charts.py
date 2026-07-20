@@ -5,50 +5,7 @@ import seaborn as sns
 import io
 import base64
 
-def generate_savings_gauge_chart(percent):
-    try:
-        percent = max(0.0, min(100.0, float(percent)))
-        remaining = 100.0 - percent
 
-        # Don't show empty charts if remaining is 100 and percent is 0
-        if percent == 0:
-            sizes = [0.001, 99.999]
-        else:
-            sizes = [percent, remaining]
-
-        fig, ax = plt.subplots(figsize=(1.2, 1.2), dpi=200)
-        fig.patch.set_alpha(0.0)
-        ax.patch.set_alpha(0.0)
-
-        # Set Colors
-        colors = ['#34d399', (1.0, 1.0, 1.0, 0.06)]
-
-        # Donut plot
-        ax.pie(
-            sizes,
-            colors=colors,
-            startangle=90,
-            counterclock=False,
-            wedgeprops=dict(width=0.16, edgecolor='none')
-        )
-
-        ax.text(
-            0, 0, f"{int(percent)}%",
-            ha='center', va='center',
-            fontsize=12, color='#f8fafc',
-            weight='bold', fontfamily='sans-serif'
-        )
-
-        ax.axis('equal')
-        plt.tight_layout()
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=True)
-        plt.close(fig)
-        return base64.b64encode(buf.getvalue()).decode('utf-8')
-    except Exception as e:
-        print("Error generating gauge chart:", e)
-        return ""
 
 def generate_spending_pie_chart(categories, values):
     try:
