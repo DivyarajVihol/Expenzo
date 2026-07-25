@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
@@ -7,14 +8,30 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.CharField(max_length=255, null=True, blank=True)
     avatar_base64 = models.TextField(null=True, blank=True)
+    google_picture_url = models.URLField(max_length=500, null=True, blank=True)
     bio = models.TextField(null=True, blank=True)
     phone = models.CharField(max_length=50, null=True, blank=True)
     country = models.CharField(max_length=100, default="India")
     savings_target = models.FloatField(default=0.0)
     savings_current = models.FloatField(default=0.0)
+    is_email_verified = models.BooleanField(default=False)
+    signup_method = models.CharField(
+        max_length=20,
+        choices=[('email', 'Email'), ('google', 'Google')],
+        default='email'
+    )
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
+
+class EmailVerificationToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
+    token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Token for {self.user.username} ({self.token})"
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -23,7 +40,9 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
+
 
 class PersonalExpense(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personal_expenses')
