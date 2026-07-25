@@ -303,7 +303,7 @@
   </div>
 
   <!-- "Where Did My Money Go?" Flow Analytics Card -->
-  <div class="glass-card fade-in-load" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem; margin-bottom: 2rem; opacity: 0; transition: opacity 0.5s ease;" id="flow-analytics-card">
+  <div class="glass-card fade-in-load" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem; margin-bottom: 2rem; opacity: 0; transition: opacity 0.5s ease; position: relative;" id="flow-analytics-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
       <div>
         <h3 class="spending-title" style="margin: 0 0 0.25rem 0;">Where Did My Money Go?</h3>
@@ -358,24 +358,24 @@
 
     <!-- Diagram Area -->
     <div id="flow-diagram-area" style="position: relative; margin: 2rem 0; width: 100%;">
-      <!-- SVG Overlay for connection paths -->
-      <svg id="flow-svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; z-index: 1; min-height: 380px;"></svg>
-
-      <!-- Three-column layout -->
-      <div id="flow-columns-wrapper" style="display: flex; justify-content: space-between; position: relative; z-index: 2; gap: 4rem; overflow-x: auto; padding: 1rem 0; -webkit-overflow-scrolling: touch; min-height: 380px;">
+      <!-- Three-column layout with SVG inside scroll container -->
+      <div id="flow-columns-wrapper" style="display: flex; justify-content: space-between; position: relative; gap: 4rem; overflow-x: auto; padding: 1rem 0; -webkit-overflow-scrolling: touch; min-height: 380px;">
         
+        <!-- SVG Overlay for connection paths -->
+        <svg id="flow-svg" style="position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; min-height: 380px; overflow: visible;"></svg>
+
         <!-- Column 1: Sources -->
-        <div class="flow-column" id="flow-col-sources" style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; min-width: 160px;">
+        <div class="flow-column" id="flow-col-sources" style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; min-width: 160px; position: relative; z-index: 2;">
           <!-- Populated dynamically -->
         </div>
 
         <!-- Column 2: Flows (Savings & Total Expenses) -->
-        <div class="flow-column" id="flow-col-mid" style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; min-width: 160px;">
+        <div class="flow-column" id="flow-col-mid" style="display: flex; flex-direction: column; gap: 2rem; justify-content: center; min-width: 160px; position: relative; z-index: 2;">
           <!-- Populated dynamically -->
         </div>
 
         <!-- Column 3: Categories -->
-        <div class="flow-column" id="flow-col-targets" style="display: flex; flex-direction: column; gap: 1.25rem; justify-content: center; min-width: 160px;">
+        <div class="flow-column" id="flow-col-targets" style="display: flex; flex-direction: column; gap: 1.25rem; justify-content: center; min-width: 160px; position: relative; z-index: 2;">
           <!-- Populated dynamically -->
         </div>
 
@@ -1037,11 +1037,39 @@
       drawFlowConnections();
     });
 
+    window.addEventListener('orientationchange', () => {
+      setTimeout(drawFlowConnections, 100);
+    });
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        drawFlowConnections();
+      });
+    }
+
+    setupFlowResizeObserver();
+
     const flowCard = document.getElementById('flow-analytics-card');
     if (flowCard) {
       setTimeout(() => {
         flowCard.style.opacity = '1';
       }, 100);
+    }
+  }
+
+  let flowResizeObserver = null;
+  function setupFlowResizeObserver() {
+    const scrollWrapper = document.getElementById('flow-columns-wrapper');
+    if (window.ResizeObserver && scrollWrapper && !flowResizeObserver) {
+      flowResizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(() => {
+          drawFlowConnections();
+        });
+      });
+      flowResizeObserver.observe(scrollWrapper);
+      document.querySelectorAll('.flow-column').forEach(col => {
+        flowResizeObserver.observe(col);
+      });
     }
   }
 
@@ -1136,9 +1164,15 @@
 
     renderFlowNodes(totalIncome, deficit, totalSavings, totalExpenses, categorySums, categoryTxnCounts);
     
+    requestAnimationFrame(() => {
+      drawFlowConnections(totalIncome, deficit, totalSavings, totalExpenses, categorySums, categoryTxnCounts);
+      requestAnimationFrame(() => {
+        drawFlowConnections(totalIncome, deficit, totalSavings, totalExpenses, categorySums, categoryTxnCounts);
+      });
+    });
     setTimeout(() => {
       drawFlowConnections(totalIncome, deficit, totalSavings, totalExpenses, categorySums, categoryTxnCounts);
-    }, 50);
+    }, 150);
 
     updateFlowSummaryCards(largestCategoryAmt, highestSingleExpenseAmt, totalSavings, moneyRemaining, largestCategory, highestSingleExpenseDesc);
   }
@@ -1255,6 +1289,8 @@
         window.location.href = `/history/?category=${encodeURIComponent(cat)}`;
       });
     });
+
+    setupFlowResizeObserver();
   }
 
   function drawFlowConnections(income, deficit, savings, expenses, categorySums, categoryTxnCounts) {
@@ -1273,12 +1309,15 @@
       window.flowState = { income, deficit, savings, expenses, categorySums, categoryTxnCounts };
     }
     
-    const wrapper = document.getElementById('flow-diagram-area');
-    const wrapperRect = wrapper.getBoundingClientRect();
-    
     const scrollWrapper = document.getElementById('flow-columns-wrapper');
-    svg.style.width = scrollWrapper.scrollWidth + 'px';
-    svg.style.height = scrollWrapper.scrollHeight + 'px';
+    if (!scrollWrapper) return;
+    const scrollWrapperRect = scrollWrapper.getBoundingClientRect();
+    
+    const contentWidth = Math.max(scrollWrapper.scrollWidth, scrollWrapper.clientWidth);
+    const contentHeight = Math.max(scrollWrapper.scrollHeight, scrollWrapper.clientHeight);
+
+    svg.style.width = contentWidth + 'px';
+    svg.style.height = contentHeight + 'px';
 
     const elIncome = document.getElementById('node-income');
     const elDeficit = document.getElementById('node-deficit');
@@ -1299,18 +1338,21 @@
       const rectA = elA.getBoundingClientRect();
       const rectB = elB.getBoundingClientRect();
       
-      const xA = rectA.right - wrapperRect.left + scrollWrapper.scrollLeft;
-      const yA = rectA.top + rectA.height / 2 - wrapperRect.top + scrollWrapper.scrollTop;
+      if (rectA.width === 0 || rectA.height === 0 || rectB.width === 0 || rectB.height === 0) return;
+
+      const xA = rectA.right - scrollWrapperRect.left + scrollWrapper.scrollLeft;
+      const yA = rectA.top + rectA.height / 2 - scrollWrapperRect.top + scrollWrapper.scrollTop;
       
-      const xB = rectB.left - wrapperRect.left + scrollWrapper.scrollLeft;
-      const yB = rectB.top + rectB.height / 2 - wrapperRect.top + scrollWrapper.scrollTop;
+      const xB = rectB.left - scrollWrapperRect.left + scrollWrapper.scrollLeft;
+      const yB = rectB.top + rectB.height / 2 - scrollWrapperRect.top + scrollWrapper.scrollTop;
       
-      const dx = (xB - xA) * 0.45;
+      const dx = Math.max(20, (xB - xA) * 0.45);
       const d = `M ${xA} ${yA} C ${xA + dx} ${yA}, ${xB - dx} ${yB}, ${xB} ${yB}`;
       
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", d);
       path.setAttribute("class", "flow-path");
+      path.style.pointerEvents = "auto";
       
       const pct = val / totalFlow;
       const strokeWidth = Math.max(1.5, Math.min(32, pct * 36));
@@ -1329,6 +1371,12 @@
         path.setAttribute("stroke-opacity", "0.45");
         hideFlowTooltip();
       });
+      path.addEventListener('touchstart', (e) => {
+        path.setAttribute("stroke-opacity", "0.8");
+        if (e.touches && e.touches[0]) {
+          showFlowTooltip(e.touches[0], label, val, pct, count, isIncomeFlow, pctOfSpending);
+        }
+      }, { passive: true });
       
       if (!isIncomeFlow) {
         path.addEventListener('click', () => {
@@ -1389,10 +1437,21 @@
     if (!tooltip) return;
     
     const card = document.getElementById('flow-analytics-card');
+    if (!card) return;
     const cardRect = card.getBoundingClientRect();
     
-    tooltip.style.left = (e.clientX - cardRect.left + 15) + 'px';
-    tooltip.style.top = (e.clientY - cardRect.top + window.scrollY - 30) + 'px';
+    let left = e.clientX - cardRect.left + 15;
+    let top = e.clientY - cardRect.top - 40;
+    
+    const tooltipWidth = tooltip.offsetWidth || 200;
+    if (left + tooltipWidth > cardRect.width - 10) {
+      left = e.clientX - cardRect.left - tooltipWidth - 15;
+    }
+    if (left < 10) left = 10;
+    if (top < 10) top = e.clientY - cardRect.top + 20;
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
   }
 
   function hideFlowTooltip() {
