@@ -1,7 +1,7 @@
 
 """
-Production settings for EXPENZO.
-Hosted on MailWala cPanel using Python 3.12 and Django.
+Settings for EXPENZO.
+Compatible with local Windows development and MailWala cPanel production.
 """
 
 import os
@@ -9,12 +9,17 @@ import logging
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 # ==================================================
-# BASE DIRECTORY
+# BASE DIRECTORY AND ENVIRONMENT
 # ==================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load backend/.env when available.
+# Production environment variables remain supported.
+load_dotenv(BASE_DIR / ".env")
 
 # ==================================================
 # SECURITY
@@ -24,19 +29,20 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 
 if not SECRET_KEY:
     raise RuntimeError(
-        "SECRET_KEY is missing. Configure it in the "
-        "MailWala Python application environment variables."
+        "SECRET_KEY is missing. Set it in backend/.env "
+        "for local development or in the MailWala "
+        "Python application environment variables."
     )
 
 DEBUG = os.environ.get("DEBUG", "False").strip().lower() in (
-    "true", "1", "t"
+    "true", "1", "t", "yes"
 )
 
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
         "ALLOWED_HOSTS",
-        "expenzo.rascomputer.com",
+        "127.0.0.1,localhost,expenzo.rascomputer.com",
     ).split(",")
     if host.strip()
 ]
@@ -76,7 +82,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
-
 WSGI_APPLICATION = "config.wsgi.application"
 
 # ==================================================
@@ -101,21 +106,25 @@ TEMPLATES = [
 # ==================================================
 # DATABASE
 # ==================================================
-# Keep production data outside the Git repository.
-# DATABASE_URL can be changed in cPanel if needed.
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "sqlite:////home/faesgvfk/expenzo_app/db.sqlite3",
-)
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
-DATABASES = {
-    "default": dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    # Local development database.
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # ==================================================
 # PASSWORD VALIDATION
@@ -163,18 +172,14 @@ USE_TZ = True
 # ==================================================
 
 STATIC_URL = "/static/"
-
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
-
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STORAGES = {
     "default": {
-        "BACKEND": (
-            "django.core.files.storage.FileSystemStorage"
-        ),
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
         "BACKEND": (
@@ -192,7 +197,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(
     os.environ.get(
         "MEDIA_ROOT",
-        "/home/faesgvfk/expenzo_app/media",
+        str(BASE_DIR / "media"),
     )
 )
 
@@ -213,10 +218,10 @@ SESSION_COOKIE_HTTPONLY = True
 # ==================================================
 
 SECURE_SSL_REDIRECT = (
-    os.environ.get(
-        "SECURE_SSL_REDIRECT",
-        "False",
-    ).strip().lower() in ("true", "1", "t")
+    os.environ.get("SECURE_SSL_REDIRECT", "False")
+    .strip()
+    .lower()
+    in ("true", "1", "t", "yes")
 )
 
 SESSION_COOKIE_SECURE = not DEBUG
@@ -226,15 +231,12 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "same-origin"
 
-# Keep HSTS disabled until HTTPS is verified.
 SECURE_HSTS_SECONDS = int(
     os.environ.get("SECURE_HSTS_SECONDS", "0")
 )
-
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 
-# One-hour password reset tokens.
 PASSWORD_RESET_TIMEOUT = 3600
 
 # ==================================================
@@ -243,15 +245,12 @@ PASSWORD_RESET_TIMEOUT = 3600
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-EMAIL_HOST = os.environ.get(
-    "EMAIL_HOST",
-    "smtp.gmail.com",
-)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 
 EMAIL_USE_TLS = (
     os.environ.get("EMAIL_USE_TLS", "True").strip().lower()
-    in ("true", "1", "t")
+    in ("true", "1", "t", "yes")
 )
 
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
@@ -266,13 +265,11 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # LOGGING
 # ==================================================
 
+# Use a local writable directory by default.
+# Set LOG_DIR to a writable directory on MailWala.
 LOG_DIR = Path(
-    os.environ.get(
-        "LOG_DIR",
-        "/home/faesgvfk/expenzo_app/logs",
-    )
+    os.environ.get("LOG_DIR", str(BASE_DIR / "logs"))
 )
-
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
@@ -300,3 +297,5 @@ LOGGING = {
         },
     },
 }
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
