@@ -1,19 +1,24 @@
 
 """
 Django settings for Expenzo.
-Production deployment on MailWala cPanel.
+MailWala cPanel production configuration.
 """
 
-from pathlib import Path
-import os
 import logging
+import os
+from pathlib import Path
 
-from dotenv import load_dotenv
 import dj_database_url
+from dotenv import load_dotenv
+
+# --------------------------------------------------
+# BASE CONFIGURATION
+# --------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load local .env for development; cPanel environment variables take precedence.
+# Load local .env for development only.
+# Existing environment variables take precedence.
 load_dotenv(BASE_DIR / ".env", override=False)
 
 # --------------------------------------------------
@@ -21,28 +26,31 @@ load_dotenv(BASE_DIR / ".env", override=False)
 # --------------------------------------------------
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
+
 if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable must be configured.")
+    raise ValueError(
+        "SECRET_KEY is missing. Configure it in the environment."
+    )
 
-DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "t")
-
-allowed_hosts_env = os.environ.get(
-    "ALLOWED_HOSTS",
-    "expenzo.rascomputer.com",
+DEBUG = os.environ.get("DEBUG", "False").strip().lower() in (
+    "true", "1", "t"
 )
+
 ALLOWED_HOSTS = [
     host.strip()
-    for host in allowed_hosts_env.split(",")
+    for host in os.environ.get(
+        "ALLOWED_HOSTS",
+        "expenzo.rascomputer.com",
+    ).split(",")
     if host.strip()
 ]
 
-csrf_origins_env = os.environ.get(
-    "CSRF_TRUSTED_ORIGINS",
-    "https://expenzo.rascomputer.com",
-)
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in csrf_origins_env.split(",")
+    for origin in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://expenzo.rascomputer.com",
+    ).split(",")
     if origin.strip()
 ]
 
@@ -72,6 +80,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
+
 WSGI_APPLICATION = "config.wsgi.application"
 
 # --------------------------------------------------
@@ -96,8 +105,8 @@ TEMPLATES = [
 # --------------------------------------------------
 # DATABASE
 # --------------------------------------------------
-# Set DATABASE_URL in cPanel if using another database.
-# SQLite defaults to a persistent location outside the Git repository.
+# Production SQLite database is outside the Git repository.
+# DATABASE_URL can override this if you later use PostgreSQL.
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
@@ -149,15 +158,20 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Kolkata"
+
 USE_I18N = True
 USE_TZ = True
 
 # --------------------------------------------------
-# STATIC AND MEDIA FILES
+# STATIC FILES
 # --------------------------------------------------
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STORAGES = {
@@ -171,7 +185,13 @@ STORAGES = {
     },
 }
 
+# --------------------------------------------------
+# MEDIA FILES
+# --------------------------------------------------
+# Persistent directory outside the Git repository.
+
 MEDIA_URL = "/media/"
+
 MEDIA_ROOT = Path(
     os.environ.get(
         "MEDIA_ROOT",
@@ -180,7 +200,7 @@ MEDIA_ROOT = Path(
 )
 
 # --------------------------------------------------
-# AUTHENTICATION
+# AUTHENTICATION AND SESSIONS
 # --------------------------------------------------
 
 LOGIN_URL = "login"
@@ -194,27 +214,31 @@ SESSION_COOKIE_HTTPONLY = True
 # --------------------------------------------------
 # HTTPS AND SECURITY HEADERS
 # --------------------------------------------------
+# Enable SSL redirect only after HTTPS is confirmed to work.
+# HSTS stays disabled until HTTPS has been tested.
 
 SECURE_SSL_REDIRECT = (
     os.environ.get(
         "SECURE_SSL_REDIRECT",
         "False",
-    ).lower() in ("true", "1", "t")
+    ).strip().lower() in ("true", "1", "t")
 )
 
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "same-origin"
 
-# Enable HSTS only after HTTPS has been verified to work correctly.
 SECURE_HSTS_SECONDS = int(
     os.environ.get("SECURE_HSTS_SECONDS", "0")
 )
+
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 
+# Password reset token validity: one hour.
 PASSWORD_RESET_TIMEOUT = 3600
 
 # --------------------------------------------------
@@ -222,14 +246,18 @@ PASSWORD_RESET_TIMEOUT = 3600
 # --------------------------------------------------
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+
 EMAIL_USE_TLS = (
-    os.environ.get("EMAIL_USE_TLS", "True").lower()
+    os.environ.get("EMAIL_USE_TLS", "True").strip().lower()
     in ("true", "1", "t")
 )
+
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",
     EMAIL_HOST_USER or "noreply@expenzo.local",
@@ -245,6 +273,7 @@ LOG_DIR = Path(
         "/home/faesgvfk/expenzo_app/logs",
     )
 )
+
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
