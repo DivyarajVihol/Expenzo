@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.urls import reverse
 import json
 
@@ -74,3 +75,101 @@ class ScanReceiptAPITestCase(TestCase):
             content_type='application/json'
         )
         self.assertEqual(response.status_code, 200)
+
+
+class AuthPagesTestCase(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='alex@example.com',
+            email='alex@example.com',
+            password='ComplexPassword@2026'
+        )
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_login_page_renders_design(self):
+        response = self.client.get(reverse('login'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'login.html')
+        content = response.content.decode('utf-8')
+        self.assertIn('EXPENZO', content)
+        self.assertIn('Welcome back.', content)
+        self.assertIn('Encrypted Tunnel', content)
+        self.assertIn('Real-time Financial Velocity', content)
+        self.assertIn('name="email"', content)
+        self.assertIn('name="password"', content)
+        self.assertIn('csrfmiddlewaretoken', content)
+
+    def test_login_invalid_credentials(self):
+        response = self.client.post(reverse('login'), {
+            'email': 'alex@example.com',
+            'password': 'WrongPassword123!'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'login.html')
+        content = response.content.decode('utf-8')
+        self.assertIn('Invalid credentials', content)
+
+    def test_login_success(self):
+        response = self.client.post(reverse('login'), {
+            'email': 'alex@example.com',
+            'password': 'ComplexPassword@2026'
+        })
+        self.assertRedirects(response, reverse('dashboard'), fetch_redirect_response=False)
+        self.assertTrue('_auth_user_id' in self.client.session)
+
+    def test_register_page_renders_design(self):
+        response = self.client.get(reverse('register'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'register.html')
+        content = response.content.decode('utf-8')
+        self.assertIn('EXPENZO', content)
+        self.assertIn('Start your financial journey.', content)
+        self.assertIn('Free Forever Tier', content)
+        self.assertIn('Real-time Financial Velocity', content)
+        self.assertIn('name="name"', content)
+        self.assertIn('name="email"', content)
+        self.assertIn('name="password"', content)
+        self.assertIn('name="confirm_password"', content)
+        self.assertIn('csrfmiddlewaretoken', content)
+
+    def test_register_password_mismatch(self):
+        response = self.client.post(reverse('register'), {
+            'name': 'New User',
+            'email': 'newuser@example.com',
+            'password': 'ComplexPassword@2026',
+            'confirm_password': 'MismatchedPassword@2026',
+            'terms': 'on'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'register.html')
+        content = response.content.decode('utf-8')
+        self.assertIn('Passwords do not match', content)
+
+    def test_register_existing_user(self):
+        response = self.client.post(reverse('register'), {
+            'name': 'Existing User',
+            'email': 'alex@example.com',
+            'password': 'ComplexPassword@2026',
+            'confirm_password': 'ComplexPassword@2026',
+            'terms': 'on'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'register.html')
+        content = response.content.decode('utf-8')
+        self.assertIn('User with this email already exists', content)
+
+    def test_register_success(self):
+        response = self.client.post(reverse('register'), {
+            'name': 'Jordan Smith',
+            'email': 'jordan@example.com',
+            'password': 'ComplexPassword@2026',
+            'confirm_password': 'ComplexPassword@2026',
+            'terms': 'on'
+        })
+        self.assertRedirects(response, reverse('dashboard'), fetch_redirect_response=False)
+        self.assertTrue(User.objects.filter(email='jordan@example.com').exists())
+        self.assertTrue('_auth_user_id' in self.client.session)
