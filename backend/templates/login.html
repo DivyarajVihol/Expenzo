@@ -464,6 +464,10 @@
     }
 
     function handleLoginSubmit(e) {
+      const form = document.getElementById('login-form');
+      if (form && !form.checkValidity()) {
+        return;
+      }
       const submitBtn = document.getElementById('submit-btn');
       if (submitBtn) {
         submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Authenticating...</span>';
