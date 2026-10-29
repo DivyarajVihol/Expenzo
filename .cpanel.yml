@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - /bin/mkdir -p /home/faesgvfk/expenzo_app/tmp
+    - /usr/bin/touch /home/faesgvfk/expenzo_app/tmp/restart.txt
