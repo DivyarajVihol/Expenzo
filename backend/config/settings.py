@@ -1,35 +1,31 @@
 
 """
-Django settings for Expenzo.
-MailWala cPanel production configuration.
+Production settings for EXPENZO.
+Hosted on MailWala cPanel using Python 3.12 and Django.
 """
 
-import logging
 import os
+import logging
 from pathlib import Path
 
 import dj_database_url
-from dotenv import load_dotenv
 
-# --------------------------------------------------
-# BASE CONFIGURATION
-# --------------------------------------------------
+# ==================================================
+# BASE DIRECTORY
+# ==================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load local .env for development only.
-# Existing environment variables take precedence.
-load_dotenv(BASE_DIR / ".env", override=False)
-
-# --------------------------------------------------
+# ==================================================
 # SECURITY
-# --------------------------------------------------
+# ==================================================
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 if not SECRET_KEY:
-    raise ValueError(
-        "SECRET_KEY is missing. Configure it in the environment."
+    raise RuntimeError(
+        "SECRET_KEY is missing. Configure it in the "
+        "MailWala Python application environment variables."
     )
 
 DEBUG = os.environ.get("DEBUG", "False").strip().lower() in (
@@ -54,9 +50,9 @@ CSRF_TRUSTED_ORIGINS = [
     if origin.strip()
 ]
 
-# --------------------------------------------------
+# ==================================================
 # APPLICATIONS
-# --------------------------------------------------
+# ==================================================
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -83,9 +79,9 @@ ROOT_URLCONF = "config.urls"
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# --------------------------------------------------
+# ==================================================
 # TEMPLATES
-# --------------------------------------------------
+# ==================================================
 
 TEMPLATES = [
     {
@@ -102,11 +98,11 @@ TEMPLATES = [
     },
 ]
 
-# --------------------------------------------------
+# ==================================================
 # DATABASE
-# --------------------------------------------------
-# Production SQLite database is outside the Git repository.
-# DATABASE_URL can override this if you later use PostgreSQL.
+# ==================================================
+# Keep production data outside the Git repository.
+# DATABASE_URL can be changed in cPanel if needed.
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
@@ -121,9 +117,9 @@ DATABASES = {
     )
 }
 
-# --------------------------------------------------
+# ==================================================
 # PASSWORD VALIDATION
-# --------------------------------------------------
+# ==================================================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -152,19 +148,19 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# --------------------------------------------------
+# ==================================================
 # INTERNATIONALIZATION
-# --------------------------------------------------
+# ==================================================
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Asia/Kolkata"
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 USE_TZ = True
 
-# --------------------------------------------------
+# ==================================================
 # STATIC FILES
-# --------------------------------------------------
+# ==================================================
 
 STATIC_URL = "/static/"
 
@@ -176,7 +172,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": (
+            "django.core.files.storage.FileSystemStorage"
+        ),
     },
     "staticfiles": {
         "BACKEND": (
@@ -185,10 +183,9 @@ STORAGES = {
     },
 }
 
-# --------------------------------------------------
+# ==================================================
 # MEDIA FILES
-# --------------------------------------------------
-# Persistent directory outside the Git repository.
+# ==================================================
 
 MEDIA_URL = "/media/"
 
@@ -199,9 +196,9 @@ MEDIA_ROOT = Path(
     )
 )
 
-# --------------------------------------------------
+# ==================================================
 # AUTHENTICATION AND SESSIONS
-# --------------------------------------------------
+# ==================================================
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
@@ -211,11 +208,9 @@ SESSION_COOKIE_AGE = 3600
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 
-# --------------------------------------------------
+# ==================================================
 # HTTPS AND SECURITY HEADERS
-# --------------------------------------------------
-# Enable SSL redirect only after HTTPS is confirmed to work.
-# HSTS stays disabled until HTTPS has been tested.
+# ==================================================
 
 SECURE_SSL_REDIRECT = (
     os.environ.get(
@@ -231,6 +226,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "same-origin"
 
+# Keep HSTS disabled until HTTPS is verified.
 SECURE_HSTS_SECONDS = int(
     os.environ.get("SECURE_HSTS_SECONDS", "0")
 )
@@ -238,16 +234,19 @@ SECURE_HSTS_SECONDS = int(
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 
-# Password reset token validity: one hour.
+# One-hour password reset tokens.
 PASSWORD_RESET_TIMEOUT = 3600
 
-# --------------------------------------------------
+# ==================================================
 # EMAIL
-# --------------------------------------------------
+# ==================================================
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_HOST = os.environ.get(
+    "EMAIL_HOST",
+    "smtp.gmail.com",
+)
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 
 EMAIL_USE_TLS = (
@@ -263,9 +262,9 @@ DEFAULT_FROM_EMAIL = os.environ.get(
     EMAIL_HOST_USER or "noreply@expenzo.local",
 )
 
-# --------------------------------------------------
+# ==================================================
 # LOGGING
-# --------------------------------------------------
+# ==================================================
 
 LOG_DIR = Path(
     os.environ.get(
