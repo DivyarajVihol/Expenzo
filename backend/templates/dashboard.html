@@ -4,7 +4,7 @@
 {% block title %}Overview - EXPENZO{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.4">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3.0">
 <style>
   /* --- Transaction Row Grid Design --- */
   .transaction-row-grid {
@@ -12,37 +12,19 @@
     grid-template-columns: auto 1fr auto auto;
     gap: 1rem;
     align-items: center;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--border-color);
+    padding: 0.85rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     transition: background 0.2s ease, transform 0.2s ease;
-    border-radius: 8px;
+    border-radius: 12px;
   }
   .transaction-row-grid:hover {
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .tx-icon-wrapper {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    flex-shrink: 0;
-  }
-  .tx-icon-wrapper svg {
-    margin: auto;
-    display: block;
+    background: rgba(255, 255, 255, 0.03);
   }
 
   .tx-content {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
     min-width: 0;
   }
 
@@ -90,9 +72,7 @@
       border-top: 1px dashed rgba(255,255,255,0.1);
     }
   }
-  /* ----------------------------------- */
 
-  /* Refactored Classes for VS Code Syntax Fixes */
   .positive-balance { color: var(--accent-success); background: rgba(16, 185, 129, 0.1); }
   .negative-balance { color: var(--accent-danger); background: rgba(244, 63, 94, 0.1); }
   .text-success { color: var(--accent-success); }
@@ -104,121 +84,30 @@
     max-height: 55vh;
     overflow-y: auto;
   }
-
-  /* UNIVERSAL MOBILE OVERRIDE - AGGRESSIVE FIX */
-  @media (max-width: 768px) {
-    /* Force everything to never exceed screen width */
-    html, body, .app-container, main {
-      width: 100% !important;
-      max-width: 100vw !important;
-      overflow-x: hidden !important;
-    }
-    
-    /* Force cards to fit perfectly inside the main padding */
-    .glass-card {
-      width: 100% !important;
-      max-width: calc(100vw - 2rem) !important;
-      overflow: hidden !important;
-    }
-
-    /* Force grids to act as fluid blocks */
-    .dashboard-main-grid, .left-column, .right-column, .top-cards-row {
-      display: flex !important;
-      flex-direction: column !important;
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    /* Force text to wrap, break, and squish */
-    .legend-item {
-      flex-wrap: wrap !important;
-      width: 100% !important;
-    }
-    .legend-label, .legend-value {
-      white-space: normal !important;
-      word-break: break-all !important;
-      max-width: 100% !important;
-    }
-    
-    /* Dynamically shrink massive fonts */
-    .balance-amount {
-      font-size: 2rem !important;
-      word-break: break-all !important;
-      white-space: normal !important;
-    }
-
-    /* Search bar width fix */
-    .dashboard-nav-row, .dashboard-actions-area, .search-wrapper {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-  }
-
-  .tabs-row {
-    display: flex;
-    gap: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 2rem;
-  }
-  .tab-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    padding: 0.75rem 1rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: var(--transition-fast);
-    text-decoration: none;
-    display: inline-block;
-  }
-  .tab-btn:hover {
-    color: var(--text-primary);
-  }
-  .tab-btn.active {
-    color: var(--text-primary);
-    border-bottom-color: var(--accent-primary);
-  }
-  .tab-btn.active::after {
-    display: none !important;
-  }
-
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Top Navbar Row -->
-<div class="dashboard-nav-row" style="margin-bottom: 1rem;">
+<div class="dashboard-nav-row">
   <div class="dashboard-title-area">
     <h1 class="page-title">Personal Spend</h1>
     <p class="page-subtitle">Welcome back, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}. Here's your financial summary.</p>
   </div>
   
   <div class="dashboard-actions-area">
-    <!-- Search and Filter Form -->
-    <form method="GET" action="{% url 'dashboard' %}" class="search-wrapper" style="display: flex; gap: 0.5rem; max-width: 400px; width: 100%;">
+    <!-- Top Search Form -->
+    <form method="GET" action="{% url 'dashboard' %}" class="search-wrapper" style="display: flex; gap: 0.5rem; max-width: 360px; width: 100%;">
       <div style="position: relative; flex: 1;">
         <i data-lucide="search" class="search-icon" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 18px; height: 18px;"></i>
-        {% if search_query %}
-          <input
-            type="text"
-            name="search"
-            placeholder="Search transactions..."
-            class="input-control search-input"
-            value="{{ search_query }}"
-            style="padding-left: 2.75rem; padding-right: 2.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); width: 100%; box-sizing: border-box;"
-          />
-        {% else %}
-          <input
-            type="text"
-            name="search"
-            placeholder="Search transactions..."
-            class="input-control search-input"
-            value="{{ search_query }}"
-            style="padding-left: 2.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); width: 100%; box-sizing: border-box;"
-          />
-        {% endif %}
+        <input
+          type="text"
+          name="search"
+          placeholder="Search transactions..."
+          class="input-control search-input"
+          value="{{ search_query|default:'' }}"
+          style="padding-left: 2.75rem; {% if search_query %}padding-right: 2.75rem;{% endif %} border-radius: 12px; background: rgba(255, 255, 255, 0.03); width: 100%; box-sizing: border-box;"
+        />
         {% if search_query %}
           <a href="{% url 'dashboard' %}?filter={{ filter_type }}" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
             <i data-lucide="x" style="width: 18px; height: 18px;"></i>
@@ -239,144 +128,187 @@
   <a href="{% url 'spending_streaks' %}" class="tab-btn">Spending Streaks</a>
 </div>
 
-<!-- Main Grid Layout -->
+<!-- Main Grid Layout (Inspired by Mockup) -->
 <div class="dashboard-main-grid">
   
   <!-- Left Column -->
   <div class="left-column">
     
-    <!-- Top Cards Row -->
-    <div class="top-cards-row">
-      
-      <!-- Monthly Balance Card -->
-      <div class="glass-card balance-card">
-        <div>
-          <span class="balance-card-label">
-            Monthly Balance ({{ active_month_label }})
-          </span>
-          <div class="balance-amount-row">
-            <h2 class="balance-amount">
-              ₹{{ monthly_balance|floatformat:2 }}
-            </h2>
-          </div>
-          <div class="cumulative-badge {% if monthly_balance >= 0 %}positive-balance{% else %}negative-balance{% endif %}">
-            <i data-lucide="trending-up" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i>
-            Cumulative balance
+    <!-- Hero Total Balance Card (Inspired by Center Card in Mockup) -->
+    <div>
+      <div class="balance-card-container">
+        <div class="balance-card-rings"></div>
+        <div class="balance-card-peeking-edge"></div>
+        
+        <div class="balance-card-header">
+          <span class="balance-card-label">Total Balance ({% if active_month_label %}{{ active_month_label }}{% else %}Active Month{% endif %})</span>
+          <div class="card-logo-circles">
+            <div class="card-circle c1"></div>
+            <div class="card-circle c2"></div>
           </div>
         </div>
-
-        <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
-          <button class="btn btn-secondary btn-add-income" onclick="openTransactionModal('income')" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.1); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
-            <i data-lucide="plus" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
-            Income
-          </button>
-          <button class="btn btn-primary btn-quick-expense" onclick="openTransactionModal('Food')" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 0.25rem;">
-            <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
-            Expense
-          </button>
-          <button class="btn btn-primary" onclick="openScanReceiptModal()" style="flex: 1; padding: 0.5rem 1rem; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 0.25rem;" title="Scan a receipt to auto-fill expense details">
-            <i data-lucide="scan-line" style="width: 14px; height: 14px;"></i>
-            Scan Receipt
-          </button>
+        
+        <div class="balance-card-amount-area">
+          <div class="balance-card-amount">₹{{ monthly_balance|floatformat:2 }}</div>
         </div>
-
-        <!-- Decorative credit card icon badge -->
-        <div class="balance-card-bg-icon">
-          <i data-lucide="credit-card" style="width: 64px; height: 64px;"></i>
+        
+        <div class="balance-card-footer">
+          <span>•••• •••• 5380</span>
+          <span>07/25</span>
         </div>
       </div>
-
-
       
+      <!-- Card Carousel Dots -->
+      <div class="balance-card-dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
     </div>
 
+    <!-- Quick Action Circular Buttons (Inspired by 4 Icons in Mockup) -->
+    <div class="quick-actions-row">
+      <button type="button" class="quick-action-item" onclick="openTransactionModal('income')" title="Add Income">
+        <div class="quick-action-circle income-btn">
+          <i data-lucide="wallet" style="width: 22px; height: 22px;"></i>
+        </div>
+        <span class="quick-action-label">Payment</span>
+      </button>
+
+      <button type="button" class="quick-action-item" onclick="openTransactionModal('Food')" title="Add Expense">
+        <div class="quick-action-circle">
+          <i data-lucide="arrow-up-right" style="width: 22px; height: 22px;"></i>
+        </div>
+        <span class="quick-action-label">Send</span>
+      </button>
+
+      <button type="button" class="quick-action-item" onclick="openScanReceiptModal()" title="Scan Receipt">
+        <div class="quick-action-circle">
+          <i data-lucide="scan-line" style="width: 22px; height: 22px;"></i>
+        </div>
+        <span class="quick-action-label">Receive</span>
+      </button>
+
+      <button type="button" class="quick-action-item" onclick="openTransactionModal('income')" title="More Options">
+        <div class="quick-action-circle">
+          <i data-lucide="layout-grid" style="width: 22px; height: 22px;"></i>
+        </div>
+        <span class="quick-action-label">More</span>
+      </button>
+    </div>
 
     <!-- Accounts & Payment Method Breakdown Block -->
-    <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
-      <div class="spending-card-header">
+    <div class="account-breakdown-card">
+      <div class="spending-card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="spending-title">Accounts & Payment Methods</h3>
-          <p class="spending-subtitle">Current balances and usage analytics across your financial flows</p>
+          <h3 class="spending-title" style="font-size: 1.05rem; font-weight: 700;">Accounts & Payment Methods</h3>
+          <p class="spending-subtitle">Current balances & usage breakdown across your accounts</p>
         </div>
       </div>
 
-      <div class="spending-chart-section" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
-        <div class="legend-grid" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem;">
-          
-          {% for item in merged_breakdown %}
-            <div class="legend-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; box-sizing: border-box;">
-              
-              {% if item.type == 'both' %}
-                <!-- Combined Account & Payment Method (Cash, Credit Card) -->
-                <div style="display: flex; flex-direction: column;">
-                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
-                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                    <span class="text-success">+₹{{ item.income|floatformat:2 }}</span>
-                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
-                    <span style="color: var(--text-muted)">•</span>
-                    <span style="color: var(--text-muted)">{{ item.count }} txns (monthly: -₹{{ item.pm_expense|floatformat:2 }})</span>
-                  </div>
-                </div>
-                <div style="display: flex; align-items: center;">
-                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {% if item.balance >= 0 %}+{% endif %}₹{{ item.balance|floatformat:2 }}
-                  </span>
-                </div>
-                
-              {% elif item.type == 'account' %}
-                <!-- Account Only (Bank Account) -->
-                <div style="display: flex; flex-direction: column;">
-                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
-                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                    <span class="text-success">+₹{{ item.income|floatformat:2 }}</span>
-                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
-                  </div>
-                </div>
-                <div style="display: flex; align-items: center;">
-                  <span style="font-size: 1.1rem; font-weight: 700;" class="{% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {% if item.balance >= 0 %}+{% endif %}₹{{ item.balance|floatformat:2 }}
-                  </span>
-                </div>
-                
-              {% else %}
-                <!-- Payment Method Only (UPI, Debit Card, Bank Transfer) -->
-                <div style="display: flex; flex-direction: column;">
-                  <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
-                  <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                    <span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>
-                  </div>
-                </div>
-                <div style="display: flex; align-items: center; color: var(--text-muted); font-size: 0.85rem;">
-                  {{ item.count }} txns
-                </div>
-              {% endif %}
-              
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for item in merged_breakdown %}
+          <div class="account-item-box">
+            <div>
+              <strong style="font-size: 0.95rem; color: var(--text-primary);">{{ item.name }}</strong>
+              <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                {% if item.income %}<span class="text-success">+₹{{ item.income|floatformat:2 }}</span>{% endif %}
+                {% if item.expense %}<span class="text-danger">-₹{{ item.expense|floatformat:2 }}</span>{% endif %}
+                {% if item.count %}<span>• {{ item.count }} txns</span>{% endif %}
+              </div>
             </div>
-          {% endfor %}
-          
-        </div>
+            <div>
+              <span style="font-size: 1.05rem; font-weight: 700;" class="{% if item.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {% if item.balance >= 0 %}+{% endif %}₹{{ item.balance|floatformat:2 }}
+              </span>
+            </div>
+          </div>
+        {% endfor %}
       </div>
     </div>
-
-
-
-
-
 
   </div>
 
-  <!-- Right Column (Side Panel) -->
+  <!-- Right Column (Side Panel - Inspired by Right Screen in Mockup) -->
   <div class="right-column">
     
-    <!-- Recent Expenses List Card -->
-    <div class="glass-card" style="padding: 1.5rem;">
-      <div class="spending-card-header">
-        <h3 class="quick-actions-title">Recent Transactions</h3>
+    <!-- Statistics Widget Card with Smooth Wave Graph -->
+    <div class="statistics-card">
+      <div class="statistics-header">
+        <h3 class="statistics-title">Statistics</h3>
+        <div class="period-pill-toggle">
+          <button type="button" class="period-pill-btn">Day</button>
+          <button type="button" class="period-pill-btn">Month</button>
+          <button type="button" class="period-pill-btn active">Year</button>
+        </div>
+      </div>
+
+      <div class="stats-summary-row">
+        <div class="stats-badge">
+          <span class="stats-dot income"></span>
+          <span style="color: var(--text-secondary);">₹{{ monthly_balance|floatformat:2 }} income</span>
+        </div>
+        <div class="stats-badge">
+          <span class="stats-dot expense"></span>
+          <span style="color: var(--text-secondary);">Expense overview</span>
+        </div>
+      </div>
+
+      <!-- Glowing SVG Wave Chart Container -->
+      <div class="wave-chart-container">
+        <!-- Floating Tooltip Peak Badge -->
+        <div style="position: absolute; left: 32%; top: -2px; transform: translateX(-50%); background: #ffffff; color: #0f172a; font-weight: 800; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); z-index: 5; display: flex; align-items: center; gap: 4px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #6366f1; display: inline-block;"></span>
+          ₹{{ monthly_balance|floatformat:2 }}
+        </div>
+
+        <!-- Translucent Vertical Highlight Column -->
+        <div style="position: absolute; left: 32%; top: 28px; bottom: 0; width: 34px; transform: translateX(-50%); background: linear-gradient(180deg, rgba(168, 85, 247, 0.25) 0%, rgba(99, 102, 241, 0.02) 100%); border-radius: 16px; pointer-events: none;"></div>
+
+        <svg class="wave-svg" viewBox="0 0 400 120" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#c084fc" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0.0" />
+            </linearGradient>
+            <linearGradient id="waveStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#818cf8" />
+              <stop offset="35%" stop-color="#c084fc" />
+              <stop offset="70%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#38bdf8" />
+            </linearGradient>
+          </defs>
+
+          <!-- Wave Fill Area -->
+          <path d="M 0,80 Q 40,95 80,70 T 160,35 T 240,75 T 320,60 T 400,85 L 400,120 L 0,120 Z" fill="url(#waveGradient)" />
+          <!-- Wave Stroke -->
+          <path d="M 0,80 Q 40,95 80,70 T 160,35 T 240,75 T 320,60 T 400,85" fill="none" stroke="url(#waveStroke)" stroke-width="3.5" stroke-linecap="round" />
+          <!-- Glowing Peak Circle -->
+          <circle cx="128" cy="35" r="5" fill="#ffffff" stroke="#c084fc" stroke-width="3" style="filter: drop-shadow(0 0 8px #c084fc);" />
+        </svg>
+      </div>
+
+      <div class="wave-months-row">
+        <span class="month-label">Oct</span>
+        <span class="month-label">Nov</span>
+        <span class="month-label active">Dec</span>
+        <span class="month-label">Jan</span>
+        <span class="month-label">Feb</span>
+        <span class="month-label">Mar</span>
+        <span class="month-label">Apr</span>
+        <span class="month-label">May</span>
+        <span class="month-label">Jun</span>
+      </div>
+    </div>
+
+    <!-- Recent Transactions List Card -->
+    <div class="transactions-card">
+      <div class="transactions-card-header">
+        <h3 class="quick-actions-title" style="font-size: 1.05rem; font-weight: 700;">Transactions</h3>
         <div>
           <select
             class="recent-transactions-select"
             onchange="changeFilter(this.value)"
-            style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;"
           >
             <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Time</option>
             <option value="daily" {% if filter_type == 'daily' %}selected{% endif %}>Today</option>
@@ -386,35 +318,61 @@
         </div>
       </div>
 
+      <!-- Search Transactions Box matching Mockup -->
+      <form method="GET" action="{% url 'dashboard' %}" class="mockup-search-wrapper">
+        <input
+          type="text"
+          name="search"
+          placeholder="Search transactions..."
+          class="mockup-search-input"
+          value="{{ search_query|default:'' }}"
+        />
+        <i data-lucide="search" class="mockup-search-icon" style="width: 18px; height: 18px;"></i>
+        <input type="hidden" name="filter" value="{{ filter_type }}">
+      </form>
+
       {% if not recent_transactions %}
         <p class="empty-list-text" style="text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 0.85rem;">
           No transactions found.
         </p>
       {% else %}
-        <div class="transaction-list-container">
+        <div class="transaction-list-container" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 340px; overflow-y: auto;">
           {% for exp in recent_transactions %}
             <div class="transaction-row-grid transaction-item-row" id="tx-row-{{ exp.id }}"
                  data-id="{{ exp.id }}" data-amount="{{ exp.amount }}" data-desc="{{ exp.description|escapejs }}" 
                  data-category="{{ exp.category }}" data-account="{{ exp.account }}" data-method="{{ exp.payment_method }}" data-date="{{ exp.date|date:'Y-m-d' }}">
               
-              <!-- Column 1: Icon -->
-              <div class="tx-icon-wrapper">
-                <i data-lucide="credit-card" class="{% if exp.category == 'Income' %}icon-income{% else %}icon-expense{% endif %}" style="width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;"></i>
+              <!-- Icon Column -->
+              <div class="brand-icon-wrapper {% if exp.category == 'Income' %}income{% elif exp.category == 'Food' %}food{% elif exp.category == 'Shopping' %}shopping{% elif exp.category == 'Travel' %}travel{% else %}default{% endif %}">
+                {% if exp.category == 'Income' %}
+                  <i data-lucide="wallet" style="width: 18px; height: 18px;"></i>
+                {% elif exp.category == 'Food' %}
+                  <i data-lucide="utensils" style="width: 18px; height: 18px;"></i>
+                {% elif exp.category == 'Shopping' %}
+                  <i data-lucide="shopping-bag" style="width: 18px; height: 18px;"></i>
+                {% elif exp.category == 'Travel' %}
+                  <i data-lucide="plane" style="width: 18px; height: 18px;"></i>
+                {% else %}
+                  <i data-lucide="credit-card" style="width: 18px; height: 18px;"></i>
+                {% endif %}
               </div>
               
-              <!-- Column 2: Content -->
+              <!-- Content Column -->
               <div class="tx-content">
-                <span class="tx-date">{{ exp.date|date:"j M Y" }}</span>
                 <span class="tx-title" title="{{ exp.description }}">{{ exp.description }}</span>
-                <span class="tx-method">{{ exp.payment_method }}</span>
+                <div style="display: flex; gap: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                  <span>{{ exp.date|date:"j M Y" }}</span>
+                  <span>•</span>
+                  <span>{{ exp.payment_method }}</span>
+                </div>
               </div>
 
-              <!-- Column 3: Amount -->
+              <!-- Amount Column -->
               <div class="tx-amount {% if exp.category == 'Income' %}text-success{% else %}text-danger{% endif %}">
                 {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
               </div>
 
-              <!-- Column 4: Actions -->
+              <!-- Actions Column -->
               <div class="tx-actions">
                 <button
                   onclick="event.stopPropagation(); const row = this.closest('.transaction-item-row'); openEditPersonalModal(row.dataset.id, row.dataset.amount, row.dataset.desc, row.dataset.category, row.dataset.account, row.dataset.method, row.dataset.date)"
@@ -439,10 +397,10 @@
       {% endif %}
     </div>
 
-
   </div>
 
 </div>
+
 
 
 
