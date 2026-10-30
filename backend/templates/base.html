@@ -70,10 +70,18 @@
     <div id="global-loader" class="global-loader">
         <div class="loader-spinner"></div>
     </div>
-    <div class="app-container">
+    <div class="app-container" id="app-container">
+        <script>
+            // Immediately restore desktop sidebar preference before render to prevent layout jump
+            try {
+                if (window.innerWidth >= 1024 && localStorage.getItem('expenzo_sidebar_collapsed') === 'true') {
+                    document.getElementById('app-container').classList.add('sidebar-collapsed');
+                }
+            } catch (e) {}
+        </script>
         {% if user.is_authenticated %}
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="app-sidebar" aria-label="Main Navigation">
             <a href="{% url 'dashboard' %}" class="logo-container" aria-label="Go to Dashboard">
                 <i data-lucide="wallet" class="logo-icon"></i>
                 <span class="logo-text">EXPENZO</span>
@@ -126,7 +134,65 @@
         </aside>
         {% endif %}
 
-        <div style="flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
+        <div class="main-wrapper">
+            <!-- Desktop Topbar with Sidebar Toggle (Hidden on Mobile) -->
+            <header class="desktop-topbar" aria-label="Dashboard Controls">
+                <div class="desktop-topbar-left">
+                    <button id="sidebar-toggle-btn"
+                            class="sidebar-toggle-btn"
+                            type="button"
+                            aria-label="Collapse sidebar"
+                            aria-expanded="true"
+                            title="Collapse sidebar (Ctrl+\)">
+                        <span class="material-symbols-outlined toggle-icon" aria-hidden="true">menu_open</span>
+                    </button>
+
+                    <!-- Collapsed Brand Logo (Visible only when sidebar is collapsed on desktop) -->
+                    <a href="{% url 'dashboard' %}" class="collapsed-brand" id="collapsed-brand" aria-label="EXPENZO Home">
+                        <span class="collapsed-logo-badge">
+                            <i data-lucide="wallet" class="logo-icon-sm"></i>
+                        </span>
+                        <span class="collapsed-logo-text">EXPENZO</span>
+                    </a>
+
+                    <!-- Breadcrumb / Context Indicator -->
+                    <div class="topbar-context">
+                        <span class="context-slash">/</span>
+                        <span class="context-title">
+                            {% if request.resolver_match.url_name == 'dashboard' %}Personal Spend
+                            {% elif request.resolver_match.url_name == 'history' %}Expense History
+                            {% elif request.resolver_match.url_name == 'recurring' %}Recurring Finance
+                            {% elif request.resolver_match.url_name == 'personal_charts' %}Analytics & Charts
+                            {% elif request.resolver_match.url_name == 'groups' %}Group Splits
+                            {% elif request.resolver_match.url_name == 'group_detail' %}Group Details
+                            {% elif request.resolver_match.url_name == 'profile' %}My Profile
+                            {% else %}Dashboard{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="desktop-topbar-right">
+                    <!-- Keyboard shortcut hint -->
+                    <div class="shortcut-hint" title="Toggle sidebar keyboard shortcut">
+                        <kbd class="kbd-key">Ctrl</kbd>+<kbd class="kbd-key">\</kbd>
+                    </div>
+
+                    <!-- Quick Profile Pill -->
+                    <a href="{% url 'profile' %}" class="topbar-user-pill" title="View Profile">
+                        <div class="topbar-avatar">
+                            {% if user.profile.avatar_base64 %}
+                                <img src="{{ user.profile.avatar_base64 }}" alt="{{ user.first_name }}">
+                            {% elif user.profile.avatar %}
+                                <img src="{{ user.profile.avatar }}" alt="{{ user.first_name }}">
+                            {% else %}
+                                <i data-lucide="user"></i>
+                            {% endif %}
+                        </div>
+                        <span class="topbar-username">{% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</span>
+                    </a>
+                </div>
+            </header>
+
             <!-- Mobile Header (Hidden on Desktop) -->
             <div class="mobile-header">
                 <button class="hamburger-btn" aria-label="Toggle navigation menu" aria-expanded="false" id="mobile-menu-btn">
@@ -141,7 +207,7 @@
             </div>
 
             <!-- Main Content Area -->
-            <main id="main-content" role="main" tabindex="-1" style="flex: 1; padding: 2rem; overflow-y: auto;">
+            <main id="main-content" role="main" tabindex="-1" style="flex: 1; padding: 2rem; overflow-y: auto; overflow-x: hidden;">
                 {% block content %}{% endblock %}
             </main>
         </div>
@@ -155,16 +221,76 @@
     <script>
         lucide.createIcons();
         document.addEventListener('DOMContentLoaded', () => {
+            const appContainer = document.getElementById('app-container');
+            const toggleBtn = document.getElementById('sidebar-toggle-btn');
+            const toggleIcon = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
             const sidebar = document.querySelector('.sidebar');
             const backdrop = document.getElementById('sidebar-backdrop');
             const menuBtn = document.getElementById('mobile-menu-btn');
             const navItems = document.querySelectorAll('.sidebar .nav-item, .sidebar .logo-container, .sidebar .btn-secondary');
-            
+
+            // --- Desktop Sidebar Toggle & State Management ---
+            function updateToggleUI(isCollapsed) {
+                if (!toggleBtn) return;
+                toggleBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+                const label = isCollapsed ? 'Expand sidebar (Ctrl+\\)' : 'Collapse sidebar (Ctrl+\\)';
+                toggleBtn.setAttribute('aria-label', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                toggleBtn.setAttribute('title', label);
+                if (toggleIcon) {
+                    toggleIcon.textContent = isCollapsed ? 'menu' : 'menu_open';
+                }
+            }
+
+            function triggerChartReflow() {
+                // Smoothly trigger window resize event during and after transition for charts and SVGs
+                const startTime = Date.now();
+                const duration = 350;
+                const interval = setInterval(() => {
+                    window.dispatchEvent(new Event('resize'));
+                    if (Date.now() - startTime >= duration) {
+                        clearInterval(interval);
+                        window.dispatchEvent(new Event('resize'));
+                    }
+                }, 50);
+            }
+
+            function toggleDesktopSidebar() {
+                if (!appContainer) return;
+                const isCollapsed = appContainer.classList.toggle('sidebar-collapsed');
+                updateToggleUI(isCollapsed);
+
+                try {
+                    localStorage.setItem('expenzo_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+                } catch (e) {}
+
+                triggerChartReflow();
+            }
+
+            if (appContainer && toggleBtn) {
+                const initiallyCollapsed = appContainer.classList.contains('sidebar-collapsed');
+                updateToggleUI(initiallyCollapsed);
+                toggleBtn.addEventListener('click', toggleDesktopSidebar);
+            }
+
+            // Global Keyboard Shortcut: Ctrl+\ or Cmd+\ to toggle sidebar
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+                    e.preventDefault();
+                    if (window.innerWidth >= 1024) {
+                        toggleDesktopSidebar();
+                    } else if (sidebar && menuBtn) {
+                        if (sidebar.classList.contains('open')) closeSidebar();
+                        else openSidebar();
+                    }
+                }
+            });
+
+            // --- Mobile Drawer Handlers ---
             if (!sidebar || !menuBtn) return;
 
             function openSidebar() {
                 sidebar.classList.add('open');
-                backdrop.classList.add('active');
+                if (backdrop) backdrop.classList.add('active');
                 menuBtn.classList.add('open');
                 menuBtn.setAttribute('aria-expanded', 'true');
                 document.body.style.overflow = 'hidden'; // Prevent body scroll
@@ -172,7 +298,7 @@
 
             function closeSidebar() {
                 sidebar.classList.remove('open');
-                backdrop.classList.remove('active');
+                if (backdrop) backdrop.classList.remove('active');
                 menuBtn.classList.remove('open');
                 menuBtn.setAttribute('aria-expanded', 'false');
                 document.body.style.overflow = ''; // Restore scroll
@@ -183,7 +309,9 @@
                 else openSidebar();
             });
 
-            backdrop.addEventListener('click', closeSidebar);
+            if (backdrop) {
+                backdrop.addEventListener('click', closeSidebar);
+            }
 
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && sidebar.classList.contains('open')) {
