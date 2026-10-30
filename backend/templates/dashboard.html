@@ -94,9 +94,9 @@
   <div class="absolute top-[480px] right-10 w-[420px] h-[400px] bg-secondary/10 rounded-full blur-[140px] pointer-events-none -z-10"></div>
   <div class="absolute bottom-10 left-12 w-[380px] h-[300px] bg-tertiary-container/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
 
-  <!-- Top Command Bar (Search & Quick Action) -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-    <div class="flex items-center gap-3 flex-1 max-w-xl">
+  <!-- Top Command Bar (Search & Active Month) -->
+  <div class="flex items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3 flex-1 max-w-2xl">
       <form method="GET" action="{% url 'dashboard' %}" class="relative w-full flex items-center">
         <span class="material-symbols-outlined absolute left-3 text-outline text-lg pointer-events-none">search</span>
         <input
@@ -119,20 +119,9 @@
         <span>Current Month: {{ active_month_label }}</span>
       </div>
     </div>
-
-    <div class="flex items-center gap-2.5 flex-shrink-0">
-      <button type="button" onclick="openTransactionModal('expense')" class="flex items-center gap-1.5 bg-gradient-to-r from-primary-container to-secondary text-on-primary-container px-4 py-2 rounded-xl font-label-lg text-sm font-bold shadow-[0_0_20px_rgba(255,163,26,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer">
-        <span class="material-symbols-outlined text-base">add</span>
-        <span>Add Expense</span>
-      </button>
-      <button type="button" onclick="openScanReceiptModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-high border border-white/5 text-on-surface hover:bg-surface-bright font-label-lg text-sm font-semibold transition-all cursor-pointer" title="Scan receipt with OCR">
-        <span class="material-symbols-outlined text-base text-primary">photo_camera</span>
-        <span class="hidden sm:inline">Scan Receipt</span>
-      </button>
-    </div>
   </div>
 
-  <!-- Page Header & Greeting Bar -->
+  <!-- Page Header & Action Bar -->
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
     <div class="flex flex-col">
       <div class="flex items-center gap-2 flex-wrap">
@@ -142,19 +131,30 @@
       <p class="font-body-md text-sm text-on-surface-variant mt-1">Overview of your personal finances and liquidity for {{ active_month_label }}</p>
     </div>
     
-    <!-- Quick Action Deck -->
-    <div class="flex items-center flex-wrap gap-2">
-      <button type="button" onclick="openTransactionModal('expense')" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-primary-container via-primary-container to-secondary text-on-primary-container font-label-lg text-xs font-bold shadow-[0_0_18px_rgba(255,163,26,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer">
+    <!-- Primary Action Toolbar (Exactly 4 Buttons) -->
+    <div class="grid grid-cols-2 sm:flex sm:items-center sm:flex-wrap gap-2.5">
+      <!-- 1. Add Expense -->
+      <button type="button" onclick="openTransactionModal('expense')" class="flex items-center justify-center gap-1.5 bg-gradient-to-r from-primary-container to-secondary text-on-primary-container px-4 py-2.5 rounded-xl font-label-lg text-xs sm:text-sm font-bold shadow-[0_0_20px_rgba(255,163,26,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer">
         <span class="material-symbols-outlined text-base">add_circle</span>
         <span>Add Expense</span>
       </button>
-      <button type="button" onclick="openTransactionModal('income')" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-surface-container-high border border-white/5 text-on-surface hover:bg-surface-bright font-label-lg text-xs font-semibold transition-all cursor-pointer">
+
+      <!-- 2. Add Income -->
+      <button type="button" onclick="openTransactionModal('income')" class="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface-container-high border border-white/5 text-on-surface hover:bg-surface-bright font-label-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer">
         <span class="material-symbols-outlined text-base text-tertiary">arrow_downward</span>
         <span>Add Income</span>
       </button>
-      <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-surface-container-low border border-white/5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-lg text-xs transition-all no-underline">
-        <span class="material-symbols-outlined text-base">sync_saved_locally</span>
-        <span>Manage Recurring</span>
+
+      <!-- 3. Scan Receipt -->
+      <button type="button" onclick="openScanReceiptModal()" class="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface-container-high border border-white/5 text-on-surface hover:bg-surface-bright font-label-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer" title="Scan receipt with OCR">
+        <span class="material-symbols-outlined text-base text-primary">photo_camera</span>
+        <span>Scan Receipt</span>
+      </button>
+
+      <!-- 4. More (Previously Manage Recurring) -->
+      <a href="{% url 'recurring' %}" class="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-white/5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-lg text-xs sm:text-sm font-semibold transition-all no-underline" title="Recurring Finance & More">
+        <span class="material-symbols-outlined text-base">more_horiz</span>
+        <span>More</span>
       </a>
     </div>
   </div>
