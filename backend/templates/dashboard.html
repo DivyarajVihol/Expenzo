@@ -121,33 +121,35 @@
     </div>
   </div>
 
-  <!-- Page Header -->
-  <div class="mb-5">
-    <div class="flex items-center gap-2 flex-wrap">
-      <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Good day, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</h1>
-      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">CAPITAL PRO</span>
+  <!-- Page Header & Navigation Bar -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+    <div class="flex flex-col">
+      <div class="flex items-center gap-2 flex-wrap">
+        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Good day, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">CAPITAL PRO</span>
+      </div>
+      <p class="font-body-md text-sm text-on-surface-variant mt-1">Overview of your personal finances and liquidity for {{ active_month_label }}</p>
     </div>
-    <p class="font-body-md text-sm text-on-surface-variant mt-1">Overview of your personal finances and liquidity for {{ active_month_label }}</p>
-  </div>
 
-  <!-- Navigation Bar -->
-  <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit mb-6 overflow-x-auto">
-    <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">dashboard</span>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">receipt_long</span>
-      <span>Expense History</span>
-    </a>
-    <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
-      <span>Recurring Finance</span>
-    </a>
-    <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">monitoring</span>
-      <span>Charts</span>
-    </a>
+    <!-- Navigation Bar (Right side next to greeting) -->
+    <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit overflow-x-auto self-start lg:self-auto">
+      <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
+        <span class="material-symbols-outlined text-sm">dashboard</span>
+        <span>Dashboard</span>
+      </a>
+      <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+        <span class="material-symbols-outlined text-sm">receipt_long</span>
+        <span>Expense History</span>
+      </a>
+      <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+        <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
+        <span>Recurring Finance</span>
+      </a>
+      <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+        <span class="material-symbols-outlined text-sm">monitoring</span>
+        <span>Charts</span>
+      </a>
+    </div>
   </div>
 
   <!-- TOP DECK: Main Balance & Telemetry Chart + Stacked Cards -->
