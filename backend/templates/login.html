@@ -214,8 +214,8 @@
               <div class="flex flex-col gap-1">
                 <label class="font-label-ui text-xs text-on-surface-variant font-medium" for="email-address">Email address</label>
                 <div class="relative flex items-center">
-                  <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px]">mail</span>
-                  <input class="w-full bg-surface-container-lowest text-on-surface pl-9.5 pr-4 py-2 rounded-lg text-sm font-body-md placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary shadow-inner border border-surface-container-high/40" id="email-address" name="email" placeholder="alex@example.com" required type="email" autofocus/>
+                  <span class="material-symbols-outlined absolute left-3.5 text-on-surface-variant text-[18px] pointer-events-none">mail</span>
+                  <input class="w-full bg-surface-container-lowest text-on-surface pl-10 pr-4 py-2.5 rounded-lg text-sm font-body-md placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary shadow-inner border border-surface-container-high/40" style="padding-left: 2.5rem;" id="email-address" name="email" placeholder="alex@example.com" required type="email" autofocus/>
                 </div>
               </div>
 
@@ -226,8 +226,8 @@
                   <a class="text-primary hover:underline font-label-ui text-xs" href="{% url 'password_reset' %}">Forgot password?</a>
                 </div>
                 <div class="relative flex items-center">
-                  <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px]">lock</span>
-                  <input class="w-full bg-surface-container-lowest text-on-surface pl-9.5 pr-10 py-2 rounded-lg text-sm font-body-md placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary shadow-inner border border-surface-container-high/40" id="password" name="password" placeholder="Enter your password" required type="password"/>
+                  <span class="material-symbols-outlined absolute left-3.5 text-on-surface-variant text-[18px] pointer-events-none">lock</span>
+                  <input class="w-full bg-surface-container-lowest text-on-surface pl-10 pr-10 py-2.5 rounded-lg text-sm font-body-md placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary shadow-inner border border-surface-container-high/40" style="padding-left: 2.5rem; padding-right: 2.5rem;" id="password" name="password" placeholder="Enter your password" required type="password"/>
                   <button class="absolute right-3 text-on-surface-variant hover:text-on-surface flex items-center justify-center p-1" id="toggle-password" type="button" aria-label="Toggle password visibility">
                     <span class="material-symbols-outlined text-[18px]" id="eye-icon">visibility</span>
                   </button>
