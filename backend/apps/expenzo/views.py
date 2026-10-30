@@ -158,7 +158,9 @@ def dashboard_view(request):
             'count': data['count']
         })
         
-    pm_chart_base64 = generate_payment_method_bar_chart(pm_stats)
+        # Charts are rendered via lightweight frontend HTML/CSS in dashboard.html;
+        # bypass heavy matplotlib rasterization on every dashboard request
+        pm_chart_base64 = None
     
     # Calculate Pie Chart category breakdown
     category_sums = {}
@@ -186,8 +188,8 @@ def dashboard_view(request):
         pie_categories.append(name)
         pie_values.append(value)
         
-    # Generate charts
-    pie_chart_base64 = generate_spending_pie_chart(pie_categories, pie_values)
+    # Pie chart base64 not needed on dashboard (rendered using Tailwind CSS bars)
+    pie_chart_base64 = None
     
     active_month_label = now.strftime("%B %Y")
     

@@ -274,6 +274,40 @@
             }
         }
     </style>
+
+    <!-- Seamless Section Navigation Transition Styles -->
+    <style id="expenzo-section-transition-styles">
+        #main-content {
+            transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+            will-change: opacity, transform;
+        }
+
+        #main-content.nav-transitioning-out {
+            opacity: 0.35 !important;
+            transform: translateY(4px) !important;
+            pointer-events: none;
+        }
+
+        #main-content.nav-transitioning-in {
+            opacity: 0 !important;
+            transform: translateY(-4px) !important;
+        }
+
+        .personal-spend-nav-pill {
+            transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #main-content,
+            #main-content.nav-transitioning-out,
+            #main-content.nav-transitioning-in,
+            .personal-spend-nav-pill {
+                transition: none !important;
+                transform: none !important;
+                opacity: 1 !important;
+            }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -551,20 +585,39 @@
     </script>
     <script src="{% static 'js/custom-calendar.js' %}?v=1.0"></script>
     <script>
+        // Helper to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Global loader management with debounce
         document.addEventListener('DOMContentLoaded', () => {
             const loader = document.getElementById('global-loader');
+            if (!loader) return;
             
-            // Show loader on link clicks
+            // Show loader on full external page loads only, after a 350ms delay to prevent flashing
             document.querySelectorAll('a').forEach(link => {
                 link.addEventListener('click', (e) => {
+                    if (e.defaultPrevented) return;
                     const href = link.getAttribute('href');
                     if (href && !href.startsWith('#') && !href.startsWith('javascript') && link.target !== '_blank' && !link.hasAttribute('download')) {
-                        // Prevent triggering if opening in new tab
                         if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                            // Small timeout to prevent flashing on instant loads
                             setTimeout(() => {
-                                loader.classList.add('active');
-                            }, 100);
+                                if (!e.defaultPrevented) {
+                                    loader.classList.add('active');
+                                }
+                            }, 350);
                         }
                     }
                 });
@@ -577,34 +630,302 @@
                         if (!e.defaultPrevented) {
                             loader.classList.add('active');
                         }
-                    }, 0);
+                    }, 100);
                 });
             });
             
-        // Hide loader when navigating back via browser history
-        window.addEventListener('pageshow', (e) => {
-            if (e.persisted) {
-                loader.classList.remove('active');
-            }
-        });
-    });
-
-    // Helper to get CSRF token from cookies
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
+            // Hide loader when navigating back via browser history
+            window.addEventListener('pageshow', (e) => {
+                if (e.persisted) {
+                    loader.classList.remove('active');
                 }
+            });
+        });
+    </script>
+
+    <!-- Expenzo Instant Personal Spend Navigation Router -->
+    <script id="expenzo-instant-nav-manager">
+    (function() {
+        const PERSONAL_ROUTES = ['/', '/dashboard', '/history', '/recurring', '/charts'];
+        const routeCache = new Map();
+        const CACHE_MAX_AGE_MS = 60000; // 1 minute in-memory cache
+
+        function normalizePath(urlStr) {
+            try {
+                const u = new URL(urlStr, window.location.origin);
+                if (u.origin !== window.location.origin) return null;
+                const p = u.pathname.replace(/\/+$/, '') || '/';
+                return p;
+            } catch {
+                return null;
             }
         }
-        return cookieValue;
-    }
-</script>
+
+        function isPersonalSpendRoute(urlStr) {
+            const p = normalizePath(urlStr);
+            return p ? PERSONAL_ROUTES.includes(p) : false;
+        }
+
+        function getContextTitleForPath(p) {
+            switch(p) {
+                case '/history': return 'Expense History';
+                case '/recurring': return 'Recurring Finance';
+                case '/charts': return 'Analytics & Charts';
+                default: return 'Personal Spend';
+            }
+        }
+
+        // Prefetch target HTML in memory
+        async function prefetchRoute(url) {
+            const normPath = normalizePath(url);
+            if (!normPath) return null;
+
+            const cached = routeCache.get(url);
+            if (cached && (Date.now() - cached.timestamp < CACHE_MAX_AGE_MS)) {
+                return cached.html;
+            }
+
+            try {
+                const res = await fetch(url, {
+                    headers: { 'X-Requested-With': 'expenzo-fast-nav' },
+                    credentials: 'same-origin'
+                });
+                if (res.ok) {
+                    const html = await res.text();
+                    routeCache.set(url, { html, timestamp: Date.now() });
+                    return html;
+                }
+            } catch (err) {
+                // Silently ignore prefetch errors
+            }
+            return null;
+        }
+
+        // Invalidate cache on mutations (add/edit/delete expense, recurring, etc.)
+        window.clearExpenzoNavCache = function() {
+            routeCache.clear();
+        };
+
+        const origFetch = window.fetch;
+        window.fetch = function(...args) {
+            const [resource, config] = args;
+            if (config && ['POST', 'PUT', 'DELETE', 'PATCH'].includes((config.method || '').toUpperCase())) {
+                routeCache.clear();
+            }
+            return origFetch.apply(this, args);
+        };
+        document.addEventListener('submit', () => routeCache.clear());
+
+        // Update active tab buttons immediately in the UI for 0ms visual responsiveness
+        function updateNavPillsVisual(targetPath) {
+            const normTarget = normalizePath(targetPath);
+            
+            document.querySelectorAll('a').forEach(link => {
+                const linkPath = normalizePath(link.href);
+                if (!linkPath || !PERSONAL_ROUTES.includes(linkPath)) return;
+
+                // Check if this link is a navigation tab pill
+                if (link.classList.contains('rounded-xl') && (link.classList.contains('whitespace-nowrap') || link.querySelector('.material-symbols-outlined'))) {
+                    const isActive = linkPath === normTarget;
+                    if (isActive) {
+                        link.className = 'personal-spend-nav-pill flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap';
+                    } else {
+                        link.className = 'personal-spend-nav-pill flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap';
+                    }
+                }
+            });
+
+            // Update topbar context title
+            const contextTitle = document.querySelector('.desktop-topbar .context-title');
+            if (contextTitle) {
+                contextTitle.textContent = getContextTitleForPath(normTarget);
+            }
+        }
+
+        let isNavigating = false;
+
+        async function navigateTo(url, push = true) {
+            const normPath = normalizePath(url);
+            if (!normPath || isNavigating) return;
+
+            const mainContent = document.getElementById('main-content');
+            if (!mainContent) {
+                window.location.href = url;
+                return;
+            }
+
+            isNavigating = true;
+
+            // 1. Instant Active State Feedback (<16ms)
+            updateNavPillsVisual(url);
+
+            // 2. Start subtle exit transition (160ms)
+            mainContent.classList.add('nav-transitioning-out');
+
+            try {
+                let html = await prefetchRoute(url);
+                if (!html) {
+                    const res = await fetch(url, { credentials: 'same-origin' });
+                    if (!res.ok) throw new Error('Network response not ok');
+                    html = await res.text();
+                }
+
+                const parser = new DOMParser();
+                const newDoc = parser.parseFromString(html, 'text/html');
+                const newMain = newDoc.getElementById('main-content');
+
+                if (!newMain) {
+                    // Fallback to normal navigation
+                    window.location.href = url;
+                    return;
+                }
+
+                // Wait for the exit animation duration (approx 140ms remaining)
+                await new Promise(r => setTimeout(r, 140));
+
+                // 3. Swap title and context
+                if (newDoc.title) document.title = newDoc.title;
+                const newContext = newDoc.querySelector('.desktop-topbar .context-title');
+                const currentContext = document.querySelector('.desktop-topbar .context-title');
+                if (newContext && currentContext) {
+                    currentContext.textContent = newContext.textContent;
+                }
+
+                // 4. Inject styles if new page has unique extra_css
+                newDoc.querySelectorAll('head style, head link[rel="stylesheet"]').forEach(styleOrLink => {
+                    if (styleOrLink.id && !document.getElementById(styleOrLink.id)) {
+                        document.head.appendChild(styleOrLink.cloneNode(true));
+                    }
+                });
+
+                // 5. Swap DOM
+                mainContent.innerHTML = newMain.innerHTML;
+                mainContent.scrollTop = 0;
+
+                // 6. Push history state
+                if (push) {
+                    window.history.pushState({ expenzoUrl: url }, '', url);
+                }
+
+                // 7. Execute page-specific scripts
+                const scriptsToRun = [];
+                newDoc.querySelectorAll('#main-content script, script[id^="page-script"]').forEach(s => scriptsToRun.push(s));
+                
+                // Also get scripts from extra_js block
+                const newBody = newDoc.body;
+                newBody.querySelectorAll('script').forEach(s => {
+                    const id = s.id || '';
+                    if (!id.includes('expenzo-instant-nav') && !id.includes('tailwind') && !s.src.includes('lucide') && !s.src.includes('custom-calendar')) {
+                        scriptsToRun.push(s);
+                    }
+                });
+
+                scriptsToRun.forEach(oldScript => {
+                    try {
+                        const newScript = document.createElement('script');
+                        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                        newScript.textContent = oldScript.textContent;
+                        document.body.appendChild(newScript);
+                        // Clean up inline script node after execution to avoid DOM bloat
+                        if (!newScript.src) newScript.remove();
+                    } catch (e) {
+                        console.warn('Script execution notice:', e);
+                    }
+                });
+
+                // 8. Re-run UI enhancements
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+                document.querySelectorAll('.color-apply').forEach(el => {
+                    const c = el.getAttribute('data-color');
+                    if (c) el.style.backgroundColor = c;
+                });
+                if (typeof window.initCustomCalendar === 'function') {
+                    window.initCustomCalendar();
+                }
+
+                // 9. Enter animation
+                mainContent.classList.remove('nav-transitioning-out');
+                mainContent.classList.add('nav-transitioning-in');
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        mainContent.classList.remove('nav-transitioning-in');
+                        isNavigating = false;
+                    });
+                });
+
+            } catch (err) {
+                console.warn('Fast navigation fallback to standard reload:', err);
+                isNavigating = false;
+                window.location.href = url;
+            }
+        }
+
+        // Intercept clicks on document in capture phase
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (!link) return;
+
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+            if (link.target === '_blank' || link.hasAttribute('download')) return;
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+
+            if (isPersonalSpendRoute(link.href)) {
+                const currentNorm = normalizePath(window.location.href);
+                const targetNorm = normalizePath(link.href);
+                
+                // If same route without search param changes, just scroll to top
+                if (currentNorm === targetNorm && new URL(link.href, window.location.origin).search === window.location.search) {
+                    e.preventDefault();
+                    const mainContent = document.getElementById('main-content');
+                    if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                navigateTo(link.href, true);
+            }
+        }, true); // Capture phase ensures we prevent full reload before other link handlers
+
+        // Prefetch on pointerenter or focus
+        document.addEventListener('pointerenter', (e) => {
+            const link = e.target.closest('a');
+            if (link && isPersonalSpendRoute(link.href)) {
+                prefetchRoute(link.href);
+            }
+        }, { passive: true, capture: true });
+
+        // Handle browser Back / Forward buttons
+        window.addEventListener('popstate', (e) => {
+            if (isPersonalSpendRoute(window.location.href)) {
+                navigateTo(window.location.href, false);
+            }
+        });
+
+        // Initial prefetch of the other sibling routes when browser is idle
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(() => {
+                PERSONAL_ROUTES.forEach(route => {
+                    if (normalizePath(window.location.href) !== normalizePath(route)) {
+                        prefetchRoute(route);
+                    }
+                });
+            }, { timeout: 2000 });
+        } else {
+            setTimeout(() => {
+                PERSONAL_ROUTES.forEach(route => {
+                    if (normalizePath(window.location.href) !== normalizePath(route)) {
+                        prefetchRoute(route);
+                    }
+                });
+            }, 1000);
+        }
+    })();
+    </script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
