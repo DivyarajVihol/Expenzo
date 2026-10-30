@@ -166,19 +166,23 @@ html, body {
   .sidebar {
     width: 280px;
     min-width: 280px;
+    max-width: 280px;
     flex-shrink: 0;
-    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-sizing: border-box;
+    overflow-x: hidden;
+    margin-left: 0;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity 0.25s ease,
                 border-color 0.3s ease;
-    will-change: margin-left, width, opacity;
+    will-change: width, min-width, max-width, opacity;
   }
 
   .app-container.sidebar-collapsed .sidebar,
   .sidebar-collapsed .sidebar {
-    margin-left: -280px !important;
+    margin-left: 0 !important;
     width: 0 !important;
     min-width: 0 !important;
     max-width: 0 !important;
@@ -188,6 +192,7 @@ html, body {
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;
+    overflow: hidden !important;
   }
 
   /* Automatically allow containers to utilize full screen space when sidebar is collapsed */
