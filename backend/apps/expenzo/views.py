@@ -1,3 +1,4 @@
+from django.views.decorators.http import require_GET
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout, update_session_auth_hash
@@ -251,6 +252,7 @@ def dashboard_view(request):
         'total_expense': cumulative_spend,
         'total_month_income': total_month_income,
         'total_month_spend': total_month_spend,
+        'liquidity_history_json': json.dumps(get_user_liquidity_history(user)),
     }
     return render(request, 'dashboard.html', context)
 
@@ -1499,7 +1501,7 @@ def register_view(request):
             user.profile.avatar_base64 = avatar_base64
         user.profile.save()
         
-        login(request, user)
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return redirect('dashboard')
     return render(request, 'register.html')
 
@@ -1513,7 +1515,7 @@ def activate_account(request, uidb64, token):
     if user is not None and default_token_generator.check_token(user, token):
         user.is_active = True
         user.save()
-        login(request, user)
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return redirect('dashboard')
     else:
         return render(request, 'login.html', {'error': 'Activation link is invalid or has expired.'})
@@ -2639,3 +2641,80 @@ def spending_streaks_view(request):
     }
     return render(request, 'streaks.html', context)
 
+
+
+
+def get_user_liquidity_history(user):
+    """
+    Computes 12-month liquidity history ending at current month.
+    Each point contains: { month, short_month, year, month_num, closingBalance, outflow }
+    """
+    from django.utils import timezone
+    from datetime import datetime
+    now = timezone.now()
+    
+    months = []
+    for i in range(11, -1, -1):
+        tot = now.year * 12 + now.month - 1 - i
+        y = tot // 12
+        m = (tot % 12) + 1
+        months.append((y, m))
+
+    if not user or not user.is_authenticated:
+        return [{
+            'month': datetime(y, m, 1).strftime('%B %Y'),
+            'short_month': datetime(y, m, 1).strftime('%b'),
+            'year': y,
+            'month_num': m,
+            'closingBalance': 0.0,
+            'outflow': 0.0
+        } for (y, m) in months]
+
+    first_y, first_m = months[0]
+    first_month_start = timezone.make_aware(datetime(first_y, first_m, 1, 0, 0, 0))
+
+    prior_expenses = PersonalExpense.objects.filter(user=user, date__lt=first_month_start)
+    running_balance = sum(e.amount if e.category == 'Income' else -e.amount for e in prior_expenses)
+
+    period_expenses = PersonalExpense.objects.filter(user=user, date__gte=first_month_start).order_by('date')
+    expenses_by_month = {}
+    for exp in period_expenses:
+        key = (exp.date.year, exp.date.month)
+        expenses_by_month.setdefault(key, []).append(exp)
+
+    history = []
+    for (y, m) in months:
+        dt = datetime(y, m, 1)
+        m_expenses = expenses_by_month.get((y, m), [])
+        monthly_outflow = 0.0
+        for exp in m_expenses:
+            if exp.category == 'Income':
+                running_balance += exp.amount
+            else:
+                running_balance -= exp.amount
+                monthly_outflow += exp.amount
+        history.append({
+            'month': dt.strftime('%B %Y'),
+            'short_month': dt.strftime('%b'),
+            'year': y,
+            'month_num': m,
+            'closingBalance': round(running_balance, 2),
+            'outflow': round(monthly_outflow, 2)
+        })
+    return history
+
+
+@require_GET
+def liquidity_history_api(request):
+    """
+    Read-only JSON endpoint returning 12-month liquidity history for authenticated user.
+    """
+    history = get_user_liquidity_history(request.user)
+    current_balance = history[-1]['closingBalance'] if history else 0.0
+    active_month = history[-1]['month'] if history else ''
+    return JsonResponse({
+        'status': 'success',
+        'active_month': active_month,
+        'current_balance': current_balance,
+        'history': history
+    })

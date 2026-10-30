@@ -9,15 +9,27 @@
     <meta name="theme-color" content="#12121a">
     <title>{% block title %}EXPENZO - Financial Dashboard{% endblock %}</title>
     
-    <!-- Animate.css v4.1.1 CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <!-- Prevent FOUC: Mark root as loading until window.load & document.fonts.ready -->
+    <script>document.documentElement.classList.add('wf-loading');</script>
+
+    <!-- Preconnect & DNS-Prefetch for external origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+
+    <!-- Self-hosted & Preloaded Trimmed Animate.css (5.3 KB vs 71.8 KB CDN) -->
+    <link rel="preload" href="{% static 'css/animate.min.css' %}" as="style">
+    <link rel="stylesheet" href="{% static 'css/animate.min.css' %}">
     
     <!-- Custom Style Sheet -->
     <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=3.8">
     
     <!-- Obsidian Telemetry Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
     
@@ -469,10 +481,16 @@
         <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
     </div>
 
-    <!-- Lucide Icon CDN Script -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icon CDN Script (Deferred) -->
+    <script defer src="https://unpkg.com/lucide@latest"></script>
     <script>
-        lucide.createIcons();
+        if (window.lucide) {
+            lucide.createIcons();
+        } else {
+            window.addEventListener('DOMContentLoaded', () => {
+                if (window.lucide) lucide.createIcons();
+            });
+        }
         document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app-container');
             const toggleBtn = document.getElementById('sidebar-toggle-btn');
@@ -586,7 +604,7 @@
             });
         });
     </script>
-    <script src="{% static 'js/custom-calendar.js' %}?v=1.0"></script>
+    <script defer src="{% static 'js/custom-calendar.js' %}?v=1.0"></script>
     <script>
         // Helper to get CSRF token from cookies
         function getCookie(name) {
@@ -933,7 +951,7 @@
     })();
     </script>
 <!-- Expenzo Professional Subtle Animations Script -->
-    <script src="{% static 'js/animations.js' %}?v=1.0"></script>
+    <script defer src="{% static 'js/animations.js' %}?v=1.0"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

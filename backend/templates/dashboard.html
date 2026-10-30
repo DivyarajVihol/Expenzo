@@ -189,9 +189,9 @@
         </div>
       </div>
 
-      <!-- Interactive SVG Chart Area -->
-      <div class="relative w-full h-56 my-2 z-10 flex items-center justify-center animate__animated animate__zoomIn" style="--animate-delay: 0.25s;">
-        <svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 760 220">
+      <!-- Interactive Dynamic SVG Liquidity Chart Area -->
+      <div id="liquidity-chart-container" class="relative w-full h-56 my-2 z-10 flex items-center justify-center animate__animated animate__zoomIn select-none" style="--animate-delay: 0.25s; cursor: crosshair;">
+        <svg id="liquidity-chart-svg" class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 760 220">
           <defs>
             <lineargradient id="amberChartGrad" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stop-color="#ffa31a" stop-opacity="0.35"></stop>
@@ -207,36 +207,411 @@
             </filter>
           </defs>
           <!-- Horizontal Grid Lines -->
-          <line stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="35" y2="35"></line>
-          <line stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="90" y2="90"></line>
-          <line stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="145" y2="145"></line>
-          <line stroke="#292a2d" stroke-width="1" x1="0" x2="760" y1="200" y2="200"></line>
+          <line id="liquidity-grid-1" stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="35" y2="35"></line>
+          <line id="liquidity-grid-2" stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="90" y2="90"></line>
+          <line id="liquidity-grid-3" stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="145" y2="145"></line>
+          <line id="liquidity-grid-4" stroke="#292a2d" stroke-width="1" x1="0" x2="760" y1="200" y2="200"></line>
           
-          <!-- Benchmark Target Line (Teal accent) -->
-          <path d="M 0 160 C 130 145, 260 155, 380 135 C 500 115, 620 95, 760 70" fill="none" stroke="#2acf9a" stroke-dasharray="3 4" stroke-opacity="0.45" stroke-width="1.75"></path>
+          <!-- Benchmark Target Line (Teal accent trend line) -->
+          <path id="liquidity-trend-path" d="M 0 160 C 130 145, 260 155, 380 135 C 500 115, 620 95, 760 70" fill="none" stroke="#2acf9a" stroke-dasharray="3 4" stroke-opacity="0.45" stroke-width="1.75"></path>
           
           <!-- Area under amber curve -->
-          <path d="M 0 140 C 70 120, 110 155, 170 110 C 220 85, 270 160, 330 125 C 390 95, 430 85, 480 70 C 520 60, 560 145, 610 130 C 660 115, 710 65, 760 85 L 760 210 L 0 210 Z" fill="url(#amberChartGrad)"></path>
+          <path id="liquidity-area-path" d="M 0 140 C 70 120, 110 155, 170 110 C 220 85, 270 160, 330 125 C 390 95, 430 85, 480 70 C 520 60, 560 145, 610 130 C 660 115, 710 65, 760 85 L 760 210 L 0 210 Z" fill="url(#amberChartGrad)"></path>
           
           <!-- Glowing Telemetry Line -->
-          <path d="M 0 140 C 70 120, 110 155, 170 110 C 220 85, 270 160, 330 125 C 390 95, 430 85, 480 70 C 520 60, 560 145, 610 130 C 660 115, 710 65, 760 85" fill="none" filter="url(#glowTelemetry)" stroke="#ffa31a" stroke-width="2.5"></path>
+          <path id="liquidity-curve-path" d="M 0 140 C 70 120, 110 155, 170 110 C 220 85, 270 160, 330 125 C 390 95, 430 85, 480 70 C 520 60, 560 145, 610 130 C 660 115, 710 65, 760 85" fill="none" filter="url(#glowTelemetry)" stroke="#ffa31a" stroke-width="2.5"></path>
           
-          <!-- Active Node Anchor Point (x=480, y=70) -->
-          <circle cx="480" cy="70" fill="#ffa31a" fill-opacity="0.25" r="8"></circle>
-          <circle cx="480" cy="70" fill="#ffddba" r="4.5"></circle>
-          <line stroke="#ffa31a" stroke-dasharray="2 3" stroke-opacity="0.7" stroke-width="1.5" x1="480" x2="480" y1="70" y2="200"></line>
+          <!-- Active Node Anchor Point (follows hovered/active month) -->
+          <circle id="liquidity-anchor-outer" cx="760" cy="85" fill="#ffa31a" fill-opacity="0.25" r="8"></circle>
+          <circle id="liquidity-anchor-inner" cx="760" cy="85" fill="#ffddba" r="4.5"></circle>
+          <line id="liquidity-hover-line" stroke="#ffa31a" stroke-dasharray="2 3" stroke-opacity="0.7" stroke-width="1.5" x1="760" x2="760" y1="85" y2="200"></line>
         </svg>
 
         <!-- Floating Glass Tooltip node pinned to point -->
-        <div class="absolute left-[62%] top-2 -translate-x-1/2 bg-surface-container-high/95 backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-xl shadow-[0_12px_28px_rgba(0,0,0,0.7)] flex flex-col pointer-events-none z-20">
+        <div id="liquidity-tooltip" class="absolute top-2 -translate-x-1/2 bg-surface-container-high/95 backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-xl shadow-[0_12px_28px_rgba(0,0,0,0.7)] flex flex-col pointer-events-none z-20 transition-all duration-75" style="left: 62%;">
           <div class="flex items-center justify-between gap-2">
-            <span class="font-label-md text-[11px] text-on-surface-variant font-semibold">{{ active_month_label }}</span>
+            <span id="liquidity-tooltip-month" class="font-label-md text-[11px] text-on-surface-variant font-semibold">{{ active_month_label }}</span>
             <span class="material-symbols-outlined text-xs text-primary">north_east</span>
           </div>
-          <span class="font-display text-sm text-on-surface font-bold tabular-nums">₹{{ total_month_spend|floatformat:2|default:"0.00" }}</span>
-          <span class="font-body-sm text-[10px] text-tertiary">Active Month Outflow</span>
+          <span id="liquidity-tooltip-amount" class="font-display text-sm text-on-surface font-bold tabular-nums">₹{{ total_month_spend|floatformat:2|default:"0.00" }}</span>
+          <span id="liquidity-tooltip-label" class="font-body-sm text-[10px] text-tertiary">Active Month Outflow</span>
         </div>
       </div>
+
+      <!-- Embedded Initial Liquidity History Data -->
+      <script id="initial-liquidity-data" type="application/json">{{ liquidity_history_json|default:'[]'|safe }}</script>
+
+      <!-- Liquidity Graph Dynamic Engine -->
+      <script>
+      (function initLiquidityGraph() {
+        function setup() {
+          const container = document.getElementById('liquidity-chart-container');
+          const svg = document.getElementById('liquidity-chart-svg');
+          if (!container || !svg || container.dataset.liquidityInitialized === 'true') return;
+          container.dataset.liquidityInitialized = 'true';
+
+          const curvePath = document.getElementById('liquidity-curve-path');
+          const areaPath = document.getElementById('liquidity-area-path');
+          const trendPath = document.getElementById('liquidity-trend-path');
+          const anchorOuter = document.getElementById('liquidity-anchor-outer');
+          const anchorInner = document.getElementById('liquidity-anchor-inner');
+          const hoverLine = document.getElementById('liquidity-hover-line');
+          const tooltip = document.getElementById('liquidity-tooltip');
+          const tooltipMonth = document.getElementById('liquidity-tooltip-month');
+          const tooltipAmount = document.getElementById('liquidity-tooltip-amount');
+          const tooltipLabel = document.getElementById('liquidity-tooltip-label');
+
+          let rawHistory = [];
+          try {
+            const rawEl = document.getElementById('initial-liquidity-data');
+            if (rawEl && rawEl.textContent) {
+              rawHistory = JSON.parse(rawEl.textContent);
+            }
+          } catch (e) {
+            console.warn('Failed parsing initial liquidity data:', e);
+          }
+
+          if (!Array.isArray(rawHistory) || rawHistory.length === 0) {
+            const now = new Date();
+            rawHistory = [];
+            for (let i = 11; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              rawHistory.push({
+                month: d.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+                short_month: d.toLocaleString('en-US', { month: 'short' }),
+                closingBalance: 0,
+                outflow: 0
+              });
+            }
+          }
+
+          let currentY = null;
+          let currentTrendY = null;
+          let animFrameId = null;
+          let activeIndex = rawHistory.length - 1;
+
+          // Fritsch-Carlson Monotone Cubic Spline Interpolation
+          function computeMonotoneBezier(points) {
+            const n = points.length;
+            if (n === 0) return 'M 0 195 L 760 195';
+            if (n === 1) return `M 0 ${points[0].y.toFixed(1)} L 760 ${points[0].y.toFixed(1)}`;
+
+            const deltas = new Array(n - 1);
+            for (let i = 0; i < n - 1; i++) {
+              const dx = points[i + 1].x - points[i].x;
+              const dy = points[i + 1].y - points[i].y;
+              deltas[i] = dx !== 0 ? dy / dx : 0;
+            }
+
+            const m = new Array(n).fill(0);
+            m[0] = deltas[0];
+            m[n - 1] = deltas[n - 2];
+            for (let i = 1; i < n - 1; i++) {
+              m[i] = (deltas[i - 1] + deltas[i]) / 2;
+            }
+
+            for (let i = 0; i < n - 1; i++) {
+              if (deltas[i] === 0) {
+                m[i] = 0;
+                m[i + 1] = 0;
+              } else {
+                const alpha = m[i] / deltas[i];
+                const beta = m[i + 1] / deltas[i];
+                if (alpha < 0) m[i] = 0;
+                if (beta < 0) m[i + 1] = 0;
+                const hypot2 = alpha * alpha + beta * beta;
+                if (hypot2 > 9) {
+                  const tau = 3 / Math.sqrt(hypot2);
+                  m[i] = tau * alpha * deltas[i];
+                  m[i + 1] = tau * beta * deltas[i];
+                }
+              }
+            }
+
+            const d = [`M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`];
+            for (let i = 0; i < n - 1; i++) {
+              const dx = points[i + 1].x - points[i].x;
+              const cp1x = points[i].x + dx / 3;
+              const cp1y = points[i].y + (m[i] * dx) / 3;
+              const cp2x = points[i + 1].x - dx / 3;
+              const cp2y = points[i + 1].y - (m[i + 1] * dx) / 3;
+              const p2x = points[i + 1].x;
+              const p2y = points[i + 1].y;
+              d.push(`C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2x.toFixed(1)} ${p2y.toFixed(1)}`);
+            }
+
+            return d.join(' ');
+          }
+
+          function calculateYCoordinates(data) {
+            const count = data.length || 12;
+            const balances = data.map(d => Number(d.closingBalance) || 0);
+            const minVal = Math.min(...balances);
+            const maxVal = Math.max(...balances);
+
+            const Y_TOP = 25;
+            const Y_BOTTOM = 195;
+
+            // Empty state: flat line at baseline
+            if (balances.every(v => v === 0)) {
+              return {
+                curveY: new Array(count).fill(Y_BOTTOM),
+                trendY: new Array(count).fill(Y_BOTTOM)
+              };
+            }
+
+            if (minVal === maxVal) {
+              return {
+                curveY: new Array(count).fill(110),
+                trendY: new Array(count).fill(110)
+              };
+            }
+
+            const range = maxVal - minVal;
+            const pad = range * 0.12;
+            const yMin = minVal >= 0 ? Math.max(0, minVal - pad) : minVal - pad;
+            const yMax = maxVal + pad;
+            const effectiveRange = (yMax - yMin) || 1;
+
+            const curveY = balances.map(v => {
+              const norm = (v - yMin) / effectiveRange;
+              return Y_BOTTOM - norm * (Y_BOTTOM - Y_TOP);
+            });
+
+            // 3-Month Moving Average for Trend Line
+            const trendY = new Array(count);
+            for (let i = 0; i < count; i++) {
+              let sum = 0;
+              let c = 0;
+              for (let j = Math.max(0, i - 2); j <= i; j++) {
+                sum += balances[j];
+                c++;
+              }
+              const maVal = sum / c;
+              const norm = (maVal - yMin) / effectiveRange;
+              trendY[i] = Y_BOTTOM - norm * (Y_BOTTOM - Y_TOP);
+            }
+
+            return { curveY, trendY };
+          }
+
+          function renderPaths(curveYArr, trendYArr) {
+            const count = curveYArr.length;
+            const pts = curveYArr.map((y, i) => ({
+              x: (i / (count - 1)) * 760,
+              y: y
+            }));
+
+            const trendPts = trendYArr.map((y, i) => ({
+              x: (i / (count - 1)) * 760,
+              y: y
+            }));
+
+            const curvePathD = computeMonotoneBezier(pts);
+            const trendPathD = computeMonotoneBezier(trendPts);
+            const areaPathD = `${curvePathD} L 760 210 L 0 210 Z`;
+
+            if (curvePath) curvePath.setAttribute('d', curvePathD);
+            if (areaPath) areaPath.setAttribute('d', areaPathD);
+            if (trendPath) trendPath.setAttribute('d', trendPathD);
+
+            return pts;
+          }
+
+          function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          }
+
+          function animateTo(targetCurveY, targetTrendY, duration, callback) {
+            if (animFrameId) {
+              cancelAnimationFrame(animFrameId);
+              animFrameId = null;
+            }
+
+            if (!currentY || currentY.length !== targetCurveY.length) {
+              currentY = [...targetCurveY];
+              currentTrendY = [...targetTrendY];
+              const pts = renderPaths(currentY, currentTrendY);
+              if (callback) callback(pts);
+              return;
+            }
+
+            const startCurveY = [...currentY];
+            const startTrendY = [...currentTrendY];
+            const startTime = performance.now();
+            const count = targetCurveY.length;
+
+            function step(now) {
+              const elapsed = now - startTime;
+              const progress = Math.min(1, elapsed / duration);
+              const ease = easeInOutCubic(progress);
+
+              for (let i = 0; i < count; i++) {
+                currentY[i] = startCurveY[i] + (targetCurveY[i] - startCurveY[i]) * ease;
+                currentTrendY[i] = startTrendY[i] + (targetTrendY[i] - startTrendY[i]) * ease;
+              }
+
+              const pts = renderPaths(currentY, currentTrendY);
+
+              if (progress < 1) {
+                animFrameId = requestAnimationFrame(step);
+              } else {
+                currentY = [...targetCurveY];
+                currentTrendY = [...targetTrendY];
+                renderPaths(currentY, currentTrendY);
+                animFrameId = null;
+                if (callback) callback(pts);
+              }
+            }
+
+            animFrameId = requestAnimationFrame(step);
+          }
+
+          function formatINR(val) {
+            const num = Number(val) || 0;
+            return '₹' + num.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+          }
+
+          function setAnchorAndTooltip(idx) {
+            if (!currentY || idx < 0 || idx >= rawHistory.length) return;
+            activeIndex = idx;
+            const pt = rawHistory[idx] || {};
+            const count = rawHistory.length;
+            const x = (idx / (count - 1)) * 760;
+            const y = currentY[idx];
+
+            if (anchorOuter) {
+              anchorOuter.setAttribute('cx', x.toFixed(1));
+              anchorOuter.setAttribute('cy', y.toFixed(1));
+            }
+            if (anchorInner) {
+              anchorInner.setAttribute('cx', x.toFixed(1));
+              anchorInner.setAttribute('cy', y.toFixed(1));
+            }
+            if (hoverLine) {
+              hoverLine.setAttribute('x1', x.toFixed(1));
+              hoverLine.setAttribute('x2', x.toFixed(1));
+              hoverLine.setAttribute('y1', y.toFixed(1));
+              hoverLine.setAttribute('y2', '200');
+            }
+
+            if (tooltipMonth) tooltipMonth.textContent = pt.month || '';
+            if (tooltipAmount) tooltipAmount.textContent = formatINR(pt.outflow || 0);
+            if (tooltipLabel) {
+              tooltipLabel.textContent = idx === (count - 1) ? 'Active Month Outflow' : 'Month Outflow';
+            }
+
+            if (tooltip) {
+              const rawPercent = (x / 760) * 100;
+              const clampedPercent = Math.max(14, Math.min(86, rawPercent));
+              tooltip.style.left = clampedPercent.toFixed(1) + '%';
+            }
+          }
+
+          function handlePointer(clientX) {
+            const rect = svg.getBoundingClientRect();
+            if (!rect.width) return;
+            const relX = clientX - rect.left;
+            const ratio = Math.max(0, Math.min(1, relX / rect.width));
+            const count = rawHistory.length;
+            const idx = Math.round(ratio * (count - 1));
+            setAnchorAndTooltip(idx);
+          }
+
+          let pointerRaf = null;
+          function throttledHandlePointer(clientX) {
+            if (pointerRaf) cancelAnimationFrame(pointerRaf);
+            pointerRaf = requestAnimationFrame(() => {
+              handlePointer(clientX);
+              pointerRaf = null;
+            });
+          }
+
+          container.addEventListener('mousemove', (e) => {
+            throttledHandlePointer(e.clientX);
+          });
+
+          container.addEventListener('touchmove', (e) => {
+            if (e.touches && e.touches[0]) {
+              throttledHandlePointer(e.touches[0].clientX);
+            }
+          }, { passive: true });
+
+          container.addEventListener('mouseleave', () => {
+            setAnchorAndTooltip(rawHistory.length - 1);
+          });
+
+          container.addEventListener('touchend', () => {
+            setAnchorAndTooltip(rawHistory.length - 1);
+          }, { passive: true });
+
+          // Initial Render
+          const initialCoords = calculateYCoordinates(rawHistory);
+          animateTo(initialCoords.curveY, initialCoords.trendY, 600, () => {
+            setAnchorAndTooltip(rawHistory.length - 1);
+          });
+
+          // Exposed dynamic update function
+          window.updateLiquidityGraph = async function(newData) {
+            if (Array.isArray(newData) && newData.length > 0) {
+              rawHistory = newData;
+            } else if (newData && typeof newData === 'object') {
+              let newBalance = 0;
+              if (typeof newData.balance === 'number') {
+                newBalance = newData.balance;
+              } else {
+                const cash = Number(newData.cash) || 0;
+                const upi = Number(newData.upi) || 0;
+                const bank = Number(newData.bank || newData['Bank Account']) || 0;
+                const card = Number(newData.card || newData['Credit Card']) || 0;
+                newBalance = cash + upi + bank + card;
+              }
+              if (rawHistory.length > 0) {
+                rawHistory[rawHistory.length - 1].closingBalance = newBalance;
+              }
+            } else if (typeof newData === 'number') {
+              if (rawHistory.length > 0) {
+                rawHistory[rawHistory.length - 1].closingBalance = newData;
+              }
+            } else {
+              try {
+                const res = await fetch('/api/liquidity-history/');
+                if (res.ok) {
+                  const json = await res.json();
+                  if (json.history && json.history.length > 0) {
+                    rawHistory = json.history;
+                  }
+                }
+              } catch (err) {
+                console.warn('Could not fetch liquidity history:', err);
+              }
+            }
+
+            const { curveY, trendY } = calculateYCoordinates(rawHistory);
+            animateTo(curveY, trendY, 600, () => {
+              setAnchorAndTooltip(activeIndex);
+            });
+          };
+
+          let resizeTimer = null;
+          window.addEventListener('resize', () => {
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+              if (currentY) setAnchorAndTooltip(activeIndex);
+            }, 100);
+          });
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', setup);
+        } else {
+          setup();
+        }
+      })();
+      </script>
 
       <!-- X-Axis Labels & Legend -->
       <div class="flex items-center justify-between pt-2 z-10 flex-wrap gap-2">
@@ -285,39 +660,41 @@
             right: 0;
             bottom: 0;
             width: 100%;
-            transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 500ms ease;
+            height: 154px;
+            transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms cubic-bezier(0.4, 0, 0.2, 1);
             transform-origin: center top;
-            will-change: transform, opacity;
+            transform: translateZ(0);
+            backface-visibility: hidden;
             user-select: none;
             cursor: pointer;
           }
           #swappable-card-stack-container .card-swappable-item.pos-front {
-            transform: translateY(0) scale(1);
+            transform: translate3d(0, 0, 0) scale(1);
             z-index: 30;
             opacity: 1;
             box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85);
             pointer-events: auto;
           }
           #swappable-card-stack-container .card-swappable-item.pos-mid {
-            transform: translateY(-16px) scale(0.94);
+            transform: translate3d(0, -16px, 0) scale(0.94);
             z-index: 20;
             opacity: 0.82;
             box-shadow: 0 10px 24px rgba(0, 0, 0, 0.65);
             pointer-events: auto;
           }
           #swappable-card-stack-container .card-swappable-item.pos-mid:hover {
-            transform: translateY(-20px) scale(0.95);
+            transform: translate3d(0, -20px, 0) scale(0.95);
             opacity: 0.92;
           }
           #swappable-card-stack-container .card-swappable-item.pos-back {
-            transform: translateY(-30px) scale(0.88);
+            transform: translate3d(0, -30px, 0) scale(0.88);
             z-index: 10;
             opacity: 0.55;
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
             pointer-events: auto;
           }
           #swappable-card-stack-container .card-swappable-item.pos-back:hover {
-            transform: translateY(-34px) scale(0.89);
+            transform: translate3d(0, -34px, 0) scale(0.89);
             opacity: 0.7;
           }
         </style>
@@ -448,6 +825,12 @@
 
               function updateCardStack() {
                 cards.forEach((card, idx) => {
+                  card.style.willChange = 'transform, opacity';
+                  card.addEventListener('transitionend', function onEnd() {
+                    card.style.willChange = '';
+                    card.removeEventListener('transitionend', onEnd);
+                  }, { once: true });
+
                   card.classList.remove('pos-front', 'pos-mid', 'pos-back');
                   const rel = (idx - activeIndex + cards.length) % cards.length;
                   if (rel === 0) {

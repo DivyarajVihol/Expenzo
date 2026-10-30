@@ -1433,16 +1433,42 @@ input[type=number] {
 }
 
 
-/* --- Animate.css Enhancements & Scroll Reveal --- */
-.reveal {
-  opacity: 0;
-  will-change: opacity, transform;
+/* --- High-Performance Animation & FOUC Prevention --- */
+/* Hide animated elements strictly during initial font & asset load */
+html.wf-loading .animate__animated {
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
+/* Base scroll reveal state */
+.reveal {
+  opacity: 0;
+}
+
+/* GPU Compositor Promotion for smooth 60fps frames */
+.animate__animated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Mobile & Low-Power Optimization: shorter animations, no heavy stagger */
+@media (max-width: 768px) {
+  :root {
+    --animate-duration: 0.4s !important;
+    --animate-delay: 0s !important;
+  }
+  .animate__animated {
+    animation-duration: 0.4s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* Accessibility: User prefers reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate__animated {
     animation: none !important;
     transition: none !important;
+    transform: none !important;
   }
   .reveal {
     opacity: 1 !important;

@@ -39,42 +39,46 @@
   100% { transform: rotate(360deg); }
 }
 :root {
-  /* Color Palette - Vibrant Slate & Purple-Indigo */
-  --bg-main: #080b11;
-  --bg-sidebar: rgba(13, 17, 28, 0.7);
-  --bg-card: rgba(22, 28, 45, 0.45);
-  --bg-card-hover: rgba(28, 36, 58, 0.6);
+  /* Animate.css Timing Customizations */
+  --animate-duration: 0.7s;
+  --animate-delay: 0.15s;
+
+  /* Obsidian Telemetry Color Palette */
+  --bg-main: #090a0d;
+  --bg-sidebar: rgba(18, 19, 22, 0.85);
+  --bg-card: rgba(24, 25, 28, 0.65);
+  --bg-card-hover: rgba(33, 34, 40, 0.85);
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.15);
+  --border-hover: rgba(255, 163, 26, 0.35);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #e5e2e1;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
   
-  --accent-primary: #818cf8; /* indigo */
-  --accent-primary-hover: #6366f1;
-  --accent-primary-glow: rgba(99, 102, 241, 0.25);
+  --accent-primary: #ffa31a; /* Warm Neon Amber */
+  --accent-primary-hover: #ff8a36;
+  --accent-primary-glow: rgba(255, 163, 26, 0.35);
   
-  --accent-success: #34d399; /* emerald green */
-  --accent-success-hover: #10b981;
-  --accent-success-glow: rgba(16, 185, 129, 0.15);
+  --accent-success: #36d6a0; /* Emerald Mint */
+  --accent-success-hover: #2ec08e;
+  --accent-success-glow: rgba(54, 214, 160, 0.25);
   
-  --accent-danger: #fb7185; /* rose red */
+  --accent-danger: #ff7185; /* Coral Rose */
   --accent-danger-hover: #f43f5e;
-  --accent-danger-glow: rgba(244, 63, 94, 0.15);
+  --accent-danger-glow: rgba(255, 113, 133, 0.25);
   
-  --accent-warning: #fbbf24; /* amber */
+  --accent-warning: #ffa31a;
   
-  --font-heading: 'Plus Jakarta Sans', sans-serif;
-  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-heading: 'Space Grotesk', -apple-system, sans-serif;
+  --font-body: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   
-  --glass-blur: blur(12px);
+  --glass-blur: blur(16px);
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: all 0.15s ease;
-  --shadow-premium: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  --shadow-premium: 0 12px 36px 0 rgba(0, 0, 0, 0.6);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
 }
 
 * {
@@ -130,6 +134,18 @@ html, body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  position: relative;
+}
+
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Sidebar Styling */
@@ -147,6 +163,282 @@ html, body {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+/* Desktop Collapsible Sidebar & Full-Width Dashboard */
+@media (min-width: 768px) {
+  .sidebar {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    margin-left: 0;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.25s ease,
+                border-color 0.3s ease;
+    will-change: width, min-width, max-width, opacity;
+  }
+
+  .app-container.sidebar-collapsed .sidebar,
+  .sidebar-collapsed .sidebar {
+    margin-left: 0 !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-right: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+  }
+
+  /* Automatically allow containers to utilize full screen space when sidebar is collapsed */
+  .app-container.sidebar-collapsed .history-container,
+  .app-container.sidebar-collapsed .recurring-container,
+  .app-container.sidebar-collapsed .groups-container,
+  .app-container.sidebar-collapsed .max-w-\[1300px\],
+  .app-container.sidebar-collapsed .max-w-\[1000px\] {
+    max-width: 100% !important;
+  }
+}
+
+/* Desktop Topbar */
+.desktop-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 2rem;
+  background: rgba(18, 19, 22, 0.6);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: padding 0.3s ease;
+}
+
+.desktop-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.desktop-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  padding: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 163, 26, 0.12);
+  border-color: rgba(255, 163, 26, 0.4);
+  color: var(--accent-primary);
+  box-shadow: 0 0 14px rgba(255, 163, 26, 0.2);
+  transform: translateY(-1px);
+}
+
+.sidebar-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.sidebar-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.sidebar-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  padding: 0;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(255, 163, 26, 0.12);
+  border-color: rgba(255, 163, 26, 0.4);
+  color: var(--accent-primary);
+  box-shadow: 0 0 12px rgba(255, 163, 26, 0.2);
+}
+
+/* Collapsed Brand (Only visible when sidebar is collapsed on desktop) */
+.collapsed-brand {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  animation: fadeInBrand 0.25s ease-out;
+}
+
+.app-container.sidebar-collapsed .collapsed-brand {
+  display: flex;
+}
+
+.collapsed-logo-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 163, 26, 0.15);
+  border: 1px solid rgba(255, 163, 26, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+}
+
+.logo-icon-sm {
+  width: 16px;
+  height: 16px;
+}
+
+.collapsed-logo-text {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes fadeInBrand {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Topbar Context Breadcrumb */
+.topbar-context {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.context-slash {
+  opacity: 0.4;
+  font-weight: 300;
+}
+
+.context-title {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Shortcut Hint */
+.shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  user-select: none;
+}
+
+.kbd-key {
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Topbar User Pill */
+.topbar-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.25rem 0.75rem 0.25rem 0.35rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+.topbar-user-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 163, 26, 0.3);
+}
+
+.topbar-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.topbar-avatar i {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
+
+.topbar-username {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .main-wrapper,
+  .sidebar-toggle-btn,
+  .collapsed-brand {
+    transition: none !important;
+  }
 }
 
 .logo-container {
@@ -255,9 +547,14 @@ html, body {
 }
 
 .nav-item.active {
-  border: 1px solid var(--border-color);
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--accent-primary);
+  border: 1px solid rgba(255, 163, 26, 0.4);
+  background: rgba(255, 163, 26, 0.12);
+  color: #ffa31a;
+  box-shadow: 0 0 20px rgba(255, 163, 26, 0.15);
+}
+
+.tabular-nums, .font-tabular-numeric, .tx-amount, .metric-value, .balance-amount {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Main Content Wrapper */
@@ -379,9 +676,6 @@ html, body {
   .analytics-grid {
     grid-template-columns: 1fr;
   }
-  .sidebar {
-    width: 240px;
-  }
 }
 
 .chart-container {
@@ -502,12 +796,12 @@ select option {
 }
 
 .modal-content {
-  background: #0d121f;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: #121316;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   width: 100%;
   max-width: 500px;
-  box-shadow: var(--shadow-premium);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 24px rgba(255, 163, 26, 0.1);
   overflow: hidden;
   animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -708,7 +1002,7 @@ select option {
   display: none;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 767px) {
   .app-container {
     flex-direction: column !important;
   }
@@ -787,6 +1081,11 @@ select option {
     transform: translateY(-7px) rotate(-45deg);
   }
 
+  /* Desktop Topbar Hidden on Mobile */
+  .desktop-topbar {
+    display: none !important;
+  }
+
   /* Sidebar Drawer */
   .sidebar {
     position: fixed !important;
@@ -795,6 +1094,9 @@ select option {
     bottom: 0 !important;
     z-index: 1000 !important;
     transform: translateX(-100%) !important;
+    margin-left: 0 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
     width: 280px !important;
@@ -1117,4 +1419,58 @@ select option {
 #nb-new-balance {
   font-family: 'Manrope', sans-serif !important;
   font-weight: 800 !important;
+}
+
+/* Remove number input spin buttons */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+
+/* --- High-Performance Animation & FOUC Prevention --- */
+/* Hide animated elements strictly during initial font & asset load */
+html.wf-loading .animate__animated {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Base scroll reveal state */
+.reveal {
+  opacity: 0;
+}
+
+/* GPU Compositor Promotion for smooth 60fps frames */
+.animate__animated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Mobile & Low-Power Optimization: shorter animations, no heavy stagger */
+@media (max-width: 768px) {
+  :root {
+    --animate-duration: 0.4s !important;
+    --animate-delay: 0s !important;
+  }
+  .animate__animated {
+    animation-duration: 0.4s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* Accessibility: User prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate__animated {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .reveal {
+    opacity: 1 !important;
+  }
 }

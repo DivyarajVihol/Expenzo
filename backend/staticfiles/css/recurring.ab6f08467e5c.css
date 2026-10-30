@@ -1,0 +1,299 @@
+/* Recurring Finance Page Styles - Obsidian Telemetry Theme */
+
+.recurring-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0.5rem;
+}
+
+.recurring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.back-dashboard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  transition: var(--transition-fast);
+}
+
+.back-dashboard-btn:hover {
+  color: var(--accent-primary);
+}
+
+.recalculate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  transition: var(--transition-fast);
+}
+
+.recalculate-btn:hover {
+  background: rgba(255, 163, 26, 0.15);
+  border-color: rgba(255, 163, 26, 0.4);
+  color: var(--accent-primary);
+}
+
+.recurring-card-padding {
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+  background: rgba(18, 19, 22, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: var(--glass-blur);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.recurring-card-title {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  color: var(--text-primary);
+}
+
+.add-template-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.25rem;
+  align-items: end;
+}
+
+.add-template-form-row .form-group {
+  margin: 0;
+  width: 100%;
+}
+
+.add-template-form-row .form-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.add-template-form-row .input-control,
+.select-control-dark {
+  background: #090a0d !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px;
+  color: var(--text-primary);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: var(--transition-fast);
+}
+
+.add-template-form-row .input-control:focus,
+.select-control-dark:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 12px rgba(255, 163, 26, 0.25) !important;
+  outline: none;
+}
+
+.add-template-btn {
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 44px;
+  width: 100%;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffa31a 0%, #ff8a36 100%);
+  color: #090a0d;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 0 20px rgba(255, 163, 26, 0.3);
+  transition: var(--transition-fast);
+  border: none;
+  cursor: pointer;
+}
+
+.add-template-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.recurring-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .recurring-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.income-list-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(54, 214, 160, 0.25);
+  padding-bottom: 0.75rem;
+  color: var(--accent-success);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expense-list-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 113, 133, 0.25);
+  padding-bottom: 0.75rem;
+  color: var(--accent-danger);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.empty-list-text {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.recurring-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recurring-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.15rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  transition: var(--transition-fast);
+}
+
+.recurring-item-row:hover {
+  border-color: rgba(255, 163, 26, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.item-info-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item-info-amount-income {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent-success);
+  font-variant-numeric: tabular-nums;
+}
+
+.item-info-amount-expense {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent-danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.item-actions-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-btn-secondary {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.action-btn-secondary:hover {
+  color: var(--accent-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.action-btn-danger {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.action-btn-danger:hover {
+  color: var(--accent-danger);
+  background: rgba(255, 113, 133, 0.1);
+}
+
+.edit-mode-container {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: center;
+}
+
+.edit-input-text {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.edit-input-amount {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  width: 100px;
+}
+
+.edit-save-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+}
+
+.edit-cancel-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+}
