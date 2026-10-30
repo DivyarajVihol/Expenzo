@@ -9,8 +9,11 @@
     <meta name="theme-color" content="#12121a">
     <title>{% block title %}EXPENZO - Financial Dashboard{% endblock %}</title>
     
+    <!-- Animate.css v4.1.1 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
     <!-- Custom Style Sheet -->
-    <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=3.7">
+    <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=3.8">
     
     <!-- Obsidian Telemetry Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -326,7 +329,7 @@
         </script>
         {% if user.is_authenticated %}
         <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="app-sidebar" aria-label="Main Navigation">
+        <aside class="sidebar animate__animated animate__fadeInLeft" id="app-sidebar" aria-label="Main Navigation">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
                 <a href="{% url 'dashboard' %}" class="logo-container" style="margin-bottom: 0;" aria-label="Go to Dashboard">
                     <i data-lucide="wallet" class="logo-icon"></i>
@@ -386,7 +389,7 @@
 
         <div class="main-wrapper">
             <!-- Desktop Topbar with Sidebar Toggle (Hidden on Mobile) -->
-            <header class="desktop-topbar" aria-label="Dashboard Controls">
+            <header class="desktop-topbar animate__animated animate__fadeInDown" aria-label="Dashboard Controls">
                 <div class="desktop-topbar-left">
                     <button id="sidebar-toggle-btn"
                             class="sidebar-toggle-btn"
@@ -444,7 +447,7 @@
             </header>
 
             <!-- Mobile Header (Hidden on Desktop) -->
-            <div class="mobile-header">
+            <div class="mobile-header animate__animated animate__fadeInDown">
                 <button class="hamburger-btn" aria-label="Toggle navigation menu" aria-expanded="false" id="mobile-menu-btn">
                     <span class="hamburger-line top"></span>
                     <span class="hamburger-line middle"></span>
@@ -844,6 +847,9 @@
                 if (typeof window.initCustomCalendar === 'function') {
                     window.initCustomCalendar();
                 }
+                if (typeof window.initExpenzoAnimations === 'function') {
+                    window.initExpenzoAnimations();
+                }
 
                 // 9. Enter animation
                 mainContent.classList.remove('nav-transitioning-out');
@@ -926,6 +932,8 @@
         }
     })();
     </script>
+<!-- Expenzo Professional Subtle Animations Script -->
+    <script src="{% static 'js/animations.js' %}?v=1.0"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

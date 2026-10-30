@@ -39,6 +39,10 @@
   100% { transform: rotate(360deg); }
 }
 :root {
+  /* Animate.css Timing Customizations */
+  --animate-duration: 0.7s;
+  --animate-delay: 0.15s;
+
   /* Obsidian Telemetry Color Palette */
   --bg-main: #090a0d;
   --bg-sidebar: rgba(18, 19, 22, 0.85);
@@ -1426,4 +1430,21 @@ input[type=number]::-webkit-outer-spin-button {
 
 input[type=number] {
   -moz-appearance: textfield;
+}
+
+
+/* --- Animate.css Enhancements & Scroll Reveal --- */
+.reveal {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate__animated {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal {
+    opacity: 1 !important;
+  }
 }
