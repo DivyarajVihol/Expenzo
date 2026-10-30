@@ -576,6 +576,10 @@
 
     // Validation and form submit handler
     function handleRegistration(e) {
+      const form = document.getElementById('signup-form');
+      if (form && !form.checkValidity()) {
+        return;
+      }
       const p1 = document.getElementById('password').value;
       const p2 = document.getElementById('confirm-password').value;
       const matchError = document.getElementById('match-error');
