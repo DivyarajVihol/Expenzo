@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.utils import timezone as django_timezone
-from django.db.models import Q
+from django.db.models import Q, Sum
 from datetime import datetime, timedelta
 import json
 import logging
@@ -502,8 +502,17 @@ def groups_view(request):
     memberships = GroupMember.objects.filter(user=user).select_related('group')
     groups = [m.group for m in memberships]
     
+    total_group_expenses = 0.0
+    for g in groups:
+        g.member_count = GroupMember.objects.filter(group=g).count()
+        exp_sum = GroupExpense.objects.filter(group=g).aggregate(Sum('amount'))['amount__sum'] or 0.0
+        g.total_expenses = exp_sum
+        total_group_expenses += exp_sum
+    
     context = {
-        'groups': groups
+        'groups': groups,
+        'total_groups_count': len(groups),
+        'total_group_expenses': total_group_expenses,
     }
     return render(request, 'groups.html', context)
 
