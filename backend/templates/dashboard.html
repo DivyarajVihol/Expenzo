@@ -349,10 +349,10 @@
     </div>
   </div>
 
-  <!-- MIDDLE ROW: Summary Stat Triad + Spending Breakdown & Bar Analytics -->
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5 mb-6">
-    <!-- 3 Mini Summary Metric Cards (4 cols total) -->
-    <div class="xl:col-span-4 flex flex-col gap-3 justify-between">
+  <!-- MIDDLE ROW: Summary Stat Triad (Left 4 cols) + Category Distribution (Right 8 cols) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
+    <!-- 3 Mini Summary Metric Cards (4 cols on lg/xl) -->
+    <div class="lg:col-span-4 flex flex-col gap-3 justify-between">
       <!-- Total Income / Inflow -->
       <div class="bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center justify-between group hover:bg-surface-container/60 transition-all">
         <div class="flex items-center gap-3">
@@ -387,7 +387,7 @@
         </div>
       </div>
 
-      <!-- Net Savings -->
+      <!-- Net Position / Net Savings -->
       <div class="bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center justify-between group hover:bg-surface-container/60 transition-all">
         <div class="flex items-center gap-3">
           <div class="w-11 h-11 rounded-xl bg-primary-container/15 border border-primary-container/20 flex items-center justify-center text-primary">
@@ -405,8 +405,8 @@
       </div>
     </div>
 
-    <!-- Category Spending Allocation (5 cols) -->
-    <div class="xl:col-span-5 bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col justify-between">
+    <!-- Category Spending Allocation (8 cols on lg/xl, replacing Spend Velocity) -->
+    <div class="lg:col-span-8 bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 md:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col justify-between">
       <div class="flex items-center justify-between mb-3">
         <div>
           <h2 class="font-headline-sm text-base text-on-surface font-bold">Category Distribution</h2>
@@ -416,7 +416,7 @@
       </div>
 
       <!-- Segmented Stack Bar Visual -->
-      <div class="w-full h-3 bg-surface-container border border-white/5 rounded-full overflow-hidden flex gap-1 p-0.5 mb-4">
+      <div class="w-full h-3.5 bg-surface-container border border-white/5 rounded-full overflow-hidden flex gap-1 p-0.5 mb-4">
         {% if category_breakdown %}
           {% for cat in category_breakdown %}
             <div class="h-full rounded-full transition-all" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};" title="{{ cat.name }}: {{ cat.percentage }}%"></div>
@@ -426,17 +426,17 @@
         {% endif %}
       </div>
 
-      <!-- Itemized Category telemetry bars -->
-      <div class="flex flex-col gap-2.5 max-h-48 overflow-y-auto pr-1">
+      <!-- Itemized Category telemetry bars (2 responsive columns when wide) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 max-h-56 overflow-y-auto pr-1">
         {% if category_breakdown %}
           {% for cat in category_breakdown %}
             <div class="flex flex-col gap-1">
               <div class="flex items-center justify-between text-xs font-body-sm">
-                <span class="text-on-surface font-medium flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full" style="background-color: {{ cat.color }};"></span>
-                  {{ cat.name }}
+                <span class="text-on-surface font-medium flex items-center gap-1.5 min-w-0">
+                  <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ cat.color }};"></span>
+                  <span class="truncate">{{ cat.name }}</span>
                 </span>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2.5 flex-shrink-0 ml-2">
                   <span class="font-tabular-numeric font-semibold text-on-surface">₹{{ cat.value|floatformat:2 }}</span>
                   <span class="font-label-md text-xs text-on-surface-variant font-mono">{{ cat.percentage }}%</span>
                 </div>
@@ -447,195 +447,109 @@
             </div>
           {% endfor %}
         {% else %}
-          <div class="text-center py-4 text-xs text-outline">
+          <div class="col-span-full text-center py-6 text-xs text-outline">
             No expenses recorded for {{ active_month_label }}.
           </div>
         {% endif %}
       </div>
     </div>
-
-    <!-- Investments & Velocity Milestone Widget (3 cols) -->
-    <div class="xl:col-span-3 bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col justify-between">
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <h2 class="font-headline-sm text-base text-on-surface font-bold">Spend Velocity</h2>
-          <span class="px-2 py-0.5 rounded-full bg-tertiary/15 text-tertiary font-label-md text-xs font-bold">OPTIMAL</span>
-        </div>
-        <div class="font-display text-xl font-bold text-on-surface tabular-nums">
-          {{ recent_transactions|length }} <span class="text-xs text-outline font-normal">Entries Logged</span>
-        </div>
-        <span class="font-body-sm text-xs text-on-surface-variant">Real-time ledger activity</span>
-      </div>
-
-      <!-- Segmented Bar Visualization -->
-      <div class="h-28 flex items-end justify-between gap-1.5 pt-3 px-1">
-        <div class="flex flex-col items-center gap-1 flex-1 h-full justify-end">
-          <div class="w-full bg-[#342416] rounded-t-md hover:bg-primary-container transition-all" style="height: 35%"></div>
-          <span class="text-[10px] text-outline">W1</span>
-        </div>
-        <div class="flex flex-col items-center gap-1 flex-1 h-full justify-end">
-          <div class="w-full bg-[#462d19] rounded-t-md hover:bg-primary-container transition-all" style="height: 50%"></div>
-          <span class="text-[10px] text-outline">W2</span>
-        </div>
-        <div class="flex flex-col items-center gap-1 flex-1 h-full justify-end">
-          <div class="w-full bg-[#52331b] rounded-t-md hover:bg-primary-container transition-all" style="height: 65%"></div>
-          <span class="text-[10px] text-outline">W3</span>
-        </div>
-        <div class="flex flex-col items-center gap-1 flex-1 h-full justify-end relative">
-          <span class="absolute -top-3 px-1 rounded bg-tertiary text-on-tertiary font-label-md text-[9px] font-bold shadow-[0_0_10px_rgba(83,236,180,0.8)]">Peak</span>
-          <div class="w-full bg-gradient-to-t from-tertiary-container to-tertiary rounded-t-md shadow-[0_0_12px_rgba(83,236,180,0.6)]" style="height: 90%"></div>
-          <span class="text-[10px] text-tertiary font-bold">W4</span>
-        </div>
-        <div class="flex flex-col items-center gap-1 flex-1 h-full justify-end">
-          <div class="w-full bg-[#462d19] rounded-t-md hover:bg-primary-container transition-all" style="height: 60%"></div>
-          <span class="text-[10px] text-outline">Now</span>
-        </div>
-      </div>
-
-      <div class="pt-2 flex items-center justify-between text-xs text-outline border-t border-white/5">
-        <span>Financial Health</span>
-        <span class="text-tertiary font-bold">STABLE (98.4)</span>
-      </div>
-    </div>
   </div>
 
-  <!-- BOTTOM ROW: Recent Cash Ledger & Encrypted Vault Card -->
-  <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-6">
-    <!-- Ledger Table / List (xl: 8 cols) -->
-    <div class="xl:col-span-8 bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 md:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
-      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-white/5 flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined text-lg">receipt_long</span>
-          </div>
-          <div>
-            <h2 class="font-headline-sm text-base text-on-surface font-bold">Recent Cash Ledger</h2>
-            <p class="font-body-sm text-xs text-on-surface-variant">Real-time cleared transaction stream</p>
-          </div>
+  <!-- BOTTOM ROW: Recent Cash Ledger (Full Width, replacing Encrypted Vault) -->
+  <div class="w-full bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 md:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] mb-6">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-white/5 flex items-center justify-center text-primary">
+          <span class="material-symbols-outlined text-lg">receipt_long</span>
         </div>
-        <a href="{% url 'history' %}" class="inline-flex items-center gap-1 text-xs text-primary hover:text-secondary-fixed transition-colors font-bold no-underline">
-          <span>View All Transactions</span>
-          <span class="material-symbols-outlined text-sm">arrow_forward</span>
-        </a>
+        <div>
+          <h2 class="font-headline-sm text-base text-on-surface font-bold">Recent Cash Ledger</h2>
+          <p class="font-body-sm text-xs text-on-surface-variant">Real-time cleared transaction stream</p>
+        </div>
       </div>
-
-      <!-- Transaction List Rows -->
-      <div class="flex flex-col gap-2">
-        {% if recent_transactions %}
-          {% for exp in recent_transactions %}
-            <div class="transaction-item-row flex items-center justify-between p-3 rounded-xl bg-surface-container/30 border border-white/5 hover:bg-surface-container-high/60 transition-all group"
-                 data-id="{{ exp.id }}"
-                 data-amount="{{ exp.amount }}"
-                 data-desc="{{ exp.description }}"
-                 data-category="{{ exp.category }}"
-                 data-account="{{ exp.account }}"
-                 data-method="{{ exp.payment_method }}"
-                 data-date="{{ exp.date|date:'Y-m-d' }}"
-                 style="cursor: pointer;"
-                 onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')">
-              
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-full bg-surface-container-highest border border-white/5 flex items-center justify-center flex-shrink-0 {% if exp.category == 'Income' %}text-tertiary{% else %}text-primary{% endif %}">
-                  {% if exp.category == 'Income' %}
-                    <span class="material-symbols-outlined text-lg">arrow_downward</span>
-                  {% elif exp.category == 'Food' %}
-                    <span class="material-symbols-outlined text-lg">restaurant</span>
-                  {% elif exp.category == 'Shopping' %}
-                    <span class="material-symbols-outlined text-lg">shopping_bag</span>
-                  {% elif exp.category == 'Travel' %}
-                    <span class="material-symbols-outlined text-lg">flight</span>
-                  {% elif exp.category == 'Entertainment' %}
-                    <span class="material-symbols-outlined text-lg">movie</span>
-                  {% else %}
-                    <span class="material-symbols-outlined text-lg">credit_card</span>
-                  {% endif %}
-                </div>
-                <div class="flex flex-col min-w-0">
-                  <span class="text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
-                    {{ exp.description|default:exp.category }}
-                  </span>
-                  <span class="text-xs text-on-surface-variant truncate">
-                    {{ exp.payment_method }} • {{ exp.account }} • {{ exp.date|date:"j M Y" }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-3 flex-shrink-0 ml-3">
-                <div class="flex flex-col items-end">
-                  <span class="font-tabular-numeric text-sm font-bold tabular-nums {% if exp.category == 'Income' %}text-tertiary{% else %}text-error{% endif %}">
-                    {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
-                  </span>
-                  <span class="text-[10px] text-outline">{{ exp.category }}</span>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="flex items-center gap-1" onclick="event.stopPropagation()">
-                  <button type="button"
-                          onclick="event.stopPropagation(); openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')"
-                          class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Transaction">
-                    <span class="material-symbols-outlined text-base">edit</span>
-                  </button>
-                  <button type="button"
-                          onclick="event.stopPropagation(); deleteTransaction('{{ exp.id }}')"
-                          class="p-1.5 text-on-surface-variant hover:text-error hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                          title="Delete Transaction">
-                    <span class="material-symbols-outlined text-base">delete</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-        {% else %}
-          <div class="text-center py-8 bg-surface-container/20 rounded-xl border border-white/5">
-            <span class="material-symbols-outlined text-3xl text-outline mb-1">receipt_long</span>
-            <p class="text-sm text-on-surface-variant">No transactions found for this period.</p>
-            <button type="button" onclick="openTransactionModal('expense')" class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary-container text-on-primary-container text-xs font-bold cursor-pointer">
-              <span class="material-symbols-outlined text-sm">add</span>
-              <span>Log First Expense</span>
-            </button>
-          </div>
-        {% endif %}
-      </div>
+      <a href="{% url 'history' %}" class="inline-flex items-center gap-1 text-xs text-primary hover:text-secondary-fixed transition-colors font-bold no-underline">
+        <span>View All Transactions</span>
+        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+      </a>
     </div>
 
-    <!-- Right: Encrypted Vault Card (4 cols) -->
-    <div class="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#301b04] via-[#1a1209] to-[#0d0e11] border border-amber-900/30 p-5 md:p-6 flex flex-col justify-between shadow-[0_8px_32px_rgba(0,0,0,0.6)] relative overflow-hidden">
-      <div class="absolute -top-10 -right-10 w-44 h-44 bg-primary-container/20 rounded-full blur-2xl pointer-events-none"></div>
-      
-      <div class="relative z-10">
-        <div class="flex items-center gap-1.5 text-primary mb-2">
-          <span class="material-symbols-outlined text-base">shield</span>
-          <span class="font-label-md text-[10px] uppercase tracking-widest font-bold">Encrypted Vault</span>
-        </div>
-        <h3 class="font-display text-lg font-bold text-on-surface leading-snug">
-          Trusted by 14,000+ High-Net Operators
-        </h3>
-        <p class="font-body-md text-xs text-on-surface-variant mt-2 leading-relaxed">
-          Zero-knowledge client encrypted architecture ensuring sovereign personal wealth tracking and instant liquidity insights.
-        </p>
+    <!-- Transaction List Rows -->
+    <div class="flex flex-col gap-2">
+      {% if recent_transactions %}
+        {% for exp in recent_transactions %}
+          <div class="transaction-item-row flex items-center justify-between p-3 sm:px-4 sm:py-3.5 rounded-xl bg-surface-container/30 border border-white/5 hover:bg-surface-container-high/60 transition-all group"
+               data-id="{{ exp.id }}"
+               data-amount="{{ exp.amount }}"
+               data-desc="{{ exp.description }}"
+               data-category="{{ exp.category }}"
+               data-account="{{ exp.account }}"
+               data-method="{{ exp.payment_method }}"
+               data-date="{{ exp.date|date:'Y-m-d' }}"
+               style="cursor: pointer;"
+               onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')">
+            
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-full bg-surface-container-highest border border-white/5 flex items-center justify-center flex-shrink-0 {% if exp.category == 'Income' %}text-tertiary{% else %}text-primary{% endif %}">
+                {% if exp.category == 'Income' %}
+                  <span class="material-symbols-outlined text-lg">arrow_downward</span>
+                {% elif exp.category == 'Food' %}
+                  <span class="material-symbols-outlined text-lg">restaurant</span>
+                {% elif exp.category == 'Shopping' %}
+                  <span class="material-symbols-outlined text-lg">shopping_bag</span>
+                {% elif exp.category == 'Travel' %}
+                  <span class="material-symbols-outlined text-lg">flight</span>
+                {% elif exp.category == 'Entertainment' %}
+                  <span class="material-symbols-outlined text-lg">movie</span>
+                {% else %}
+                  <span class="material-symbols-outlined text-lg">credit_card</span>
+                {% endif %}
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+                  {{ exp.description|default:exp.category }}
+                </span>
+                <span class="text-xs text-on-surface-variant truncate">
+                  {{ exp.payment_method }} • {{ exp.account }} • {{ exp.date|date:"j M Y" }}
+                </span>
+              </div>
+            </div>
 
-        <!-- Social Proof Avatars -->
-        <div class="flex items-center gap-2 mt-4">
-          <div class="flex -space-x-2">
-            <div class="w-7 h-7 rounded-full bg-surface-container-high border border-surface flex items-center justify-center text-xs font-bold text-primary">DR</div>
-            <div class="w-7 h-7 rounded-full bg-surface-container-highest border border-surface flex items-center justify-center text-xs font-bold text-tertiary">SP</div>
-            <div class="w-7 h-7 rounded-full bg-primary-container border border-surface flex items-center justify-center text-xs font-bold text-on-primary-container">+14k</div>
+            <div class="flex items-center gap-3 flex-shrink-0 ml-3">
+              <div class="flex flex-col items-end">
+                <span class="font-tabular-numeric text-sm font-bold tabular-nums {% if exp.category == 'Income' %}text-tertiary{% else %}text-error{% endif %}">
+                  {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+                </span>
+                <span class="text-[10px] text-outline">{{ exp.category }}</span>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                <button type="button"
+                        onclick="event.stopPropagation(); openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')"
+                        class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                        title="Edit Transaction">
+                  <span class="material-symbols-outlined text-base">edit</span>
+                </button>
+                <button type="button"
+                        onclick="event.stopPropagation(); deleteTransaction('{{ exp.id }}')"
+                        class="p-1.5 text-on-surface-variant hover:text-error hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Transaction">
+                  <span class="material-symbols-outlined text-base">delete</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <span class="font-label-md text-xs text-on-surface-variant font-medium ml-1">Verified Sovereign</span>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-8 bg-surface-container/20 rounded-xl border border-white/5">
+          <span class="material-symbols-outlined text-3xl text-outline mb-1">receipt_long</span>
+          <p class="text-sm text-on-surface-variant">No transactions found for this period.</p>
+          <button type="button" onclick="openTransactionModal('expense')" class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary-container text-on-primary-container text-xs font-bold cursor-pointer">
+            <span class="material-symbols-outlined text-sm">add</span>
+            <span>Log First Expense</span>
+          </button>
         </div>
-      </div>
-
-      <div class="mt-5 relative z-10">
-        <a href="{% url 'history' %}" class="w-full py-2 px-3 rounded-xl bg-on-surface text-surface font-label-lg text-xs font-bold hover:bg-white active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(255,255,255,0.15)] flex items-center justify-center gap-1.5 no-underline">
-          <span class="material-symbols-outlined text-base">verified_user</span>
-          <span>Access Full Ledger</span>
-        </a>
-        <div class="flex items-center justify-center gap-1 text-[10px] text-outline text-center mt-2">
-          <span class="material-symbols-outlined text-xs text-tertiary">lock</span>
-          <span>End-to-end encrypted session</span>
-        </div>
-      </div>
+      {% endif %}
     </div>
   </div>
 </div>
