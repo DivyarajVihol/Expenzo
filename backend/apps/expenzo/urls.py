@@ -1,8 +1,10 @@
-from django.urls import path
+
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
+    # Dashboard and main pages
     path('', views.dashboard_view, name='dashboard'),
     path('history/', views.history_view, name='history'),
     path('recurring/', views.recurring_view, name='recurring'),
@@ -10,25 +12,36 @@ urlpatterns = [
     path('groups/', views.groups_view, name='groups'),
     path('groups/<int:group_id>/', views.group_detail_view, name='group_detail'),
     path('profile/', views.profile_view, name='profile'),
+
+    # Authentication
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('activate/<uidb64>/<token>/', views.activate_account, name='activate_account'),
-    
+
+    # Google OAuth
+    path('accounts/', include('allauth.urls')),
+
     # Password Reset
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
-    
-    # API endpoints
+
+    # Expense APIs
     path('api/expenses/add/', views.add_expense_api, name='api_add_expense'),
     path('api/expenses/edit/<int:expense_id>/', views.edit_expense_api, name='api_edit_expense'),
+    path('api/expenses/delete/<int:expense_id>/', views.delete_expense_api, name='api_delete_expense'),
+
+    # Profile APIs
     path('api/profile/change-password/', views.api_change_password, name='api_change_password'),
     path('api/profile/delete-account/', views.api_delete_account, name='api_delete_account'),
-    path('api/expenses/delete/<int:expense_id>/', views.delete_expense_api, name='api_delete_expense'),
+
+    # Recurring APIs
     path('api/recurring/delete/<int:item_id>/<str:item_type>/', views.delete_recurring_api, name='api_delete_recurring'),
     path('api/recurring/edit/<int:item_id>/<str:item_type>/', views.edit_recurring_api, name='api_edit_recurring'),
+
+    # Group APIs
     path('api/groups/<int:group_id>/expense/add/', views.add_group_expense_api, name='api_add_group_expense'),
     path('api/groups/<int:group_id>/expense/edit/<int:expense_id>/', views.edit_group_expense_api, name='api_edit_group_expense'),
     path('api/groups/<int:group_id>/expense/delete/<int:expense_id>/', views.delete_group_expense_api, name='api_delete_group_expense'),
@@ -39,17 +52,21 @@ urlpatterns = [
     path('api/groups/<int:group_id>/member/<int:member_id>/remove/', views.api_remove_member, name='api_remove_member'),
     path('api/groups/<int:group_id>/leave/', views.api_leave_group, name='api_leave_group'),
 
+    # UPI APIs
     path('api/upi/list/', views.get_upi_ids_api, name='api_get_upi_ids'),
     path('api/upi/add/', views.add_upi_id_api, name='api_add_upi_id'),
     path('api/upi/set-active/<int:upi_id>/', views.set_active_upi_api, name='api_set_active_upi'),
     path('api/upi/delete/<int:upi_id>/', views.delete_upi_api, name='api_delete_upi'),
+
+    # Export
     path('profile/export/pdf/', views.export_expenses_pdf, name='export_expenses_pdf'),
     path('profile/export/excel/', views.export_expenses_excel, name='export_expenses_excel'),
     path('groups/<int:group_id>/export/pdf/', views.export_group_pdf, name='export_group_pdf'),
     path('groups/<int:group_id>/export/excel/', views.export_group_excel, name='export_group_excel'),
 
+    # Spending Streaks
     path('streaks/', views.spending_streaks_view, name='spending_streaks'),
-    
-    # Scan Receipt — OCR text parsing (dedicated endpoint, does not modify existing expense APIs)
+
+    # Receipt Scanning
     path('api/scan-receipt/', views.scan_receipt_api, name='api_scan_receipt'),
 ]
