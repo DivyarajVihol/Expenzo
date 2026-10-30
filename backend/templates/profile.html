@@ -6,41 +6,46 @@
 {% block extra_css %}
 <style>
   .profile-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 0.5rem;
-  }
-  .profile-header-card {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 2rem;
-    margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
   }
   .profile-avatar-large {
-    width: 80px;
-    height: 80px;
+    width: 92px;
+    height: 92px;
     border-radius: 50%;
     background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border-color);
+    border: 2px solid rgba(255, 163, 26, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    box-shadow: 0 0 24px rgba(255, 163, 26, 0.15);
+    flex-shrink: 0;
   }
   .profile-avatar-large i {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     color: var(--text-muted);
+  }
+  .security-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
   }
 </style>
 {% endblock %}
 
-
 {% block content %}
 <div class="profile-container">
   
-  <div class="flex items-center justify-between gap-4 mb-6">
+  <!-- Header Row -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
       <div class="flex items-center gap-2">
         <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Account Profile</h1>
@@ -48,118 +53,269 @@
       </div>
       <p class="text-sm text-on-surface-variant mt-1">Manage sovereign identity, session security, and profile avatars.</p>
     </div>
-    <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-semibold transition-all">
-      <span class="material-symbols-outlined text-sm text-primary">arrow_back</span>
-      <span>Back to Deck</span>
-    </a>
-  </div>
-
-  <!-- Profile Card -->
-  <div class="glass-card profile-header-card">
-    <div class="profile-avatar-large" id="main-avatar-display" style="position: relative; overflow: hidden; background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);">
-      {% if profile.avatar_base64 %}
-        <img id="avatar-preview-img" src="{{ profile.avatar_base64 }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
-      {% elif profile.avatar %}
-        <img id="avatar-preview-img" src="{{ profile.avatar }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
-      {% else %}
-        <svg id="avatar-preview-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
-          <path d="M 15 95 Q 15 65 50 65 Q 85 65 85 95" fill="rgba(255, 255, 255, 0.9)" />
-          <rect x="42" y="45" width="16" height="15" fill="rgba(255, 255, 255, 0.85)" rx="4" />
-          <circle cx="50" cy="35" r="22" fill="#ffffff" />
-        </svg>
-        <img id="avatar-preview-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-      {% endif %}
-    </div>
-    <div>
-      <h2 style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">
-        {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
-      </h2>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">{{ user.email }}</p>
+    
+    <div class="flex items-center gap-3">
+      <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-semibold transition-all shadow-sm">
+        <span class="material-symbols-outlined text-sm text-primary">arrow_back</span>
+        <span>Back to Deck</span>
+      </a>
     </div>
   </div>
 
-  <!-- Edit Details Form -->
-  <div class="glass-card" style="padding: 2rem;">
-    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">Edit Profile Details</h3>
-    <form id="profile-form" method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
-      {% csrf_token %}
+  <!-- Top Telemetry Metrics Summary Bar -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Account Tier -->
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-3.5 border border-white/5 bg-surface-container-low/70">
+      <div class="w-11 h-11 rounded-xl bg-primary-container/15 border border-primary-container/30 flex items-center justify-center text-primary flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">verified</span>
+      </div>
+      <div class="min-w-0">
+        <div class="text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Account Tier</div>
+        <div class="text-base font-bold text-on-surface font-display truncate">Capital Pro</div>
+      </div>
+    </div>
+
+    <!-- Personal Expenses Logged -->
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-3.5 border border-white/5 bg-surface-container-low/70">
+      <div class="w-11 h-11 rounded-xl bg-tertiary/15 border border-tertiary/30 flex items-center justify-center text-tertiary flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">receipt_long</span>
+      </div>
+      <div class="min-w-0">
+        <div class="text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Logged Entries</div>
+        <div class="text-base font-bold text-on-surface font-display">{{ expenses_count|default:"0" }} Entries</div>
+      </div>
+    </div>
+
+    <!-- Group Splits Network -->
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-3.5 border border-white/5 bg-surface-container-low/70">
+      <div class="w-11 h-11 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">group_work</span>
+      </div>
+      <div class="min-w-0">
+        <div class="text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Group Splits</div>
+        <div class="text-base font-bold text-on-surface font-display">{{ groups_count|default:"0" }} Active</div>
+      </div>
+    </div>
+
+    <!-- Security Vault Status -->
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-3.5 border border-white/5 bg-surface-container-low/70">
+      <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">lock</span>
+      </div>
+      <div class="min-w-0">
+        <div class="text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Vault Security</div>
+        <div class="text-base font-bold text-emerald-400 font-display flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Protected</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main 2-Column Responsive Split Deck -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left Column: Identity & Personal Details Form (lg:col-span-7 xl:col-span-8) -->
+    <div class="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
       
-
-
-      <input type="hidden" name="avatar_base64" id="avatar_base64_input" value="">
-      <input type="hidden" name="remove_avatar" id="remove_avatar_input" value="false">
-      <div class="form-group">
-        <label class="form-label">Profile Photo</label>
-        <div style="display: flex; gap: 0.5rem;">
-          <input type="file" id="avatar_file_input" accept="image/*" style="display: none;" onchange="handleAvatarUpload(this)">
-          <button type="button" onclick="document.getElementById('avatar_file_input').click()" class="btn btn-secondary" style="flex: 1; padding: 0.75rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-            <i data-lucide="upload" style="width: 18px; height: 18px;"></i>
-            Choose Image
-          </button>
-          <button type="button" onclick="removeAvatar()" class="btn btn-secondary" style="padding: 0.75rem; border-radius: 12px; background: rgba(244, 63, 94, 0.05); color: #f43f5e; border: 1px dashed rgba(244, 63, 94, 0.3); display: flex; align-items: center; justify-content: center;" title="Remove Photo">
-            <i data-lucide="trash" style="width: 18px; height: 18px;"></i>
-          </button>
+      <!-- Profile Hero Card -->
+      <div class="glass-card p-6 md:p-8 rounded-2xl border border-white/5 bg-surface-container-low/80 backdrop-blur-xl relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div class="profile-avatar-large" id="main-avatar-display" style="position: relative; overflow: hidden; background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);">
+            {% if profile.avatar_base64 %}
+              <img id="avatar-preview-img" src="{{ profile.avatar_base64 }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% elif profile.avatar %}
+              <img id="avatar-preview-img" src="{{ profile.avatar }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+              <svg id="avatar-preview-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+                <path d="M 15 95 Q 15 65 50 65 Q 85 65 85 95" fill="rgba(255, 255, 255, 0.9)" />
+                <rect x="42" y="45" width="16" height="15" fill="rgba(255, 255, 255, 0.85)" rx="4" />
+                <circle cx="50" cy="35" r="22" fill="#ffffff" />
+              </svg>
+              <img id="avatar-preview-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+            {% endif %}
+          </div>
+          
+          <div class="flex-1 text-center sm:text-left min-w-0">
+            <div class="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
+              <h2 class="text-xl md:text-2xl font-bold text-on-surface font-display truncate">
+                {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
+              </h2>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">
+                CAPITAL PRO
+              </span>
+            </div>
+            
+            <p class="text-sm text-on-surface-variant mt-1">{{ user.email }}</p>
+            
+            <div class="flex items-center justify-center sm:justify-start gap-3 mt-4 flex-wrap text-xs text-on-surface-variant">
+              <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs text-primary">calendar_today</span>
+                <span>Member since {{ user.date_joined|date:"M Y" }}</span>
+              </span>
+              <span>•</span>
+              <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs text-emerald-400">check_circle</span>
+                <span>Verified Account</span>
+              </span>
+              {% if profile.country %}
+                <span>•</span>
+                <span class="inline-flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs text-secondary">public</span>
+                  <span>{{ profile.country }}</span>
+                </span>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Full Name</label>
-        <input type="text" name="name" class="input-control" placeholder="Your full name" value="{{ user.first_name }}" required />
+      <!-- Edit Details Form Card -->
+      <div class="glass-card p-6 md:p-8 rounded-2xl border border-white/5 bg-surface-container-low/80 backdrop-blur-xl">
+        <div class="mb-6">
+          <h3 class="text-lg font-bold text-on-surface font-display flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-xl">manage_accounts</span>
+            <span>Personal Information</span>
+          </h3>
+          <p class="text-xs text-on-surface-variant mt-1">Update your personal profile details, contact information, and avatar.</p>
+        </div>
+
+        <form id="profile-form" method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="avatar_base64" id="avatar_base64_input" value="">
+          <input type="hidden" name="remove_avatar" id="remove_avatar_input" value="false">
+
+          <!-- Profile Photo Uploader Deck -->
+          <div class="form-group mb-6 p-4 rounded-xl bg-surface-container-lowest border border-white/5">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-2">Profile Photo</label>
+            <div class="flex items-center gap-3">
+              <input type="file" id="avatar_file_input" accept="image/*" style="display: none;" onchange="handleAvatarUpload(this)">
+              <button type="button" onclick="document.getElementById('avatar_file_input').click()" class="flex-1 py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/15 text-on-surface text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-base text-primary">cloud_upload</span>
+                <span>Choose New Photo</span>
+              </button>
+              <button type="button" onclick="removeAvatar()" class="py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer" title="Remove Profile Photo">
+                <span class="material-symbols-outlined text-base">delete</span>
+                <span>Remove</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2-Column Fields Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+            <div class="form-group">
+              <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Full Name</label>
+              <input type="text" name="name" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Your full name" value="{{ user.first_name }}" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Phone Number</label>
+              <input type="text" name="phone" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="e.g. +91 9876543210" value="{{ profile.phone|default:'' }}" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Country / Region</label>
+              <input type="text" name="country" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="e.g. India" value="{{ profile.country|default:'India' }}" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Account Email (Verified)</label>
+              <input type="email" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest/50 border border-white/5 text-on-surface-variant text-sm cursor-not-allowed outline-none" value="{{ user.email }}" disabled />
+            </div>
+          </div>
+
+          <!-- Bio -->
+          <div class="form-group mb-6">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Bio / Description</label>
+            <textarea name="bio" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Write a short description about yourself or financial goals..." rows="3" style="resize: none;">{{ profile.bio|default:'' }}</textarea>
+          </div>
+
+          <button type="submit" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-primary-container via-primary-container to-secondary text-on-primary-container font-label-lg text-sm font-bold shadow-[0_0_20px_rgba(255,163,26,0.3)] hover:brightness-110 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-base">save</span>
+            <span>Save Profile Details</span>
+          </button>
+        </form>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Phone Number</label>
-        <input type="text" name="phone" class="input-control" placeholder="Phone number" value="{{ profile.phone|default:'' }}" />
+    </div>
+
+    <!-- Right Column: Security, Password, & Danger Zone (lg:col-span-5 xl:col-span-4) -->
+    <div class="lg:col-span-5 xl:col-span-4 sticky top-6 flex flex-col gap-6">
+      
+      <!-- Change Password Card -->
+      <div class="glass-card p-6 rounded-2xl border border-white/5 bg-surface-container-low/80 backdrop-blur-xl shadow-xl">
+        <div class="mb-4">
+          <h3 class="text-base font-bold text-on-surface font-display flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-xl">lock_reset</span>
+            <span>Change Password</span>
+          </h3>
+          <p class="text-xs text-on-surface-variant mt-1">Ensure your account is protected with a secure password.</p>
+        </div>
+
+        <div id="password-messages" class="text-xs mb-3"></div>
+
+        <form id="password-form" onsubmit="changePassword(event)" class="flex flex-col gap-3.5">
+          <div class="form-group">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Current Password</label>
+            <input type="password" id="current_password" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Enter current password" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">New Password</label>
+            <input type="password" id="new_password" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Minimum 8 characters" required minlength="8" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Confirm New Password</label>
+            <input type="password" id="confirm_password" class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Repeat new password" required minlength="8" />
+          </div>
+
+          <button type="submit" id="btn-change-password" class="w-full py-2.5 px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 text-on-surface font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-2 mt-2">
+            <span class="material-symbols-outlined text-base text-primary">key</span>
+            <span>Update Password</span>
+          </button>
+        </form>
       </div>
 
-
-
-      <div class="form-group">
-        <label class="form-label">Bio</label>
-        <textarea name="bio" class="input-control" placeholder="Write a short bio about yourself..." rows="4" style="resize: none;">{{ profile.bio|default:'' }}</textarea>
+      <!-- Security & Vault Specs Card -->
+      <div class="glass-card p-5 rounded-2xl border border-white/5 bg-surface-container-low/50 backdrop-blur-xl flex flex-col gap-3">
+        <div class="flex items-center gap-2 text-xs font-semibold text-on-surface uppercase tracking-wider">
+          <span class="material-symbols-outlined text-primary text-base">shield</span>
+          <span>Security & Privacy Protocol</span>
+        </div>
+        <div class="flex flex-col gap-2.5 text-xs text-on-surface-variant leading-relaxed">
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-emerald-400 text-sm mt-0.5">check</span>
+            <span><strong>End-to-End Session Guard:</strong> HTTPOnly, SameSite strict session tokens prevent cross-site exposure.</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-emerald-400 text-sm mt-0.5">check</span>
+            <span><strong>Cryptographic Hash:</strong> Passwords hashed with PBKDF2 with SHA-256 rounds.</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-emerald-400 text-sm mt-0.5">check</span>
+            <span><strong>Sovereign Control:</strong> Your financial data is isolated and under your direct control.</span>
+          </div>
+        </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
-        <i data-lucide="check" style="width: 18px; height: 18px;"></i>
-        Save Profile
-      </button>
-    </form>
-  </div>
+      <!-- Danger Zone Card -->
+      <div class="glass-card p-6 rounded-2xl border border-rose-500/25 bg-rose-950/10">
+        <h3 class="text-sm font-bold text-rose-400 font-display flex items-center gap-1.5 mb-1.5">
+          <span class="material-symbols-outlined text-base">warning</span>
+          <span>Danger Zone</span>
+        </h3>
+        <p class="text-xs text-on-surface-variant leading-relaxed mb-4">
+          Deleting your account is permanent. All personal transactions, recurring automations, and split groups will be permanently erased.
+        </p>
+        <button type="button" onclick="deleteAccount()" class="w-full py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-base">person_remove</span>
+          <span>Delete Account</span>
+        </button>
+      </div>
 
-  <!-- Change Password Section -->
-  <div class="glass-card" style="padding: 2rem; margin-top: 2rem;">
-    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">Change Password</h3>
-    <div id="password-messages" style="margin-bottom: 1rem;"></div>
-    <form id="password-form" onsubmit="changePassword(event)">
-      <div class="form-group">
-        <label class="form-label">Current Password</label>
-        <input type="password" id="current_password" class="input-control" required />
-      </div>
-      <div class="form-group">
-        <label class="form-label">New Password</label>
-        <input type="password" id="new_password" class="input-control" required minlength="8" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Confirm New Password</label>
-        <input type="password" id="confirm_password" class="input-control" required minlength="8" />
-      </div>
-      <button type="submit" id="btn-change-password" class="btn btn-secondary" style="width: 100%; padding: 0.75rem; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color);">
-        <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
-        Update Password
-      </button>
-    </form>
-  </div>
+    </div>
 
-  <!-- Danger Zone -->
-  <div class="glass-card" style="padding: 2rem; margin-top: 2rem; border-color: rgba(244, 63, 94, 0.3);">
-    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: #f43f5e;">Danger Zone</h3>
-    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
-      Deleting your account is permanent. All your personal expenses, recurring setups, groups created, group memberships, and splits will be completely and irrevocably removed from the database.
-    </p>
-    <button type="button" onclick="deleteAccount()" class="btn" style="width: 100%; padding: 0.75rem; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3);">
-      <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
-      Delete Account
-    </button>
   </div>
 
   <!-- Generic Delete Modal -->
@@ -330,6 +486,12 @@
       }
     );
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  });
 </script>
 {% endblock %}
 

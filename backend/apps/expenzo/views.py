@@ -885,8 +885,15 @@ def profile_view(request):
         user.save()
         return redirect('profile')
         
+    expenses_count = PersonalExpense.objects.filter(user=user).count()
+    groups_count = GroupMember.objects.filter(user=user).count()
+    recurring_count = RecurringExpense.objects.filter(user=user).count() + RecurringIncome.objects.filter(user=user).count()
+    
     context = {
-        'profile': profile
+        'profile': profile,
+        'expenses_count': expenses_count,
+        'groups_count': groups_count,
+        'recurring_count': recurring_count,
     }
     return render(request, 'profile.html', context)
 
