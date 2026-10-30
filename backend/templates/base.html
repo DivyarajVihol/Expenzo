@@ -10,7 +10,304 @@
     <title>{% block title %}EXPENZO - Financial Dashboard{% endblock %}</title>
     
     <!-- Custom Style Sheet -->
-    <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=2.5">
+    <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=3.7">
+    
+    <!-- Obsidian Telemetry Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Obsidian Telemetry Configuration -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface": "#121316",
+                        "surface-dim": "#121316",
+                        "surface-bright": "#343538",
+                        "surface-container-lowest": "#090a0d",
+                        "surface-container-low": "#18191c",
+                        "surface-container": "#1e1f23",
+                        "surface-container-high": "#28292e",
+                        "surface-container-highest": "#33343a",
+                        "on-surface": "#e5e2e1",
+                        "on-surface-variant": "#d9c3ad",
+                        "inverse-surface": "#e5e2e1",
+                        "inverse-on-surface": "#1e1f23",
+                        "outline": "#a18d7a",
+                        "outline-variant": "#493e35",
+                        "primary": "#ffc98e",
+                        "primary-container": "#ffa31a",
+                        "on-primary": "#482a00",
+                        "on-primary-container": "#090a0d",
+                        "secondary": "#ffb86d",
+                        "secondary-container": "#905500",
+                        "tertiary": "#53ecb4",
+                        "tertiary-container": "#00533a",
+                        "on-tertiary": "#003825",
+                        "error": "#ff7185",
+                        "error-container": "#93000a",
+                        "background": "#090a0d",
+                        "on-background": "#e5e2e1"
+                    },
+                    fontFamily: {
+                        "display": ["'Space Grotesk'", "sans-serif"],
+                        "body": ["Geist", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+                        "label": ["Geist", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Immediate Critical CSS for Collapsible Sidebar & Full-Width Dashboard -->
+    <style id="expenzo-collapsible-sidebar-styles">
+        :root {
+            --sidebar-width: 280px;
+        }
+
+        .app-container {
+            display: flex !important;
+            min-height: 100vh !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+            position: relative !important;
+        }
+
+        .main-wrapper {
+            flex: 1 1 0% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            height: 100vh !important;
+            min-width: 0 !important;
+            width: 100% !important;
+            overflow: hidden !important;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #main-content {
+            flex: 1 1 0% !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Desktop & Laptop (>= 768px): In-flow collapsible sidebar */
+        @media (min-width: 768px) {
+            .mobile-header {
+                display: none !important;
+            }
+
+            .desktop-topbar {
+                display: flex !important;
+            }
+
+            .sidebar {
+                position: sticky !important;
+                top: 0 !important;
+                width: var(--sidebar-width) !important;
+                min-width: var(--sidebar-width) !important;
+                max-width: var(--sidebar-width) !important;
+                flex-shrink: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+                transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            opacity 0.25s ease,
+                            border-color 0.3s ease !important;
+                will-change: width, min-width, max-width, opacity !important;
+                transform: none !important;
+                margin-left: 0 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+            }
+
+            /* COLLAPSED STATE: Sidebar shrinks to 0 and slides completely out of view without pushing content */
+            .app-container.sidebar-collapsed .sidebar,
+            .sidebar-collapsed .sidebar {
+                margin-left: 0 !important;
+                width: 0 !important;
+                min-width: 0 !important;
+                max-width: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                border-right: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+                overflow: hidden !important;
+            }
+
+            /* Allow page containers to expand to 100% full width when sidebar is collapsed */
+            .app-container.sidebar-collapsed .history-container,
+            .app-container.sidebar-collapsed .recurring-container,
+            .app-container.sidebar-collapsed .groups-container,
+            .app-container.sidebar-collapsed .max-w-\[1300px\],
+            .app-container.sidebar-collapsed .max-w-\[1000px\] {
+                max-width: 100% !important;
+            }
+
+            .app-container.sidebar-collapsed .collapsed-brand,
+            .sidebar-collapsed .collapsed-brand {
+                display: flex !important;
+            }
+        }
+
+        /* Mobile (< 768px): Drawer overlay sidebar */
+        @media (max-width: 767px) {
+            .desktop-topbar {
+                display: none !important;
+            }
+
+            .mobile-header {
+                display: flex !important;
+            }
+
+            .sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                z-index: 1000 !important;
+                width: 280px !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                transform: translateX(-100%) !important;
+                margin-left: 0 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.7) !important;
+            }
+
+            .sidebar.open {
+                transform: translateX(0) !important;
+            }
+        }
+
+        /* Sidebar Toggle Button styling */
+        .sidebar-toggle-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 38px !important;
+            height: 38px !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 10px !important;
+            color: #e5e2e1 !important;
+            cursor: pointer !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            padding: 0 !important;
+            user-select: none !important;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: rgba(255, 163, 26, 0.15) !important;
+            border-color: rgba(255, 163, 26, 0.5) !important;
+            color: #ffa31a !important;
+            box-shadow: 0 0 16px rgba(255, 163, 26, 0.25) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        .sidebar-toggle-btn:active {
+            transform: scale(0.95) !important;
+        }
+
+        .sidebar-collapse-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 32px !important;
+            height: 32px !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 8px !important;
+            color: #a1a1aa !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            padding: 0 !important;
+        }
+
+        .sidebar-collapse-btn:hover {
+            background: rgba(255, 163, 26, 0.12) !important;
+            border-color: rgba(255, 163, 26, 0.4) !important;
+            color: #ffa31a !important;
+            box-shadow: 0 0 12px rgba(255, 163, 26, 0.2) !important;
+        }
+
+        .collapsed-brand {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            animation: fadeInBrand 0.2s ease-out;
+        }
+
+        @keyframes fadeInBrand {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sidebar,
+            .main-wrapper,
+            .sidebar-toggle-btn,
+            .collapsed-brand {
+                transition: none !important;
+            }
+        }
+    </style>
+
+    <!-- Seamless Section Navigation Transition Styles -->
+    <style id="expenzo-section-transition-styles">
+        #main-content {
+            transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+            will-change: opacity, transform;
+        }
+
+        #main-content.nav-transitioning-out {
+            opacity: 0.35 !important;
+            transform: translateY(4px) !important;
+            pointer-events: none;
+        }
+
+        #main-content.nav-transitioning-in {
+            opacity: 0 !important;
+            transform: translateY(-4px) !important;
+        }
+
+        .personal-spend-nav-pill {
+            transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #main-content,
+            #main-content.nav-transitioning-out,
+            #main-content.nav-transitioning-in,
+            .personal-spend-nav-pill {
+                transition: none !important;
+                transform: none !important;
+                opacity: 1 !important;
+            }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -18,14 +315,27 @@
     <div id="global-loader" class="global-loader">
         <div class="loader-spinner"></div>
     </div>
-    <div class="app-container">
+    <div class="app-container" id="app-container">
+        <script>
+            // Immediately restore desktop sidebar preference before render to prevent layout jump
+            try {
+                if (window.innerWidth >= 768 && localStorage.getItem('expenzo_sidebar_collapsed') === 'true') {
+                    document.getElementById('app-container').classList.add('sidebar-collapsed');
+                }
+            } catch (e) {}
+        </script>
         {% if user.is_authenticated %}
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <a href="{% url 'dashboard' %}" class="logo-container" aria-label="Go to Dashboard">
-                <i data-lucide="wallet" class="logo-icon"></i>
-                <span class="logo-text">EXPENZO</span>
-            </a>
+        <aside class="sidebar" id="app-sidebar" aria-label="Main Navigation">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+                <a href="{% url 'dashboard' %}" class="logo-container" style="margin-bottom: 0;" aria-label="Go to Dashboard">
+                    <i data-lucide="wallet" class="logo-icon"></i>
+                    <span class="logo-text">EXPENZO</span>
+                </a>
+                <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar (Ctrl+\)">
+                    <span class="material-symbols-outlined text-base">menu_open</span>
+                </button>
+            </div>
 
             <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; margin-top: 2rem;">
                 <nav class="nav-menu">
@@ -74,7 +384,65 @@
         </aside>
         {% endif %}
 
-        <div style="flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
+        <div class="main-wrapper">
+            <!-- Desktop Topbar with Sidebar Toggle (Hidden on Mobile) -->
+            <header class="desktop-topbar" aria-label="Dashboard Controls">
+                <div class="desktop-topbar-left">
+                    <button id="sidebar-toggle-btn"
+                            class="sidebar-toggle-btn"
+                            type="button"
+                            aria-label="Collapse sidebar"
+                            aria-expanded="true"
+                            title="Collapse sidebar (Ctrl+\)">
+                        <span class="material-symbols-outlined toggle-icon" aria-hidden="true">menu_open</span>
+                    </button>
+
+                    <!-- Collapsed Brand Logo (Visible only when sidebar is collapsed on desktop) -->
+                    <a href="{% url 'dashboard' %}" class="collapsed-brand" id="collapsed-brand" aria-label="EXPENZO Home">
+                        <span class="collapsed-logo-badge">
+                            <i data-lucide="wallet" class="logo-icon-sm"></i>
+                        </span>
+                        <span class="collapsed-logo-text">EXPENZO</span>
+                    </a>
+
+                    <!-- Breadcrumb / Context Indicator -->
+                    <div class="topbar-context">
+                        <span class="context-slash">/</span>
+                        <span class="context-title">
+                            {% if request.resolver_match.url_name == 'dashboard' %}Personal Spend
+                            {% elif request.resolver_match.url_name == 'history' %}Expense History
+                            {% elif request.resolver_match.url_name == 'recurring' %}Recurring Finance
+                            {% elif request.resolver_match.url_name == 'personal_charts' %}Analytics & Charts
+                            {% elif request.resolver_match.url_name == 'groups' %}Group Splits
+                            {% elif request.resolver_match.url_name == 'group_detail' %}Group Details
+                            {% elif request.resolver_match.url_name == 'profile' %}My Profile
+                            {% else %}Dashboard{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="desktop-topbar-right">
+                    <!-- Keyboard shortcut hint -->
+                    <div class="shortcut-hint" title="Toggle sidebar keyboard shortcut">
+                        <kbd class="kbd-key">Ctrl</kbd>+<kbd class="kbd-key">\</kbd>
+                    </div>
+
+                    <!-- Quick Profile Pill -->
+                    <a href="{% url 'profile' %}" class="topbar-user-pill" title="View Profile">
+                        <div class="topbar-avatar">
+                            {% if user.profile.avatar_base64 %}
+                                <img src="{{ user.profile.avatar_base64 }}" alt="{{ user.first_name }}">
+                            {% elif user.profile.avatar %}
+                                <img src="{{ user.profile.avatar }}" alt="{{ user.first_name }}">
+                            {% else %}
+                                <i data-lucide="user"></i>
+                            {% endif %}
+                        </div>
+                        <span class="topbar-username">{% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</span>
+                    </a>
+                </div>
+            </header>
+
             <!-- Mobile Header (Hidden on Desktop) -->
             <div class="mobile-header">
                 <button class="hamburger-btn" aria-label="Toggle navigation menu" aria-expanded="false" id="mobile-menu-btn">
@@ -89,7 +457,7 @@
             </div>
 
             <!-- Main Content Area -->
-            <main id="main-content" role="main" tabindex="-1" style="flex: 1; padding: 2rem; overflow-y: auto;">
+            <main id="main-content" role="main" tabindex="-1" style="flex: 1; padding: 2rem; overflow-y: auto; overflow-x: hidden;">
                 {% block content %}{% endblock %}
             </main>
         </div>
@@ -103,16 +471,82 @@
     <script>
         lucide.createIcons();
         document.addEventListener('DOMContentLoaded', () => {
+            const appContainer = document.getElementById('app-container');
+            const toggleBtn = document.getElementById('sidebar-toggle-btn');
+            const collapseBtn = document.getElementById('sidebar-collapse-btn');
+            const toggleIcon = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
             const sidebar = document.querySelector('.sidebar');
             const backdrop = document.getElementById('sidebar-backdrop');
             const menuBtn = document.getElementById('mobile-menu-btn');
             const navItems = document.querySelectorAll('.sidebar .nav-item, .sidebar .logo-container, .sidebar .btn-secondary');
-            
+
+            // --- Sidebar Toggle & State Management ---
+            function updateToggleUI(isCollapsed) {
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+                    const label = isCollapsed ? 'Expand sidebar (Ctrl+\\)' : 'Collapse sidebar (Ctrl+\\)';
+                    toggleBtn.setAttribute('aria-label', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                    toggleBtn.setAttribute('title', label);
+                    if (toggleIcon) {
+                        toggleIcon.textContent = isCollapsed ? 'menu' : 'menu_open';
+                    }
+                }
+            }
+
+            function triggerChartReflow() {
+                // Smoothly trigger window resize event during and after transition for charts and SVGs
+                const startTime = Date.now();
+                const duration = 350;
+                const interval = setInterval(() => {
+                    window.dispatchEvent(new Event('resize'));
+                    if (Date.now() - startTime >= duration) {
+                        clearInterval(interval);
+                        window.dispatchEvent(new Event('resize'));
+                    }
+                }, 50);
+            }
+
+            function toggleDesktopSidebar() {
+                if (!appContainer) return;
+                const isCollapsed = appContainer.classList.toggle('sidebar-collapsed');
+                updateToggleUI(isCollapsed);
+
+                try {
+                    localStorage.setItem('expenzo_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+                } catch (e) {}
+
+                triggerChartReflow();
+            }
+
+            if (appContainer && toggleBtn) {
+                const initiallyCollapsed = appContainer.classList.contains('sidebar-collapsed');
+                updateToggleUI(initiallyCollapsed);
+                toggleBtn.addEventListener('click', toggleDesktopSidebar);
+            }
+
+            if (collapseBtn) {
+                collapseBtn.addEventListener('click', toggleDesktopSidebar);
+            }
+
+            // Global Keyboard Shortcut: Ctrl+\ or Cmd+\ to toggle sidebar
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+                    e.preventDefault();
+                    if (window.innerWidth >= 768) {
+                        toggleDesktopSidebar();
+                    } else if (sidebar && menuBtn) {
+                        if (sidebar.classList.contains('open')) closeSidebar();
+                        else openSidebar();
+                    }
+                }
+            });
+
+            // --- Mobile Drawer Handlers (screens < 768px) ---
             if (!sidebar || !menuBtn) return;
 
             function openSidebar() {
                 sidebar.classList.add('open');
-                backdrop.classList.add('active');
+                if (backdrop) backdrop.classList.add('active');
                 menuBtn.classList.add('open');
                 menuBtn.setAttribute('aria-expanded', 'true');
                 document.body.style.overflow = 'hidden'; // Prevent body scroll
@@ -120,7 +554,7 @@
 
             function closeSidebar() {
                 sidebar.classList.remove('open');
-                backdrop.classList.remove('active');
+                if (backdrop) backdrop.classList.remove('active');
                 menuBtn.classList.remove('open');
                 menuBtn.setAttribute('aria-expanded', 'false');
                 document.body.style.overflow = ''; // Restore scroll
@@ -131,7 +565,9 @@
                 else openSidebar();
             });
 
-            backdrop.addEventListener('click', closeSidebar);
+            if (backdrop) {
+                backdrop.addEventListener('click', closeSidebar);
+            }
 
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && sidebar.classList.contains('open')) {
@@ -142,27 +578,46 @@
             // Close when clicking a nav item (on mobile)
             navItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    if (window.innerWidth < 1024) closeSidebar();
+                    if (window.innerWidth < 768) closeSidebar();
                 });
             });
         });
     </script>
     <script src="{% static 'js/custom-calendar.js' %}?v=1.0"></script>
     <script>
+        // Helper to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Global loader management with debounce
         document.addEventListener('DOMContentLoaded', () => {
             const loader = document.getElementById('global-loader');
+            if (!loader) return;
             
-            // Show loader on link clicks
+            // Show loader on full external page loads only, after a 350ms delay to prevent flashing
             document.querySelectorAll('a').forEach(link => {
                 link.addEventListener('click', (e) => {
+                    if (e.defaultPrevented) return;
                     const href = link.getAttribute('href');
                     if (href && !href.startsWith('#') && !href.startsWith('javascript') && link.target !== '_blank' && !link.hasAttribute('download')) {
-                        // Prevent triggering if opening in new tab
                         if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                            // Small timeout to prevent flashing on instant loads
                             setTimeout(() => {
-                                loader.classList.add('active');
-                            }, 100);
+                                if (!e.defaultPrevented) {
+                                    loader.classList.add('active');
+                                }
+                            }, 350);
                         }
                     }
                 });
@@ -175,34 +630,302 @@
                         if (!e.defaultPrevented) {
                             loader.classList.add('active');
                         }
-                    }, 0);
+                    }, 100);
                 });
             });
             
-        // Hide loader when navigating back via browser history
-        window.addEventListener('pageshow', (e) => {
-            if (e.persisted) {
-                loader.classList.remove('active');
-            }
-        });
-    });
-
-    // Helper to get CSRF token from cookies
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
+            // Hide loader when navigating back via browser history
+            window.addEventListener('pageshow', (e) => {
+                if (e.persisted) {
+                    loader.classList.remove('active');
                 }
+            });
+        });
+    </script>
+
+    <!-- Expenzo Instant Personal Spend Navigation Router -->
+    <script id="expenzo-instant-nav-manager">
+    (function() {
+        const PERSONAL_ROUTES = ['/', '/dashboard', '/history', '/recurring', '/charts'];
+        const routeCache = new Map();
+        const CACHE_MAX_AGE_MS = 60000; // 1 minute in-memory cache
+
+        function normalizePath(urlStr) {
+            try {
+                const u = new URL(urlStr, window.location.origin);
+                if (u.origin !== window.location.origin) return null;
+                const p = u.pathname.replace(/\/+$/, '') || '/';
+                return p;
+            } catch {
+                return null;
             }
         }
-        return cookieValue;
-    }
-</script>
+
+        function isPersonalSpendRoute(urlStr) {
+            const p = normalizePath(urlStr);
+            return p ? PERSONAL_ROUTES.includes(p) : false;
+        }
+
+        function getContextTitleForPath(p) {
+            switch(p) {
+                case '/history': return 'Expense History';
+                case '/recurring': return 'Recurring Finance';
+                case '/charts': return 'Analytics & Charts';
+                default: return 'Personal Spend';
+            }
+        }
+
+        // Prefetch target HTML in memory
+        async function prefetchRoute(url) {
+            const normPath = normalizePath(url);
+            if (!normPath) return null;
+
+            const cached = routeCache.get(url);
+            if (cached && (Date.now() - cached.timestamp < CACHE_MAX_AGE_MS)) {
+                return cached.html;
+            }
+
+            try {
+                const res = await fetch(url, {
+                    headers: { 'X-Requested-With': 'expenzo-fast-nav' },
+                    credentials: 'same-origin'
+                });
+                if (res.ok) {
+                    const html = await res.text();
+                    routeCache.set(url, { html, timestamp: Date.now() });
+                    return html;
+                }
+            } catch (err) {
+                // Silently ignore prefetch errors
+            }
+            return null;
+        }
+
+        // Invalidate cache on mutations (add/edit/delete expense, recurring, etc.)
+        window.clearExpenzoNavCache = function() {
+            routeCache.clear();
+        };
+
+        const origFetch = window.fetch;
+        window.fetch = function(...args) {
+            const [resource, config] = args;
+            if (config && ['POST', 'PUT', 'DELETE', 'PATCH'].includes((config.method || '').toUpperCase())) {
+                routeCache.clear();
+            }
+            return origFetch.apply(this, args);
+        };
+        document.addEventListener('submit', () => routeCache.clear());
+
+        // Update active tab buttons immediately in the UI for 0ms visual responsiveness
+        function updateNavPillsVisual(targetPath) {
+            const normTarget = normalizePath(targetPath);
+            
+            document.querySelectorAll('a').forEach(link => {
+                const linkPath = normalizePath(link.href);
+                if (!linkPath || !PERSONAL_ROUTES.includes(linkPath)) return;
+
+                // Check if this link is a navigation tab pill
+                if (link.classList.contains('rounded-xl') && (link.classList.contains('whitespace-nowrap') || link.querySelector('.material-symbols-outlined'))) {
+                    const isActive = linkPath === normTarget;
+                    if (isActive) {
+                        link.className = 'personal-spend-nav-pill flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap';
+                    } else {
+                        link.className = 'personal-spend-nav-pill flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap';
+                    }
+                }
+            });
+
+            // Update topbar context title
+            const contextTitle = document.querySelector('.desktop-topbar .context-title');
+            if (contextTitle) {
+                contextTitle.textContent = getContextTitleForPath(normTarget);
+            }
+        }
+
+        let isNavigating = false;
+
+        async function navigateTo(url, push = true) {
+            const normPath = normalizePath(url);
+            if (!normPath || isNavigating) return;
+
+            const mainContent = document.getElementById('main-content');
+            if (!mainContent) {
+                window.location.href = url;
+                return;
+            }
+
+            isNavigating = true;
+
+            // 1. Instant Active State Feedback (<16ms)
+            updateNavPillsVisual(url);
+
+            // 2. Start subtle exit transition (160ms)
+            mainContent.classList.add('nav-transitioning-out');
+
+            try {
+                let html = await prefetchRoute(url);
+                if (!html) {
+                    const res = await fetch(url, { credentials: 'same-origin' });
+                    if (!res.ok) throw new Error('Network response not ok');
+                    html = await res.text();
+                }
+
+                const parser = new DOMParser();
+                const newDoc = parser.parseFromString(html, 'text/html');
+                const newMain = newDoc.getElementById('main-content');
+
+                if (!newMain) {
+                    // Fallback to normal navigation
+                    window.location.href = url;
+                    return;
+                }
+
+                // Wait for the exit animation duration (approx 140ms remaining)
+                await new Promise(r => setTimeout(r, 140));
+
+                // 3. Swap title and context
+                if (newDoc.title) document.title = newDoc.title;
+                const newContext = newDoc.querySelector('.desktop-topbar .context-title');
+                const currentContext = document.querySelector('.desktop-topbar .context-title');
+                if (newContext && currentContext) {
+                    currentContext.textContent = newContext.textContent;
+                }
+
+                // 4. Inject styles if new page has unique extra_css
+                newDoc.querySelectorAll('head style, head link[rel="stylesheet"]').forEach(styleOrLink => {
+                    if (styleOrLink.id && !document.getElementById(styleOrLink.id)) {
+                        document.head.appendChild(styleOrLink.cloneNode(true));
+                    }
+                });
+
+                // 5. Swap DOM
+                mainContent.innerHTML = newMain.innerHTML;
+                mainContent.scrollTop = 0;
+
+                // 6. Push history state
+                if (push) {
+                    window.history.pushState({ expenzoUrl: url }, '', url);
+                }
+
+                // 7. Execute page-specific scripts
+                const scriptsToRun = [];
+                newDoc.querySelectorAll('#main-content script, script[id^="page-script"]').forEach(s => scriptsToRun.push(s));
+                
+                // Also get scripts from extra_js block
+                const newBody = newDoc.body;
+                newBody.querySelectorAll('script').forEach(s => {
+                    const id = s.id || '';
+                    if (!id.includes('expenzo-instant-nav') && !id.includes('tailwind') && !s.src.includes('lucide') && !s.src.includes('custom-calendar')) {
+                        scriptsToRun.push(s);
+                    }
+                });
+
+                scriptsToRun.forEach(oldScript => {
+                    try {
+                        const newScript = document.createElement('script');
+                        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                        newScript.textContent = oldScript.textContent;
+                        document.body.appendChild(newScript);
+                        // Clean up inline script node after execution to avoid DOM bloat
+                        if (!newScript.src) newScript.remove();
+                    } catch (e) {
+                        console.warn('Script execution notice:', e);
+                    }
+                });
+
+                // 8. Re-run UI enhancements
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+                document.querySelectorAll('.color-apply').forEach(el => {
+                    const c = el.getAttribute('data-color');
+                    if (c) el.style.backgroundColor = c;
+                });
+                if (typeof window.initCustomCalendar === 'function') {
+                    window.initCustomCalendar();
+                }
+
+                // 9. Enter animation
+                mainContent.classList.remove('nav-transitioning-out');
+                mainContent.classList.add('nav-transitioning-in');
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        mainContent.classList.remove('nav-transitioning-in');
+                        isNavigating = false;
+                    });
+                });
+
+            } catch (err) {
+                console.warn('Fast navigation fallback to standard reload:', err);
+                isNavigating = false;
+                window.location.href = url;
+            }
+        }
+
+        // Intercept clicks on document in capture phase
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (!link) return;
+
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+            if (link.target === '_blank' || link.hasAttribute('download')) return;
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+
+            if (isPersonalSpendRoute(link.href)) {
+                const currentNorm = normalizePath(window.location.href);
+                const targetNorm = normalizePath(link.href);
+                
+                // If same route without search param changes, just scroll to top
+                if (currentNorm === targetNorm && new URL(link.href, window.location.origin).search === window.location.search) {
+                    e.preventDefault();
+                    const mainContent = document.getElementById('main-content');
+                    if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                navigateTo(link.href, true);
+            }
+        }, true); // Capture phase ensures we prevent full reload before other link handlers
+
+        // Prefetch on pointerenter or focus
+        document.addEventListener('pointerenter', (e) => {
+            const link = e.target.closest('a');
+            if (link && isPersonalSpendRoute(link.href)) {
+                prefetchRoute(link.href);
+            }
+        }, { passive: true, capture: true });
+
+        // Handle browser Back / Forward buttons
+        window.addEventListener('popstate', (e) => {
+            if (isPersonalSpendRoute(window.location.href)) {
+                navigateTo(window.location.href, false);
+            }
+        });
+
+        // Initial prefetch of the other sibling routes when browser is idle
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(() => {
+                PERSONAL_ROUTES.forEach(route => {
+                    if (normalizePath(window.location.href) !== normalizePath(route)) {
+                        prefetchRoute(route);
+                    }
+                });
+            }, { timeout: 2000 });
+        } else {
+            setTimeout(() => {
+                PERSONAL_ROUTES.forEach(route => {
+                    if (normalizePath(window.location.href) !== normalizePath(route)) {
+                        prefetchRoute(route);
+                    }
+                });
+            }, 1000);
+        }
+    })();
+    </script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

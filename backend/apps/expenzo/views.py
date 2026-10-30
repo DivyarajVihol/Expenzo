@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.utils import timezone as django_timezone
-from django.db.models import Q
+from django.db.models import Q, Sum
 from datetime import datetime, timedelta
 import json
 import logging
@@ -158,7 +158,9 @@ def dashboard_view(request):
             'count': data['count']
         })
         
-    pm_chart_base64 = generate_payment_method_bar_chart(pm_stats)
+        # Charts are rendered via lightweight frontend HTML/CSS in dashboard.html;
+        # bypass heavy matplotlib rasterization on every dashboard request
+        pm_chart_base64 = None
     
     # Calculate Pie Chart category breakdown
     category_sums = {}
@@ -186,8 +188,8 @@ def dashboard_view(request):
         pie_categories.append(name)
         pie_values.append(value)
         
-    # Generate charts
-    pie_chart_base64 = generate_spending_pie_chart(pie_categories, pie_values)
+    # Pie chart base64 not needed on dashboard (rendered using Tailwind CSS bars)
+    pie_chart_base64 = None
     
     active_month_label = now.strftime("%B %Y")
     
@@ -229,6 +231,9 @@ def dashboard_view(request):
             
         merged_breakdown.append(item)
         
+    total_month_income = sum(exp.amount for exp in monthly_expenses if exp.category == "Income")
+    total_month_spend = total_spend
+    
     context = {
         'recent_transactions': recent_transactions,
         'monthly_balance': monthly_balance,
@@ -241,7 +246,11 @@ def dashboard_view(request):
         'filter_type': filter_type,
         'search_query': search_query,
         'account_balances_json': account_balances_json,
-        'merged_breakdown': merged_breakdown
+        'merged_breakdown': merged_breakdown,
+        'total_income': cumulative_income,
+        'total_expense': cumulative_spend,
+        'total_month_income': total_month_income,
+        'total_month_spend': total_month_spend,
     }
     return render(request, 'dashboard.html', context)
 
@@ -495,8 +504,17 @@ def groups_view(request):
     memberships = GroupMember.objects.filter(user=user).select_related('group')
     groups = [m.group for m in memberships]
     
+    total_group_expenses = 0.0
+    for g in groups:
+        g.member_count = GroupMember.objects.filter(group=g).count()
+        exp_sum = GroupExpense.objects.filter(group=g).aggregate(Sum('amount'))['amount__sum'] or 0.0
+        g.total_expenses = exp_sum
+        total_group_expenses += exp_sum
+    
     context = {
-        'groups': groups
+        'groups': groups,
+        'total_groups_count': len(groups),
+        'total_group_expenses': total_group_expenses,
     }
     return render(request, 'groups.html', context)
 
@@ -869,8 +887,15 @@ def profile_view(request):
         user.save()
         return redirect('profile')
         
+    expenses_count = PersonalExpense.objects.filter(user=user).count()
+    groups_count = GroupMember.objects.filter(user=user).count()
+    recurring_count = RecurringExpense.objects.filter(user=user).count() + RecurringIncome.objects.filter(user=user).count()
+    
     context = {
-        'profile': profile
+        'profile': profile,
+        'expenses_count': expenses_count,
+        'groups_count': groups_count,
+        'recurring_count': recurring_count,
     }
     return render(request, 'profile.html', context)
 

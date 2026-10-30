@@ -6,49 +6,62 @@
 {% block extra_css %}
 <style>
   .groups-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 0.5rem;
-  }
-  .groups-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-  .groups-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
   }
   .group-card {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 140px;
+    min-height: 180px;
     text-decoration: none;
-    transition: var(--transition-smooth);
-    border: 1px solid var(--border-color);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    background: rgba(18, 19, 22, 0.75);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+  .group-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 163, 26, 0.4), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
   .group-card:hover {
-    border-color: var(--accent-primary);
-    transform: translateY(-2px);
-    background: var(--bg-card-hover);
+    border-color: rgba(255, 163, 26, 0.4);
+    transform: translateY(-3px);
+    background: rgba(26, 27, 32, 0.85);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(255, 163, 26, 0.12);
+  }
+  .group-card:hover::before {
+    opacity: 1;
+  }
+  .group-card:hover .group-arrow {
+    transform: translateX(4px);
+    color: var(--accent-primary);
   }
   .group-title {
-    font-size: 1.15rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
+    font-family: var(--font-heading);
   }
   .group-desc {
     font-size: 0.85rem;
     color: var(--text-secondary);
-    line-height: 1.4;
+    line-height: 1.45;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -58,52 +71,56 @@
   .group-meta {
     font-size: 0.75rem;
     color: var(--text-muted);
-    margin-top: 1rem;
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.35rem;
   }
   .create-group-card {
-    padding: 2rem;
+    padding: 1.75rem;
+    border-radius: 20px;
+    background: rgba(18, 19, 22, 0.8);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
   }
   .create-group-title {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 700;
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.35rem;
     color: var(--text-primary);
+    font-family: var(--font-heading);
   }
   .icon-option {
     padding: 0.75rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-sm);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transform: translateY(0) scale(1);
   }
   label:hover .icon-option {
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(-2px);
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
   input[type="radio"]:checked + .icon-option {
     border-color: var(--accent-primary) !important;
-    background: rgba(37, 99, 235, 0.15) !important;
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 12px 20px -3px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 163, 26, 0.15) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 0 16px rgba(255, 163, 26, 0.3);
+    color: var(--accent-primary);
   }
   input[type="radio"]:checked + .icon-option i {
-    animation: iconBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: var(--accent-primary);
+    animation: iconBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
   @keyframes iconBounce {
     0% { transform: scale(1); }
-    50% { transform: scale(1.25) translateY(-2px); }
-    100% { transform: scale(1) translateY(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
   }
 </style>
 {% endblock %}
@@ -111,126 +128,258 @@
 {% block content %}
 <div class="groups-container">
   
-  <div class="groups-header-row">
+  <!-- Header Row -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
-      <a href="{% url 'dashboard' %}" class="btn-back-dashboard" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-bottom: 0.5rem;">
-        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
-        Back to Dashboard
+      <div class="flex items-center gap-2">
+        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Group Splits</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">SPLITS</span>
+      </div>
+      <p class="text-sm text-on-surface-variant mt-1">Track shared apartments, group trips, and split dinners without tension.</p>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-semibold transition-all shadow-sm">
+        <span class="material-symbols-outlined text-sm text-primary">arrow_back</span>
+        <span>Back to Deck</span>
       </a>
-      <h1 class="page-title">Group Splits</h1>
-      <p class="page-subtitle">Track, split, and settle bills with friends and roommates</p>
     </div>
   </div>
 
-  <div class="groups-grid">
-    {% for group in groups %}
-      <a href="{% url 'group_detail' group_id=group.id %}" class="glass-card group-card">
-          <div style="display: flex; flex-direction: column; align-items: flex-start;">
-            <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-              {% if group.icon_base64 %}
-                <img src="{{ group.icon_base64 }}" alt="Icon" style="width: 100%; height: 100%; object-fit: cover;">
-              {% elif '/' in group.icon %}
-                <img src="{{ group.icon }}" alt="Icon" style="width: 100%; height: 100%; object-fit: cover;">
-              {% else %}
-                <i data-lucide="{{ group.icon|default:'users' }}" style="width: 28px; height: 28px; color: var(--accent-primary);"></i>
-              {% endif %}
-            </div>
-          <h3 class="group-title">{{ group.name }}</h3>
-          <p class="group-desc">{% if group.description %}{{ group.description }}{% else %}No description provided.{% endif %}</p>
-        </div>
-        <div class="group-meta">
-          <i data-lucide="calendar" style="width: 12px; height: 12px;"></i>
-          Created {{ group.created_at|date:"M Y" }}
-        </div>
-      </a>
-    {% empty %}
-      <div class="glass-card" style="grid-column: 1 / -1; padding: 4rem 2rem; text-align: center; color: var(--text-secondary);">
-        <i data-lucide="users" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
-        <h3>No Groups Found</h3>
-        <p style="font-size: 0.9rem; margin-top: 0.25rem;">You are not in any split groups yet. Create a group on the right to start splitting bills!</p>
+  <!-- Top Telemetry Metrics Summary Bar -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+    <!-- Active Groups -->
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-4 border border-white/5 bg-surface-container-low/70">
+      <div class="w-12 h-12 rounded-xl bg-primary-container/15 border border-primary-container/30 flex items-center justify-center text-primary flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">groups</span>
       </div>
-    {% endfor %}
+      <div>
+        <div class="text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Active Split Groups</div>
+        <div class="text-2xl font-bold text-on-surface font-display">{{ total_groups_count|default:groups|length }}</div>
+      </div>
+    </div>
+
+    <!-- Total Tracked Shared Expenses -->
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-4 border border-white/5 bg-surface-container-low/70">
+      <div class="w-12 h-12 rounded-xl bg-tertiary/15 border border-tertiary/30 flex items-center justify-center text-tertiary flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">payments</span>
+      </div>
+      <div>
+        <div class="text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Total Shared Spend</div>
+        <div class="text-2xl font-bold text-on-surface font-display">₹{{ total_group_expenses|floatformat:2|default:"0.00" }}</div>
+      </div>
+    </div>
+
+    <!-- UPI & QR Settlements -->
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-4 border border-white/5 bg-surface-container-low/70 sm:col-span-2 lg:col-span-1">
+      <div class="w-12 h-12 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">qr_code_scanner</span>
+      </div>
+      <div>
+        <div class="text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Settlement System</div>
+        <div class="text-sm font-semibold text-on-surface flex items-center gap-1.5 mt-0.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Instant UPI & QR Ready</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Create New Group Card -->
-  <div class="glass-card create-group-card" style="max-width: 500px; margin-top: 2rem;">
-    <h3 class="create-group-title">Create a New Group</h3>
-    <form method="POST" action="{% url 'groups' %}">
-      {% csrf_token %}
-      <div class="form-group">
-        <label class="form-label">Group Name</label>
-        <input 
-          type="text" 
-          name="name" 
-          class="input-control" 
-          placeholder="e.g. Roommates, Weekend Trip, Office Lunch" 
-          required
-        />
-      </div>
+  <!-- Main 2-Column Responsive Split Deck -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left Column: Active Groups & Split Guides (lg:col-span-7 xl:col-span-8) -->
+    <div class="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
       
-      <div class="form-group">
-        <label class="form-label">Description (Optional)</label>
-        <textarea 
-          name="description" 
-          class="input-control" 
-          placeholder="What is this group for?" 
-          rows="3"
-          style="resize: none;"
-        ></textarea>
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-on-surface flex items-center gap-2 font-display">
+          <span class="material-symbols-outlined text-primary text-xl">folder_shared</span>
+          <span>Your Split Groups</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-surface-container-high border border-white/5 text-on-surface-variant font-semibold">
+            {{ groups|length }}
+          </span>
+        </h2>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Group Icon</label>
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
-          <label style="cursor: pointer; position: relative;">
-            <input type="radio" name="icon" value="users" checked style="display: none;">
-            <div class="icon-option">
-              <i data-lucide="users" style="width: 24px; height: 24px;"></i>
+      <!-- Groups Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {% for group in groups %}
+          <a href="{% url 'group_detail' group_id=group.id %}" class="group-card group">
+            <div>
+              <!-- Top Card Bar: Icon & Member Count -->
+              <div class="flex items-center justify-between mb-4">
+                <div style="width: 54px; height: 54px; background: rgba(255,255,255,0.04); border-radius: 14px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                  {% if group.icon_base64 %}
+                    <img src="{{ group.icon_base64 }}" alt="{{ group.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                  {% elif '/' in group.icon %}
+                    <img src="{{ group.icon }}" alt="{{ group.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                  {% else %}
+                    <i data-lucide="{{ group.icon|default:'users' }}" style="width: 26px; height: 26px; color: var(--accent-primary);"></i>
+                  {% endif %}
+                </div>
+                
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-highest/80 border border-white/5 text-on-surface-variant text-xs font-medium">
+                  <span class="material-symbols-outlined text-xs text-primary">group</span>
+                  <span>{{ group.member_count|default:"1" }} member{{ group.member_count|pluralize }}</span>
+                </span>
+              </div>
+
+              <!-- Group Title & Description -->
+              <h3 class="group-title group-hover:text-primary transition-colors">{{ group.name }}</h3>
+              <p class="group-desc">{% if group.description %}{{ group.description }}{% else %}No description provided.{% endif %}</p>
             </div>
-          </label>
-          <label style="cursor: pointer; position: relative;">
-            <input type="radio" name="icon" value="home" style="display: none;">
-            <div class="icon-option">
-              <i data-lucide="home" style="width: 24px; height: 24px;"></i>
+
+            <!-- Card Bottom Bar: Date, Spend & Arrow -->
+            <div class="flex items-center justify-between pt-4 mt-4 border-t border-white/5">
+              <div class="group-meta">
+                <i data-lucide="calendar" style="width: 13px; height: 13px;"></i>
+                <span>Created {{ group.created_at|date:"M Y" }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                {% if group.total_expenses %}
+                  <span class="text-xs font-semibold text-tertiary">₹{{ group.total_expenses|floatformat:0 }} spend</span>
+                {% endif %}
+                <span class="material-symbols-outlined text-sm text-on-surface-variant group-arrow transition-transform">arrow_forward</span>
+              </div>
             </div>
-          </label>
-          <label style="cursor: pointer; position: relative;">
-            <input type="radio" name="icon" value="plane" style="display: none;">
-            <div class="icon-option">
-              <i data-lucide="plane" style="width: 24px; height: 24px;"></i>
+          </a>
+        {% empty %}
+          <div class="glass-card sm:col-span-2 p-10 text-center rounded-2xl border border-white/5 bg-surface-container-low/50">
+            <div class="w-16 h-16 rounded-full bg-white/5 mx-auto flex items-center justify-center text-on-surface-variant mb-3">
+              <i data-lucide="users" style="width: 32px; height: 32px; color: var(--text-muted);"></i>
             </div>
-          </label>
-          <label style="cursor: pointer; position: relative;">
-            <input type="radio" name="icon" value="briefcase" style="display: none;">
-            <div class="icon-option">
-              <i data-lucide="briefcase" style="width: 24px; height: 24px;"></i>
-            </div>
-          </label>
-          <label style="cursor: pointer; position: relative;">
-            <input type="radio" name="icon" value="coffee" style="display: none;">
-            <div class="icon-option">
-              <i data-lucide="coffee" style="width: 24px; height: 24px;"></i>
-            </div>
-          </label>
+            <h3 class="text-lg font-bold text-on-surface">No Groups Found</h3>
+            <p class="text-sm text-on-surface-variant mt-1 max-w-sm mx-auto">You are not in any split groups yet. Create your first group on the right to start tracking and settling expenses!</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Feature Guide: How Group Splits Work (Fills left column with value) -->
+      <div class="glass-card p-6 rounded-2xl border border-white/5 bg-surface-container-low/50 backdrop-blur-xl mt-2 relative overflow-hidden">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-primary text-xl">auto_fix_high</span>
+          <h3 class="font-display font-bold text-base text-on-surface">How Split Finances Work in Expenzo</h3>
         </div>
-        
-        <div class="form-group" style="margin-top: 1.5rem;">
-          <label class="form-label">Or Upload Custom Image</label>
-          <input type="hidden" name="icon_base64" id="create-group-icon-base64" value="">
-          <input type="file" id="create_group_icon_file_input" accept="image/*" style="display: none;" onchange="handleCreateGroupIconUpload(this)">
-          <button type="button" onclick="document.getElementById('create_group_icon_file_input').click()" class="btn btn-secondary" style="width: 100%; padding: 0.75rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-            <i data-lucide="upload" style="width: 18px; height: 18px;"></i>
-            Choose Custom Image
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="flex flex-col gap-1.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+            <div class="w-7 h-7 rounded-lg bg-primary-container/20 text-primary flex items-center justify-center font-bold text-xs">1</div>
+            <div class="font-semibold text-sm text-on-surface">Add Members</div>
+            <div class="text-xs text-on-surface-variant leading-relaxed">Invite roommates or trip members by email to track balances together.</div>
+          </div>
+          <div class="flex flex-col gap-1.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+            <div class="w-7 h-7 rounded-lg bg-tertiary/20 text-tertiary flex items-center justify-center font-bold text-xs">2</div>
+            <div class="font-semibold text-sm text-on-surface">Log & Split</div>
+            <div class="text-xs text-on-surface-variant leading-relaxed">Split equally, by exact amount, or shares. Expenzo simplifies who owes whom.</div>
+          </div>
+          <div class="flex flex-col gap-1.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+            <div class="w-7 h-7 rounded-lg bg-secondary/20 text-secondary flex items-center justify-center font-bold text-xs">3</div>
+            <div class="font-semibold text-sm text-on-surface">Settle via UPI</div>
+            <div class="text-xs text-on-surface-variant leading-relaxed">Generate dynamic QR codes for 1-click zero-friction UPI bank settlement.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Create New Group Panel (lg:col-span-5 xl:col-span-4) -->
+    <div class="lg:col-span-5 xl:col-span-4 sticky top-6 flex flex-col gap-5">
+      
+      <!-- Create Group Card -->
+      <div class="glass-card create-group-card">
+        <div class="mb-4">
+          <h3 class="create-group-title">Create a New Group</h3>
+          <p class="text-xs text-on-surface-variant">Start splitting expenses with friends or roommates.</p>
+        </div>
+
+        <form method="POST" action="{% url 'groups' %}">
+          {% csrf_token %}
+          
+          <div class="form-group mb-4">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Group Name</label>
+            <input 
+              type="text" 
+              name="name" 
+              class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
+              placeholder="e.g. Roommates, Goa Trip, Office Lunch" 
+              required
+            />
+          </div>
+          
+          <div class="form-group mb-4">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Description (Optional)</label>
+            <textarea 
+              name="description" 
+              class="input-control w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-white/10 text-on-surface placeholder:text-outline text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
+              placeholder="What is this group for?" 
+              rows="2"
+              style="resize: none;"
+            ></textarea>
+          </div>
+
+          <div class="form-group mb-4">
+            <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Choose Group Icon</label>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.35rem;">
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="icon" value="users" checked style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="icon" value="home" style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="home" style="width: 20px; height: 20px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="icon" value="plane" style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="plane" style="width: 20px; height: 20px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="icon" value="briefcase" style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="briefcase" style="width: 20px; height: 20px;"></i>
+                </div>
+              </label>
+              <label style="cursor: pointer; position: relative;">
+                <input type="radio" name="icon" value="coffee" style="display: none;">
+                <div class="icon-option">
+                  <i data-lucide="coffee" style="width: 20px; height: 20px;"></i>
+                </div>
+              </label>
+            </div>
+            
+            <div class="mt-3.5 pt-3 border-t border-white/5">
+              <label class="form-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold block mb-1.5">Or Custom Cover Image</label>
+              <input type="hidden" name="icon_base64" id="create-group-icon-base64" value="">
+              <input type="file" id="create_group_icon_file_input" accept="image/*" style="display: none;" onchange="handleCreateGroupIconUpload(this)">
+              <button type="button" onclick="document.getElementById('create_group_icon_file_input').click()" class="w-full py-2 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-dashed border-white/15 text-on-surface text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-base text-primary">add_photo_alternate</span>
+                <span>Select Image from Device</span>
+              </button>
+              <img id="create-group-icon-preview" src="" style="width: 50px; height: 50px; border-radius: 12px; object-fit: cover; margin-top: 10px; display: none; margin-left: auto; margin-right: auto; border: 1px solid var(--accent-primary);">
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-primary-container via-primary-container to-secondary text-on-primary-container font-label-lg text-sm font-bold shadow-[0_0_20px_rgba(255,163,26,0.3)] hover:brightness-110 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 mt-2">
+            <span class="material-symbols-outlined text-base">group_add</span>
+            <span>Create Group</span>
           </button>
-          <img id="create-group-icon-preview" src="" style="width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 10px; display: none; margin-left: auto; margin-right: auto;">
+        </form>
+      </div>
+
+      <!-- Quick Tips Card -->
+      <div class="glass-card p-4 rounded-2xl border border-white/5 bg-surface-container-low/60 flex items-start gap-3">
+        <span class="material-symbols-outlined text-primary text-xl flex-shrink-0 mt-0.5">verified_user</span>
+        <div class="text-xs text-on-surface-variant leading-relaxed">
+          <span class="font-semibold text-on-surface">Smart Debt Simplification:</span> Expenzo automatically calculates the minimum number of transactions needed so your group settles with the fewest payments possible.
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
-        <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
-        Create Group
-      </button>
-    </form>
+    </div>
+
   </div>
 
 </div>
@@ -285,5 +434,11 @@
       reader.readAsDataURL(file);
     }
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  });
 </script>
 {% endblock %}

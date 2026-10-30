@@ -6,7 +6,7 @@
 {% block extra_css %}
 <style>
   .history-container {
-    max-width: 1200px;
+    max-width: 1300px;
     margin: 0 auto;
     padding: 0.5rem;
   }
@@ -14,7 +14,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     flex-wrap: wrap;
     gap: 1rem;
   }
@@ -29,13 +29,19 @@
     font-size: 0.9rem;
     text-decoration: none;
     margin-bottom: 0.5rem;
+    transition: var(--transition-fast);
   }
   .btn-back-dashboard:hover {
-    color: var(--text-primary);
+    color: var(--accent-primary);
   }
   .filters-card {
     padding: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    background: rgba(18, 19, 22, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: var(--glass-blur);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   }
   .filters-row {
     display: flex;
@@ -46,12 +52,42 @@
   .filter-group {
     flex: 1 1 200px;
   }
+  .filter-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+  .filter-group .input-control, .filter-group select {
+    background: #090a0d !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px;
+    color: var(--text-primary);
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    width: 100%;
+    transition: var(--transition-fast);
+  }
+  .filter-group .input-control:focus, .filter-group select:focus {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 12px rgba(255, 163, 26, 0.25) !important;
+    outline: none;
+  }
   .month-group-card {
     margin-bottom: 1.25rem;
-    border-radius: var(--radius-lg);
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: rgba(18, 19, 22, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: var(--glass-blur);
     overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    transition: var(--transition-fast);
+  }
+  .month-group-card:hover {
+    border-color: rgba(255, 163, 26, 0.35);
   }
   .month-group-header {
     padding: 1.25rem 1.75rem;
@@ -61,9 +97,10 @@
     cursor: pointer;
     user-select: none;
     transition: var(--transition-fast);
+    background: rgba(255, 255, 255, 0.02);
   }
   .month-group-header:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 163, 26, 0.04);
   }
   .month-title-info {
     display: flex;
@@ -232,20 +269,41 @@
 <div class="history-container">
   
   <!-- Header row -->
-  <div class="history-header-row" style="margin-bottom: 1rem;">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
-      <h1 class="page-title">Personal Spend</h1>
-      <p class="page-subtitle">Welcome back, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}. Here's your financial summary.</p>
+      <div class="flex items-center gap-2">
+        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Personal Spend</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">HISTORY</span>
+      </div>
+      <p class="text-sm text-on-surface-variant mt-1">Complete multi-account ledger and historical telemetry.</p>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-semibold transition-all">
+        <span class="material-symbols-outlined text-sm text-primary">arrow_back</span>
+        <span>Back to Deck</span>
+      </a>
     </div>
   </div>
 
-  <!-- Tabs Navigation -->
-  <div class="tabs-row">
-    <a href="{% url 'dashboard' %}" class="tab-btn">Dashboard</a>
-    <a href="{% url 'history' %}" class="tab-btn active">Expense History</a>
-    <a href="{% url 'recurring' %}" class="tab-btn">Recurring Finance</a>
-    <a href="{% url 'personal_charts' %}" class="tab-btn">Charts</a>
-    <a href="{% url 'spending_streaks' %}" class="tab-btn">Spending Streaks</a>
+  <!-- Navigation Sub-Pills -->
+  <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit mb-6 overflow-x-auto">
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">receipt_long</span>
+      <span>Expense History</span>
+    </a>
+    <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
+      <span>Recurring Finance</span>
+    </a>
+    <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">monitoring</span>
+      <span>Charts</span>
+    </a>
   </div>
 
   <!-- Filters Card -->
@@ -290,7 +348,7 @@
         <!-- Category Filter -->
         <div class="filter-group">
           <label class="form-label font-xs">Category</label>
-          <select name="category" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
+          <select name="category" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Categories</option>
             {% for cat in categories %}
               <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -301,7 +359,7 @@
         <!-- Account Filter -->
         <div class="filter-group">
           <label class="form-label font-xs">Account</label>
-          <select name="account" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
+          <select name="account" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Accounts</option>
             {% for acc in accounts %}
               <option value="{{ acc }}" {% if selected_account == acc %}selected{% endif %}>{{ acc }}</option>
@@ -312,7 +370,7 @@
         <!-- Payment Method Filter -->
         <div class="filter-group">
           <label class="form-label font-xs">Payment Method</label>
-          <select name="paymentMethod" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
+          <select name="paymentMethod" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Methods</option>
             {% for method in payment_methods %}
               <option value="{{ method }}" {% if selected_payment == method %}selected{% endif %}>{{ method }}</option>
@@ -324,20 +382,25 @@
   </div>
 
   <!-- Export Expense History -->
-  <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2rem;">
-    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">Export Expense History</h3>
-    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
-      Download a complete statement of your personal expense history.
-    </p>
-    <div style="display: flex; gap: 1rem;">
-      <a href="{% url 'export_expenses_pdf' %}" download class="btn btn-secondary" style="flex: 1; padding: 0.75rem; border-radius: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color);">
-        <i data-lucide="file-text" style="width: 18px; height: 18px; color: var(--accent-primary);"></i>
-        Download PDF
-      </a>
-      <a href="{% url 'export_expenses_excel' %}" download class="btn btn-secondary" style="flex: 1; padding: 0.75rem; border-radius: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color);">
-        <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px; color: #10b981;"></i>
-        Download Excel
-      </a>
+  <div class="rounded-2xl bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 p-5 mb-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h3 class="font-display text-base font-bold text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">download</span>
+          <span>Export Expense Statement</span>
+        </h3>
+        <p class="text-xs text-on-surface-variant mt-1">Download complete transaction statements for personal compliance, tax filing, or auditing.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="{% url 'export_expenses_pdf' %}" download class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-primary-container/20 border border-white/10 hover:border-primary/40 text-on-surface text-xs font-bold transition-all shadow-[0_0_15px_rgba(255,163,26,0.1)]">
+          <span class="material-symbols-outlined text-base text-primary">picture_as_pdf</span>
+          <span>Download PDF</span>
+        </a>
+        <a href="{% url 'export_expenses_excel' %}" download class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-tertiary-container/20 border border-white/10 hover:border-tertiary/40 text-on-surface text-xs font-bold transition-all shadow-[0_0_15px_rgba(83,236,180,0.1)]">
+          <span class="material-symbols-outlined text-base text-tertiary">table_view</span>
+          <span>Download Excel</span>
+        </a>
+      </div>
     </div>
   </div>
 

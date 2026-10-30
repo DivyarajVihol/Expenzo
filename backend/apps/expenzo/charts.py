@@ -12,7 +12,8 @@ def generate_spending_pie_chart(categories, values):
         if not values or sum(values) == 0:
             return None
 
-        fig, ax = plt.subplots(figsize=(2.0, 2.0), dpi=200)
+        # Optimized from dpi=200 to dpi=100 for fast rasterization (200x200 px for 180x180 display)
+        fig, ax = plt.subplots(figsize=(2.0, 2.0), dpi=100)
         fig.patch.set_alpha(0.0)
         ax.patch.set_alpha(0.0)
 

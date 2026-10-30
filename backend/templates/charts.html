@@ -140,23 +140,44 @@
 {% endblock %}
 
 {% block content %}
-<div class="charts-container">
+<div class="max-w-[1300px] mx-auto p-2">
   
   <!-- Header row -->
-  <div class="dashboard-nav-row" style="margin-bottom: 1rem;">
-    <div class="dashboard-title-area">
-      <h1 class="page-title">Personal Spend</h1>
-      <p class="page-subtitle">Welcome back, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}. Here's your financial summary.</p>
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Personal Spend</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">ANALYTICS</span>
+      </div>
+      <p class="text-sm text-on-surface-variant mt-1">Multi-dimensional spending telemetry, velocity metrics, and capital flow.</p>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-semibold transition-all">
+        <span class="material-symbols-outlined text-sm text-primary">arrow_back</span>
+        <span>Back to Deck</span>
+      </a>
     </div>
   </div>
 
-  <!-- Tabs Navigation -->
-  <div class="tabs-row">
-    <a href="{% url 'dashboard' %}" class="tab-btn">Dashboard</a>
-    <a href="{% url 'history' %}" class="tab-btn">Expense History</a>
-    <a href="{% url 'recurring' %}" class="tab-btn">Recurring Finance</a>
-    <a href="{% url 'personal_charts' %}" class="tab-btn active">Charts</a>
-    <a href="{% url 'spending_streaks' %}" class="tab-btn">Spending Streaks</a>
+  <!-- Navigation Sub-Pills -->
+  <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit mb-6 overflow-x-auto">
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">receipt_long</span>
+      <span>Expense History</span>
+    </a>
+    <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
+      <span>Recurring Finance</span>
+    </a>
+    <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">monitoring</span>
+      <span>Charts</span>
+    </a>
   </div>
 
   <div class="charts-content-grid">
