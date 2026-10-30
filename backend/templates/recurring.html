@@ -39,12 +39,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="recurring-container">
-  <!-- Header with back button -->
-  <div class="recurring-header" style="margin-bottom: 1rem;">
+<div class="max-w-[1300px] mx-auto p-2">
+  <!-- Header with Recalculate CTA -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
-      <h1 class="page-title">Personal Spend</h1>
-      <p class="page-subtitle">Welcome back, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}. Here's your financial summary.</p>
+      <div class="flex items-center gap-2">
+        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Personal Spend</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">RECURRING</span>
+      </div>
+      <p class="text-sm text-on-surface-variant mt-1">Automate fixed salary, dividends, monthly rent, and subscriptions.</p>
     </div>
 
     <form method="POST" action="{% url 'recurring' %}">
@@ -52,26 +55,29 @@
       <input type="hidden" name="action" value="recalculate">
       <button 
         type="submit" 
-        class="btn btn-secondary recalculate-btn"
+        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-bold transition-all shadow-sm hover:border-primary/40 cursor-pointer"
         onclick="return confirm('Are you sure you want to recalculate the current month\'s recurring items? This will reset and regenerate them based on your current setup.')"
       >
-        <i data-lucide="refresh-cw" style="width: 14px; height: 14px; margin-right: 0.25rem;"></i>
-        Recalculate Current Month
+        <span class="material-symbols-outlined text-sm text-primary">sync</span>
+        <span>Recalculate Current Month</span>
       </button>
     </form>
   </div>
 
-  <!-- Tabs Navigation -->
-  <div class="tabs-row">
-    <a href="{% url 'dashboard' %}" class="tab-btn">Dashboard</a>
-    <a href="{% url 'history' %}" class="tab-btn">Expense History</a>
-    <a href="{% url 'recurring' %}" class="tab-btn active">Recurring Finance</a>
-    <a href="{% url 'personal_charts' %}" class="tab-btn">Charts</a>
+  <!-- Navigation Sub-Pills -->
+  <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit mb-6 overflow-x-auto">
+    <a href="{% url 'dashboard' %}" class="px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">Dashboard</a>
+    <a href="{% url 'history' %}" class="px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">Expense History</a>
+    <a href="{% url 'recurring' %}" class="px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">Recurring Finance</a>
+    <a href="{% url 'personal_charts' %}" class="px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">Charts</a>
   </div>
 
-  <!-- Add Entry Inline Form -->
-  <div class="glass-card recurring-card-padding" style="position: relative; z-index: 50;">
-    <h3 class="recurring-card-title">Add Recurring Template</h3>
+  <!-- Add Entry Inline Form Card -->
+  <div class="rounded-2xl bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 p-6 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative z-20">
+    <h3 class="font-display text-base font-bold text-on-surface mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary text-lg">add_circle</span>
+      <span>Add Recurring Template</span>
+    </h3>
     <form method="POST" action="{% url 'recurring' %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="add">

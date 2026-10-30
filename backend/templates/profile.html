@@ -40,10 +40,19 @@
 {% block content %}
 <div class="profile-container">
   
-  <a href="{% url 'dashboard' %}" class="btn-back-dashboard" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-bottom: 1.5rem;">
-    <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
-    Back to Dashboard
-  </a>
+  <div class="flex items-center justify-between gap-4 mb-6">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Account Profile</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">SECURITY</span>
+      </div>
+      <p class="text-sm text-on-surface-variant mt-1">Manage sovereign identity, session security, and profile avatars.</p>
+    </div>
+    <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-semibold transition-all">
+      <span class="material-symbols-outlined text-sm text-primary">arrow_back</span>
+      <span>Back to Deck</span>
+    </a>
+  </div>
 
   <!-- Profile Card -->
   <div class="glass-card profile-header-card">

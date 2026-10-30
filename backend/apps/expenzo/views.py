@@ -229,6 +229,9 @@ def dashboard_view(request):
             
         merged_breakdown.append(item)
         
+    total_month_income = sum(exp.amount for exp in monthly_expenses if exp.category == "Income")
+    total_month_spend = total_spend
+    
     context = {
         'recent_transactions': recent_transactions,
         'monthly_balance': monthly_balance,
@@ -241,7 +244,11 @@ def dashboard_view(request):
         'filter_type': filter_type,
         'search_query': search_query,
         'account_balances_json': account_balances_json,
-        'merged_breakdown': merged_breakdown
+        'merged_breakdown': merged_breakdown,
+        'total_income': cumulative_income,
+        'total_expense': cumulative_spend,
+        'total_month_income': total_month_income,
+        'total_month_spend': total_month_spend,
     }
     return render(request, 'dashboard.html', context)
 
