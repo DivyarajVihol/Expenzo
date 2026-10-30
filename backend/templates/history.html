@@ -288,10 +288,22 @@
 
   <!-- Navigation Sub-Pills -->
   <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit mb-6 overflow-x-auto">
-    <a href="{% url 'dashboard' %}" class="px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">Dashboard</a>
-    <a href="{% url 'history' %}" class="px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">Expense History</a>
-    <a href="{% url 'recurring' %}" class="px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">Recurring Finance</a>
-    <a href="{% url 'personal_charts' %}" class="px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">Charts</a>
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">receipt_long</span>
+      <span>Expense History</span>
+    </a>
+    <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
+      <span>Recurring Finance</span>
+    </a>
+    <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">monitoring</span>
+      <span>Charts</span>
+    </a>
   </div>
 
   <!-- Filters Card -->
