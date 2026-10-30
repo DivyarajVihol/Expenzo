@@ -10,7 +10,7 @@
     <title>{% block title %}EXPENZO - Financial Dashboard{% endblock %}</title>
     
     <!-- Custom Style Sheet -->
-    <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=2.5">
+    <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=3.6">
     
     <!-- Obsidian Telemetry Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,6 +63,215 @@
             }
         };
     </script>
+
+    <!-- Immediate Critical CSS for Collapsible Sidebar & Full-Width Dashboard -->
+    <style id="expenzo-collapsible-sidebar-styles">
+        :root {
+            --sidebar-width: 280px;
+        }
+
+        .app-container {
+            display: flex !important;
+            min-height: 100vh !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+            position: relative !important;
+        }
+
+        .main-wrapper {
+            flex: 1 1 0% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            height: 100vh !important;
+            min-width: 0 !important;
+            width: 100% !important;
+            overflow: hidden !important;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #main-content {
+            flex: 1 1 0% !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Desktop & Laptop (>= 768px): In-flow collapsible sidebar */
+        @media (min-width: 768px) {
+            .mobile-header {
+                display: none !important;
+            }
+
+            .desktop-topbar {
+                display: flex !important;
+            }
+
+            .sidebar {
+                position: sticky !important;
+                top: 0 !important;
+                width: var(--sidebar-width) !important;
+                min-width: var(--sidebar-width) !important;
+                max-width: var(--sidebar-width) !important;
+                flex-shrink: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+                transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                            opacity 0.25s ease !important;
+                will-change: margin-left, width, opacity !important;
+                transform: none !important;
+                margin-left: 0 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+            }
+
+            /* COLLAPSED STATE: Sidebar shrinks to 0 and slides completely out of view */
+            .app-container.sidebar-collapsed .sidebar,
+            .sidebar-collapsed .sidebar {
+                margin-left: calc(-1 * var(--sidebar-width)) !important;
+                width: 0 !important;
+                min-width: 0 !important;
+                max-width: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                border-right: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+
+            /* Allow page containers to expand to 100% full width when sidebar is collapsed */
+            .app-container.sidebar-collapsed .history-container,
+            .app-container.sidebar-collapsed .recurring-container,
+            .app-container.sidebar-collapsed .groups-container,
+            .app-container.sidebar-collapsed .max-w-\[1300px\],
+            .app-container.sidebar-collapsed .max-w-\[1000px\] {
+                max-width: 100% !important;
+            }
+
+            .app-container.sidebar-collapsed .collapsed-brand,
+            .sidebar-collapsed .collapsed-brand {
+                display: flex !important;
+            }
+        }
+
+        /* Mobile (< 768px): Drawer overlay sidebar */
+        @media (max-width: 767px) {
+            .desktop-topbar {
+                display: none !important;
+            }
+
+            .mobile-header {
+                display: flex !important;
+            }
+
+            .sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                z-index: 1000 !important;
+                width: 280px !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                transform: translateX(-100%) !important;
+                margin-left: 0 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.7) !important;
+            }
+
+            .sidebar.open {
+                transform: translateX(0) !important;
+            }
+        }
+
+        /* Sidebar Toggle Button styling */
+        .sidebar-toggle-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 38px !important;
+            height: 38px !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 10px !important;
+            color: #e5e2e1 !important;
+            cursor: pointer !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            padding: 0 !important;
+            user-select: none !important;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: rgba(255, 163, 26, 0.15) !important;
+            border-color: rgba(255, 163, 26, 0.5) !important;
+            color: #ffa31a !important;
+            box-shadow: 0 0 16px rgba(255, 163, 26, 0.25) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        .sidebar-toggle-btn:active {
+            transform: scale(0.95) !important;
+        }
+
+        .sidebar-collapse-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 32px !important;
+            height: 32px !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 8px !important;
+            color: #a1a1aa !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            padding: 0 !important;
+        }
+
+        .sidebar-collapse-btn:hover {
+            background: rgba(255, 163, 26, 0.12) !important;
+            border-color: rgba(255, 163, 26, 0.4) !important;
+            color: #ffa31a !important;
+            box-shadow: 0 0 12px rgba(255, 163, 26, 0.2) !important;
+        }
+
+        .collapsed-brand {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            animation: fadeInBrand 0.2s ease-out;
+        }
+
+        @keyframes fadeInBrand {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sidebar,
+            .main-wrapper,
+            .sidebar-toggle-btn,
+            .collapsed-brand {
+                transition: none !important;
+            }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -74,7 +283,7 @@
         <script>
             // Immediately restore desktop sidebar preference before render to prevent layout jump
             try {
-                if (window.innerWidth >= 1024 && localStorage.getItem('expenzo_sidebar_collapsed') === 'true') {
+                if (window.innerWidth >= 768 && localStorage.getItem('expenzo_sidebar_collapsed') === 'true') {
                     document.getElementById('app-container').classList.add('sidebar-collapsed');
                 }
             } catch (e) {}
@@ -82,10 +291,15 @@
         {% if user.is_authenticated %}
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="app-sidebar" aria-label="Main Navigation">
-            <a href="{% url 'dashboard' %}" class="logo-container" aria-label="Go to Dashboard">
-                <i data-lucide="wallet" class="logo-icon"></i>
-                <span class="logo-text">EXPENZO</span>
-            </a>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+                <a href="{% url 'dashboard' %}" class="logo-container" style="margin-bottom: 0;" aria-label="Go to Dashboard">
+                    <i data-lucide="wallet" class="logo-icon"></i>
+                    <span class="logo-text">EXPENZO</span>
+                </a>
+                <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar (Ctrl+\)">
+                    <span class="material-symbols-outlined text-base">menu_open</span>
+                </button>
+            </div>
 
             <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; margin-top: 2rem;">
                 <nav class="nav-menu">
@@ -223,21 +437,23 @@
         document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app-container');
             const toggleBtn = document.getElementById('sidebar-toggle-btn');
+            const collapseBtn = document.getElementById('sidebar-collapse-btn');
             const toggleIcon = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
             const sidebar = document.querySelector('.sidebar');
             const backdrop = document.getElementById('sidebar-backdrop');
             const menuBtn = document.getElementById('mobile-menu-btn');
             const navItems = document.querySelectorAll('.sidebar .nav-item, .sidebar .logo-container, .sidebar .btn-secondary');
 
-            // --- Desktop Sidebar Toggle & State Management ---
+            // --- Sidebar Toggle & State Management ---
             function updateToggleUI(isCollapsed) {
-                if (!toggleBtn) return;
-                toggleBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-                const label = isCollapsed ? 'Expand sidebar (Ctrl+\\)' : 'Collapse sidebar (Ctrl+\\)';
-                toggleBtn.setAttribute('aria-label', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
-                toggleBtn.setAttribute('title', label);
-                if (toggleIcon) {
-                    toggleIcon.textContent = isCollapsed ? 'menu' : 'menu_open';
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+                    const label = isCollapsed ? 'Expand sidebar (Ctrl+\\)' : 'Collapse sidebar (Ctrl+\\)';
+                    toggleBtn.setAttribute('aria-label', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                    toggleBtn.setAttribute('title', label);
+                    if (toggleIcon) {
+                        toggleIcon.textContent = isCollapsed ? 'menu' : 'menu_open';
+                    }
                 }
             }
 
@@ -272,11 +488,15 @@
                 toggleBtn.addEventListener('click', toggleDesktopSidebar);
             }
 
+            if (collapseBtn) {
+                collapseBtn.addEventListener('click', toggleDesktopSidebar);
+            }
+
             // Global Keyboard Shortcut: Ctrl+\ or Cmd+\ to toggle sidebar
             document.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
                     e.preventDefault();
-                    if (window.innerWidth >= 1024) {
+                    if (window.innerWidth >= 768) {
                         toggleDesktopSidebar();
                     } else if (sidebar && menuBtn) {
                         if (sidebar.classList.contains('open')) closeSidebar();
@@ -285,7 +505,7 @@
                 }
             });
 
-            // --- Mobile Drawer Handlers ---
+            // --- Mobile Drawer Handlers (screens < 768px) ---
             if (!sidebar || !menuBtn) return;
 
             function openSidebar() {
@@ -322,7 +542,7 @@
             // Close when clicking a nav item (on mobile)
             navItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    if (window.innerWidth < 1024) closeSidebar();
+                    if (window.innerWidth < 768) closeSidebar();
                 });
             });
         });
