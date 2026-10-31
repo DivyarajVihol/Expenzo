@@ -1,5 +1,7 @@
+
 ---
 deployment:
   tasks:
     - /bin/mkdir -p /home/faesgvfk/expenzo_app/tmp
-    - /usr/bin/touch /home/faesgvfk/expenzo_app/tmp/restart.txt
+    - /usr/bin/rsync -a --exclude='.env' --exclude='db.sqlite3' --exclude='db.sqlite3-*' --exclude='media/' --exclude='logs/' --exclude='staticfiles/' --exclude='tmp/' --exclude='__pycache__/' --exclude='*.pyc' /home/faesgvfk/repositories/Expenzo/backend/ /home/faesgvfk/expenzo_app/
+    - /bin/bash /home/faesgvfk/deploy_expenzo.sh
