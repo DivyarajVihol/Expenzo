@@ -497,10 +497,13 @@ def recurring_view(request):
 
             if amount > 0:
                 if new_type == 'income':
-                    RecurringIncome.objects.create(user=user, name=name, amount=amount, account=account, payment_method=payment_method, execution_day=execution_day)
+                    item = RecurringIncome.objects.create(user=user, name=name, amount=amount, account=account, payment_method=payment_method, execution_day=execution_day)
+                    recalculate_current_month(user, target_item=item)
                 elif new_type == 'expense':
-                    RecurringExpense.objects.create(user=user, name=name, amount=amount, account=account, payment_method=payment_method, execution_day=execution_day)
-            recalculate_current_month(user)
+                    item = RecurringExpense.objects.create(user=user, name=name, amount=amount, account=account, payment_method=payment_method, execution_day=execution_day)
+                    recalculate_current_month(user, target_item=item)
+            else:
+                recalculate_current_month(user)
         elif action == 'recalculate':
             recalculate_current_month(user)
         return redirect('recurring')
@@ -1044,7 +1047,8 @@ def edit_expense_api(request, expense_id):
             
             cache.delete(f"liquidity_hist_{request.user.id}")
             if expense.is_recurring:
-                recalculate_current_month(request.user)
+                target = expense.recurring_income or expense.recurring_expense
+                recalculate_current_month(request.user, target_item=target)
             return JsonResponse({'status': 'success'})
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
@@ -1059,10 +1063,11 @@ def delete_expense_api(request, expense_id):
     if request.method == 'POST' or request.method == 'DELETE':
         expense = get_object_or_404(PersonalExpense, id=expense_id, user=request.user)
         was_recurring = expense.is_recurring
+        target = expense.recurring_income or expense.recurring_expense
         expense.delete()
         cache.delete(f"liquidity_hist_{request.user.id}")
         if was_recurring:
-            recalculate_current_month(request.user)
+            recalculate_current_month(request.user, target_item=target)
         return JsonResponse({'status': 'success'})
     return JsonResponse({'error': 'POST or DELETE required'}, status=405)
 
@@ -1077,8 +1082,26 @@ def delete_recurring_api(request, item_id, item_type):
         else:
             return JsonResponse({'error': 'Invalid type'}, status=400)
             
+        now = django_timezone.now()
+        # Remove current month's generated transaction for this item if any; past months are preserved
+        if item_type == 'income':
+            PersonalExpense.objects.filter(
+                user=request.user,
+                month=now.month,
+                year=now.year,
+                recurring_income=item
+            ).delete()
+        else:
+            PersonalExpense.objects.filter(
+                user=request.user,
+                month=now.month,
+                year=now.year,
+                recurring_expense=item
+            ).delete()
+
         item.delete()
-        recalculate_current_month(request.user)
+        cache.delete(f"rec_done_{request.user.id}_{now.year}_{now.month}_{now.day}")
+        cache.delete(f"liquidity_hist_{request.user.id}")
         return JsonResponse({'status': 'success'})
     return JsonResponse({'error': 'POST or DELETE required'}, status=405)
 
@@ -1116,7 +1139,8 @@ def edit_recurring_api(request, item_id, item_type):
             item.execution_day = execution_day
             item.save()
             
-            recalculate_current_month(request.user)
+            # Recalculate ONLY for this edited item
+            recalculate_current_month(request.user, target_item=item)
             return JsonResponse({'status': 'success'})
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)

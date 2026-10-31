@@ -55,6 +55,20 @@ class PersonalExpense(models.Model):
     month = models.IntegerField(null=True, blank=True)
     year = models.IntegerField(null=True, blank=True)
     is_recurring = models.BooleanField(default=False)
+    recurring_income = models.ForeignKey(
+        'RecurringIncome',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_expenses'
+    )
+    recurring_expense = models.ForeignKey(
+        'RecurringExpense',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_expenses'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -62,6 +76,24 @@ class PersonalExpense(models.Model):
             models.Index(fields=['user', '-date'], name='pe_user_date_idx'),
             models.Index(fields=['user', 'year', 'month'], name='pe_user_yr_mo_idx'),
             models.Index(fields=['user', 'is_recurring', 'year', 'month'], name='pe_user_rec_idx'),
+            models.Index(fields=['recurring_income', 'year', 'month'], name='pe_rec_inc_ym_idx'),
+            models.Index(fields=['recurring_expense', 'year', 'month'], name='pe_rec_exp_ym_idx'),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recurring_income', 'year', 'month'],
+                condition=models.Q(recurring_income__isnull=False),
+                name='uniq_rec_income_per_month'
+            ),
+            models.UniqueConstraint(
+                fields=['recurring_expense', 'year', 'month'],
+                condition=models.Q(recurring_expense__isnull=False),
+                name='uniq_rec_expense_per_month'
+            ),
+            models.CheckConstraint(
+                condition=~(models.Q(recurring_income__isnull=False) & models.Q(recurring_expense__isnull=False)),
+                name='check_single_recurring_source'
+            ),
         ]
 
     def __str__(self):
@@ -112,6 +144,11 @@ class RecurringExpense(models.Model):
         return f"Recurring Expense: {self.name} ({self.amount})"
 
 class MonthlyRecurringProcessing(models.Model):
+    """
+    Retained for backward schema compatibility.
+    Recurring processing is tracked per-item on RecurringIncome/RecurringExpense
+    and guaranteed duplicate-free via PersonalExpense UniqueConstraints.
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recurring_processings')
     month = models.IntegerField()
     year = models.IntegerField()

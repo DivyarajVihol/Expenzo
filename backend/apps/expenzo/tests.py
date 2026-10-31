@@ -402,3 +402,221 @@ class PerformanceAndOptimizationTestCase(TestCase):
         self.assertEqual(debt['toUserId'], self.user.id)
         self.assertEqual(debt['amount'], 100.0)
 
+    def test_two_recurring_items_with_identical_names_generate_separate_transactions(self):
+        """Two recurring items with the exact same name must generate distinct transactions."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance
+        from django.utils import timezone
+        now = timezone.now()
+
+        item1 = RecurringExpense.objects.create(
+            user=self.user,
+            name="Internet",
+            amount=500.0,
+            execution_day=1,
+            is_active=True
+        )
+        item2 = RecurringExpense.objects.create(
+            user=self.user,
+            name="Internet",
+            amount=1000.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        process_recurring_finance(self.user)
+
+        # Both items must have generated separate transactions
+        exp1 = PersonalExpense.objects.filter(recurring_expense=item1, year=now.year, month=now.month)
+        exp2 = PersonalExpense.objects.filter(recurring_expense=item2, year=now.year, month=now.month)
+        self.assertEqual(exp1.count(), 1)
+        self.assertEqual(exp2.count(), 1)
+        self.assertEqual(exp1.first().amount, 500.0)
+        self.assertEqual(exp2.first().amount, 1000.0)
+
+    def test_inactive_recurring_items_preserved_during_recalculation(self):
+        """Inactive recurring items must not have their already-executed transactions deleted on recalculate."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance, recalculate_current_month
+        from django.utils import timezone
+        now = timezone.now()
+
+        active_item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Active Subscription",
+            amount=300.0,
+            execution_day=1,
+            is_active=True
+        )
+        inactive_item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Canceled Gym",
+            amount=1500.0,
+            execution_day=1,
+            is_active=True  # active when created and run
+        )
+
+        process_recurring_finance(self.user)
+
+        # Deactivate the gym
+        inactive_item.is_active = False
+        inactive_item.save(update_fields=['is_active'])
+
+        # Run global recalculation
+        recalculate_current_month(self.user)
+
+        # Inactive item transaction must still be preserved!
+        self.assertTrue(PersonalExpense.objects.filter(recurring_expense=inactive_item, month=now.month, year=now.year).exists())
+        # Active item must also exist
+        self.assertTrue(PersonalExpense.objects.filter(recurring_expense=active_item, month=now.month, year=now.year).exists())
+
+    def test_editing_recurring_item_targets_only_its_transactions(self):
+        """Editing one recurring item must only update that item's transaction, leaving others untouched."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance, recalculate_current_month
+        from django.utils import timezone
+        now = timezone.now()
+
+        item_a = RecurringExpense.objects.create(
+            user=self.user,
+            name="Netflix",
+            amount=499.0,
+            execution_day=1,
+            is_active=True
+        )
+        item_b = RecurringExpense.objects.create(
+            user=self.user,
+            name="Spotify",
+            amount=119.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        process_recurring_finance(self.user)
+        spotify_tx = PersonalExpense.objects.get(recurring_expense=item_b, month=now.month, year=now.year)
+        spotify_tx_id = spotify_tx.id
+
+        # Edit item A (Netflix price increase)
+        item_a.amount = 649.0
+        item_a.save()
+        recalculate_current_month(self.user, target_item=item_a)
+
+        # Netflix transaction must be updated to 649
+        netflix_tx = PersonalExpense.objects.get(recurring_expense=item_a, month=now.month, year=now.year)
+        self.assertEqual(netflix_tx.amount, 649.0)
+
+        # Spotify transaction must remain completely untouched (same ID and amount)
+        self.assertTrue(PersonalExpense.objects.filter(id=spotify_tx_id, amount=119.0).exists())
+
+    def test_deleting_recurring_item_preserves_historical_records_with_set_null(self):
+        """Deleting a recurring item must preserve historical transactions and set foreign key to NULL."""
+        from .models import RecurringExpense, PersonalExpense
+        from django.utils import timezone
+        now = timezone.now()
+
+        item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Legacy Utility",
+            amount=800.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        # Create past month transaction
+        past_tx = PersonalExpense.objects.create(
+            user=self.user,
+            amount=800.0,
+            category="Others",
+            payment_method="UPI",
+            account="Bank Account",
+            description="Fixed Expense: Legacy Utility",
+            date=now - timezone.timedelta(days=60),
+            month=1,
+            year=now.year - 1 if now.month <= 2 else now.year,
+            is_recurring=True,
+            recurring_expense=item
+        )
+
+        # Delete the recurring item rule
+        item_id = item.id
+        item.delete()
+
+        # The historical transaction must NOT be deleted; foreign key becomes NULL
+        past_tx.refresh_from_db()
+        self.assertIsNone(past_tx.recurring_expense)
+        self.assertEqual(past_tx.amount, 800.0)
+        self.assertTrue(past_tx.is_recurring)
+
+    def test_database_unique_constraint_prevents_simultaneous_worker_duplicate(self):
+        """Database UniqueConstraint prevents duplicate monthly transactions for same recurring item."""
+        from .models import RecurringExpense, PersonalExpense
+        from django.db import IntegrityError
+        from django.utils import timezone
+        now = timezone.now()
+
+        item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Hosting",
+            amount=1200.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        # First insert succeeds
+        PersonalExpense.objects.create(
+            user=self.user,
+            amount=1200.0,
+            category="Others",
+            payment_method="UPI",
+            account="Bank Account",
+            description="Fixed Expense: Hosting",
+            date=now,
+            month=now.month,
+            year=now.year,
+            is_recurring=True,
+            recurring_expense=item
+        )
+
+        # Second insert for same item, year, month MUST raise IntegrityError at database level
+        with self.assertRaises(IntegrityError):
+            PersonalExpense.objects.create(
+                user=self.user,
+                amount=1200.0,
+                category="Others",
+                payment_method="UPI",
+                account="Bank Account",
+                description="Fixed Expense: Hosting Duplicate",
+                date=now,
+                month=now.month,
+                year=now.year,
+                is_recurring=True,
+                recurring_expense=item
+            )
+
+    def test_check_constraint_prevents_dual_recurring_source(self):
+        """Database CheckConstraint prevents an expense from being linked to both income and expense."""
+        from .models import RecurringIncome, RecurringExpense, PersonalExpense
+        from django.db import IntegrityError
+        from django.utils import timezone
+        now = timezone.now()
+
+        inc = RecurringIncome.objects.create(user=self.user, name="Inc", amount=1000.0)
+        exp = RecurringExpense.objects.create(user=self.user, name="Exp", amount=500.0)
+
+        with self.assertRaises(IntegrityError):
+            PersonalExpense.objects.create(
+                user=self.user,
+                amount=500.0,
+                category="Others",
+                payment_method="UPI",
+                account="Bank Account",
+                description="Invalid dual source",
+                date=now,
+                month=now.month,
+                year=now.year,
+                is_recurring=True,
+                recurring_income=inc,
+                recurring_expense=exp
+            )
+
+
