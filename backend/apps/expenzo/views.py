@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.utils import timezone as django_timezone
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count, Case, When, Value, FloatField
 from datetime import datetime, timedelta
 import json
 import logging
@@ -59,47 +59,52 @@ def dashboard_view(request):
     selected_year = now.year
     selected_month_num = now.month
     
+    # Accurate month date boundaries
+    start_of_month = django_timezone.make_aware(datetime(selected_year, selected_month_num, 1, 0, 0, 0))
+    if selected_month_num == 12:
+        start_of_next_month = django_timezone.make_aware(datetime(selected_year + 1, 1, 1, 0, 0, 0))
+    else:
+        start_of_next_month = django_timezone.make_aware(datetime(selected_year, selected_month_num + 1, 1, 0, 0, 0))
+    
     # Get filters
     filter_type = strip_tags(request.GET.get('filter', 'all'))
     search_query = strip_tags(request.GET.get('search', '').strip())[:100]
     
-    # Fetch all personal expenses
-    expenses = PersonalExpense.objects.filter(user=user).order_by('-date')
+    # Recent transactions query with index usage and only required fields
+    expenses = PersonalExpense.objects.filter(user=user)
     
-    # Apply search filter
     if search_query:
         expenses = expenses.filter(Q(description__icontains=search_query) | Q(category__icontains=search_query))
         
-    # Apply date filter for recent transactions
-    filtered_expenses = expenses
-    
     if filter_type == 'daily':
         filtered_expenses = expenses.filter(date__date=now.date())
     elif filter_type == 'weekly':
         seven_days_ago = now.date() - timedelta(days=7)
         filtered_expenses = expenses.filter(date__date__gte=seven_days_ago, date__date__lte=now.date())
     elif filter_type == 'monthly':
-        filtered_expenses = expenses.filter(date__year=now.year, date__month=now.month)
-        
-    recent_transactions = filtered_expenses[:20]
-    
-    # Compute active month stats
-    monthly_expenses = PersonalExpense.objects.filter(user=user, date__year=selected_year, date__month=selected_month_num)
-    
-    # Cumulative balance calculation (carrying over balances from previous months)
-    # Get last day of selected month
-    if selected_month_num == 12:
-        end_of_selected_month = django_timezone.make_aware(datetime(selected_year + 1, 1, 1, 23, 59, 59)) - timedelta(seconds=1)
+        filtered_expenses = expenses.filter(date__gte=start_of_month, date__lt=start_of_next_month)
     else:
-        end_of_selected_month = django_timezone.make_aware(datetime(selected_year, selected_month_num + 1, 1, 23, 59, 59)) - timedelta(seconds=1)
+        filtered_expenses = expenses
         
-    all_past_and_current_expenses = PersonalExpense.objects.filter(user=user, date__lte=end_of_selected_month)
+    recent_transactions = filtered_expenses.order_by('-date')[:20]
     
-    cumulative_income = sum(exp.amount for exp in all_past_and_current_expenses if exp.category == "Income")
-    cumulative_spend = sum(exp.amount for exp in all_past_and_current_expenses if exp.category != "Income")
+    # Cumulative balance calculation using DB-level aggregation (no in-memory Python looping)
+    past_aggregates = PersonalExpense.objects.filter(
+        user=user,
+        date__lt=start_of_next_month
+    ).aggregate(
+        cumulative_income=Sum(
+            Case(When(category="Income", then="amount"), default=Value(0.0), output_field=FloatField())
+        ),
+        cumulative_spend=Sum(
+            Case(When(~Q(category="Income"), then="amount"), default=Value(0.0), output_field=FloatField())
+        )
+    )
+    cumulative_income = float(past_aggregates['cumulative_income'] or 0.0)
+    cumulative_spend = float(past_aggregates['cumulative_spend'] or 0.0)
     monthly_balance = cumulative_income - cumulative_spend
     
-    # Account & Payment Method Stats
+    # Account & Payment Method Stats via DB aggregation
     SUPPORTED_ACCOUNTS = ['Cash', 'Bank Account', 'Credit Card']
     SUPPORTED_METHODS = ['Cash', 'UPI', 'Debit Card', 'Credit Card', 'Bank Transfer']
     
@@ -109,96 +114,112 @@ def dashboard_view(request):
     pm_stats = {method: {'income': 0.0, 'expense': 0.0, 'count': 0} for method in SUPPORTED_METHODS}
     pm_stats['Others'] = {'income': 0.0, 'expense': 0.0, 'count': 0}
     
-    for exp in all_past_and_current_expenses:
-        # Account logic
-        acc = exp.account
+    # Fast account aggregation
+    account_qs = PersonalExpense.objects.filter(
+        user=user,
+        date__lt=start_of_next_month
+    ).values('account').annotate(
+        income=Sum(Case(When(category='Income', then='amount'), default=Value(0.0), output_field=FloatField())),
+        expense=Sum(Case(When(~Q(category='Income'), then='amount'), default=Value(0.0), output_field=FloatField()))
+    )
+    
+    for row in account_qs:
+        acc = row['account']
         if acc not in SUPPORTED_ACCOUNTS:
             acc = 'Others'
-            
-        if exp.category == 'Income':
-            account_stats[acc]['income'] += exp.amount
-            account_stats[acc]['balance'] += exp.amount
-        else:
-            account_stats[acc]['expense'] += exp.amount
-            account_stats[acc]['balance'] -= exp.amount
-            
-    for exp in monthly_expenses:
-        # PM logic
-        pm = exp.payment_method
-        if pm == 'Net Banking' or pm == 'Bank Account':
+        inc = float(row['income'] or 0.0)
+        exp = float(row['expense'] or 0.0)
+        account_stats[acc]['income'] += inc
+        account_stats[acc]['expense'] += exp
+        account_stats[acc]['balance'] += (inc - exp)
+        
+    # Fast payment method aggregation for the selected month
+    pm_qs = PersonalExpense.objects.filter(
+        user=user,
+        date__gte=start_of_month,
+        date__lt=start_of_next_month
+    ).values('payment_method').annotate(
+        income=Sum(Case(When(category='Income', then='amount'), default=Value(0.0), output_field=FloatField())),
+        expense=Sum(Case(When(~Q(category='Income'), then='amount'), default=Value(0.0), output_field=FloatField())),
+        count=Count(Case(When(~Q(category='Income'), then=1)))
+    )
+    
+    for row in pm_qs:
+        pm = row['payment_method']
+        if pm in ('Net Banking', 'Bank Account'):
             pm = 'Bank Transfer'
         if pm not in SUPPORTED_METHODS:
             pm = 'Others'
-            
-        if exp.category == 'Income':
-            pm_stats[pm]['income'] += exp.amount
-        else:
-            pm_stats[pm]['expense'] += exp.amount
-            pm_stats[pm]['count'] += 1
-            
+        pm_stats[pm]['income'] += float(row['income'] or 0.0)
+        pm_stats[pm]['expense'] += float(row['expense'] or 0.0)
+        pm_stats[pm]['count'] += int(row['count'] or 0)
+        
     if account_stats['Others']['income'] == 0 and account_stats['Others']['expense'] == 0:
         del account_stats['Others']
     if pm_stats['Others']['income'] == 0 and pm_stats['Others']['expense'] == 0:
         del pm_stats['Others']
         
-    account_breakdown = []
-    for name, data in account_stats.items():
-        account_breakdown.append({
+    account_breakdown = [
+        {
             'name': name,
             'income': data['income'],
             'expense': data['expense'],
             'balance': data['balance']
-        })
-        
-    payment_method_breakdown = []
-    for name, data in pm_stats.items():
-        payment_method_breakdown.append({
+        }
+        for name, data in account_stats.items()
+    ]
+    
+    payment_method_breakdown = [
+        {
             'name': name,
             'income': data['income'],
             'expense': data['expense'],
             'count': data['count']
-        })
-        
-        # Charts are rendered via lightweight frontend HTML/CSS in dashboard.html;
-        # bypass heavy matplotlib rasterization on every dashboard request
-        pm_chart_base64 = None
+        }
+        for name, data in pm_stats.items()
+    ]
     
-    # Calculate Pie Chart category breakdown
-    category_sums = {}
-    current_month_spends = monthly_expenses.exclude(category="Income")
-    total_spend = sum(exp.amount for exp in current_month_spends)
+    pm_chart_base64 = None
     
-    for exp in current_month_spends:
-        category_sums[exp.category] = category_sums.get(exp.category, 0) + exp.amount
-        
+    # Month aggregates and category breakdown via DB aggregation
+    month_aggs = PersonalExpense.objects.filter(
+        user=user,
+        date__gte=start_of_month,
+        date__lt=start_of_next_month
+    ).aggregate(
+        total_month_income=Sum(Case(When(category="Income", then="amount"), default=Value(0.0), output_field=FloatField())),
+        total_month_spend=Sum(Case(When(~Q(category="Income"), then="amount"), default=Value(0.0), output_field=FloatField()))
+    )
+    total_month_income = float(month_aggs['total_month_income'] or 0.0)
+    total_month_spend = float(month_aggs['total_month_spend'] or 0.0)
+    
+    category_qs = PersonalExpense.objects.filter(
+        user=user,
+        date__gte=start_of_month,
+        date__lt=start_of_next_month
+    ).exclude(category="Income").values('category').annotate(
+        total=Sum('amount')
+    ).order_by('-total')
+    
     category_breakdown = []
-    pie_categories = []
-    pie_values = []
-    
-    # Premium color matching
     COLORS = ["#818cf8", "#34d399", "#fb7185", "#fbbf24", "#a78bfa", "#22d3ee", "#f472b6", "#a7f3d0", "#c084fc", "#94a3b8"]
     
-    for idx, (name, value) in enumerate(category_sums.items()):
-        percentage = round((value / total_spend) * 100) if total_spend > 0 else 0
+    for idx, row in enumerate(category_qs):
+        val = float(row['total'] or 0.0)
+        percentage = round((val / total_month_spend) * 100) if total_month_spend > 0 else 0
         category_breakdown.append({
-            'name': name,
-            'value': value,
+            'name': row['category'],
+            'value': val,
             'percentage': percentage,
             'color': COLORS[idx % len(COLORS)]
         })
-        pie_categories.append(name)
-        pie_values.append(value)
         
-    # Pie chart base64 not needed on dashboard (rendered using Tailwind CSS bars)
     pie_chart_base64 = None
-    
     active_month_label = now.strftime("%B %Y")
     
-    import json
     account_balances_dict = {acc['name']: acc['balance'] for acc in account_breakdown}
     account_balances_json = json.dumps(account_balances_dict)
     
-    # Construct unified/merged breakdown list of accounts and payment methods
     acc_map = {acc['name']: acc for acc in account_breakdown}
     pm_map = {pm['name']: pm for pm in payment_method_breakdown}
     
@@ -231,9 +252,6 @@ def dashboard_view(request):
             item['count'] = pm_data['count']
             
         merged_breakdown.append(item)
-        
-    total_month_income = sum(exp.amount for exp in monthly_expenses if exp.category == "Income")
-    total_month_spend = total_spend
     
     context = {
         'recent_transactions': recent_transactions,
@@ -297,49 +315,57 @@ def charts_view(request):
             'label': selected_label
         })
     
-    # Compute active month stats
-    monthly_expenses = PersonalExpense.objects.filter(user=user, date__year=selected_year, date__month=selected_month_num)
-    
-    # Calculate Pie Chart category breakdown
-    category_sums = {}
-    current_month_spends = monthly_expenses.exclude(category="Income")
-    total_spend = sum(exp.amount for exp in current_month_spends)
-    
-    for exp in current_month_spends:
-        category_sums[exp.category] = category_sums.get(exp.category, 0) + exp.amount
-        
+    # Compute active month stats with exact date boundaries
+    start_of_month = django_timezone.make_aware(datetime(selected_year, selected_month_num, 1, 0, 0, 0))
+    if selected_month_num == 12:
+        start_of_next_month = django_timezone.make_aware(datetime(selected_year + 1, 1, 1, 0, 0, 0))
+    else:
+        start_of_next_month = django_timezone.make_aware(datetime(selected_year, selected_month_num + 1, 1, 0, 0, 0))
+
+    category_qs = PersonalExpense.objects.filter(
+        user=user,
+        date__gte=start_of_month,
+        date__lt=start_of_next_month
+    ).exclude(category="Income").values('category').annotate(
+        total=Sum('amount')
+    ).order_by('-total')
+
+    total_spend = sum(float(r['total'] or 0.0) for r in category_qs)
+
     category_breakdown = []
     pie_categories = []
     pie_values = []
-    
-    # Premium color matching
     COLORS = ["#818cf8", "#34d399", "#fb7185", "#fbbf24", "#a78bfa", "#22d3ee", "#f472b6", "#a7f3d0", "#c084fc", "#94a3b8"]
-    
-    for idx, (name, value) in enumerate(category_sums.items()):
-        percentage = round((value / total_spend) * 100) if total_spend > 0 else 0
+
+    for idx, r in enumerate(category_qs):
+        cat_name = r['category']
+        val = float(r['total'] or 0.0)
+        percentage = round((val / total_spend) * 100) if total_spend > 0 else 0
         category_breakdown.append({
-            'name': name,
-            'value': value,
+            'name': cat_name,
+            'value': val,
             'percentage': percentage,
             'color': COLORS[idx % len(COLORS)]
         })
-        pie_categories.append(name)
-        pie_values.append(value)
-        
-    # Generate charts
+        pie_categories.append(cat_name)
+        pie_values.append(val)
+
+    # Generate charts (cached automatically in generate_spending_pie_chart)
     pie_chart_base64 = generate_spending_pie_chart(pie_categories, pie_values)
-    
-    import json
-    all_expenses_data = []
-    for exp in PersonalExpense.objects.filter(user=user).order_by('date'):
-        all_expenses_data.append({
-            'date': exp.date.strftime('%Y-%m-%d') if exp.date else '',
-            'amount': float(exp.amount),
-            'category': exp.category,
-            'description': exp.description or ''
-        })
+
+    all_expenses_data = list(
+        PersonalExpense.objects.filter(user=user)
+        .order_by('date')
+        .values('date', 'amount', 'category', 'description')
+    )
+    for exp in all_expenses_data:
+        d = exp['date']
+        exp['date'] = d.strftime('%Y-%m-%d') if d else ''
+        exp['amount'] = float(exp['amount'])
+        if not exp['description']:
+            exp['description'] = ''
     all_expenses_json = json.dumps(all_expenses_data)
-    
+
     context = {
         'category_breakdown': category_breakdown,
         'pie_chart': pie_chart_base64,
@@ -361,7 +387,9 @@ def history_view(request):
     account_filter = strip_tags(request.GET.get('account', 'All').strip())[:50]
     payment_filter = strip_tags(request.GET.get('paymentMethod', 'All').strip())[:50]
     
-    expenses = PersonalExpense.objects.filter(user=user).order_by('-date')
+    expenses = PersonalExpense.objects.filter(user=user).only(
+        'id', 'amount', 'category', 'payment_method', 'account', 'description', 'date', 'is_recurring'
+    ).order_by('-date')
     
     if search_query:
         expenses = expenses.filter(Q(description__icontains=search_query) | Q(category__icontains=search_query))
@@ -404,14 +432,16 @@ def history_view(request):
         year, month = map(int, key.split('-'))
         label = datetime(year, month, 1).strftime("%B %Y")
         
-        total_spend = sum(e.amount for e in exps if e.category != "Income")
-        total_income = sum(e.amount for e in exps if e.category == "Income")
-        
-        # Calculate category breakdown
+        total_spend = 0.0
+        total_income = 0.0
         category_sums = {}
         for e in exps:
-            if e.category != "Income":
-                category_sums[e.category] = category_sums.get(e.category, 0) + e.amount
+            amt = e.amount
+            if e.category == "Income":
+                total_income += amt
+            else:
+                total_spend += amt
+                category_sums[e.category] = category_sums.get(e.category, 0.0) + amt
                 
         breakdown = []
         for cat_name, cat_val in category_sums.items():
@@ -503,15 +533,31 @@ def groups_view(request):
         GroupMember.objects.create(group=group, user=user, role='ADMIN')
         return redirect('group_detail', group_id=group.id)
         
-    memberships = GroupMember.objects.filter(user=user).select_related('group')
-    groups = [m.group for m in memberships]
+    group_ids = list(GroupMember.objects.filter(user=user).values_list('group_id', flat=True))
     
-    total_group_expenses = 0.0
-    for g in groups:
-        g.member_count = GroupMember.objects.filter(group=g).count()
-        exp_sum = GroupExpense.objects.filter(group=g).aggregate(Sum('amount'))['amount__sum'] or 0.0
-        g.total_expenses = exp_sum
-        total_group_expenses += exp_sum
+    if not group_ids:
+        groups = []
+        total_group_expenses = 0.0
+    else:
+        member_counts = dict(
+            GroupMember.objects.filter(group_id__in=group_ids)
+            .values('group_id')
+            .annotate(cnt=Count('id'))
+            .values_list('group_id', 'cnt')
+        )
+        expense_sums = dict(
+            GroupExpense.objects.filter(group_id__in=group_ids)
+            .values('group_id')
+            .annotate(total=Sum('amount'))
+            .values_list('group_id', 'total')
+        )
+        groups = list(Group.objects.filter(id__in=group_ids).select_related('created_by'))
+        total_group_expenses = 0.0
+        for g in groups:
+            g.member_count = member_counts.get(g.id, 0)
+            exp_sum = float(expense_sums.get(g.id) or 0.0)
+            g.total_expenses = exp_sum
+            total_group_expenses += exp_sum
     
     context = {
         'groups': groups,
@@ -548,6 +594,14 @@ def group_detail_view(request, group_id):
         
     memberships = GroupMember.objects.filter(group=group).select_related('user', 'user__profile')
     members = [m.user for m in memberships]
+    member_ids = [m.user.id for m in memberships]
+    user_map = {m.user.id: m.user for m in memberships}
+    
+    # Pre-fetch all active UPIs for members in a single fast query
+    active_upis = dict(
+        MemberUpiId.objects.filter(user_id__in=member_ids, is_active=True)
+        .values_list('user_id', 'upi_id')
+    )
     
     expenses = GroupExpense.objects.filter(group=group).select_related('paid_by').prefetch_related('payments__user', 'splits__user').order_by('-date')
     settlements = Settlement.objects.filter(group=group).select_related('from_user', 'to_user').order_by('-date')
@@ -556,8 +610,8 @@ def group_detail_view(request, group_id):
     net_balances = {m.id: 0.0 for m in members}
     
     for exp in expenses:
-        payments = exp.payments.all()
-        if payments.exists():
+        payments = list(exp.payments.all())
+        if payments:
             for pmt in payments:
                 if pmt.user_id in net_balances:
                     net_balances[pmt.user_id] += pmt.amount
@@ -566,7 +620,7 @@ def group_detail_view(request, group_id):
             if exp.paid_by_id in net_balances:
                 net_balances[exp.paid_by_id] += exp.amount
                 
-        for split in exp.splits.all():
+        for split in list(exp.splits.all()):
             if split.user_id in net_balances:
                 net_balances[split.user_id] -= split.amount
                 
@@ -610,10 +664,7 @@ def group_detail_view(request, group_id):
         credit_amount = creditor['net']
         
         settled_amount = min(debt_amount, credit_amount)
-        
-        creditor_user = User.objects.filter(id=creditor['userId']).first()
-        creditor_active_upi = MemberUpiId.objects.filter(user=creditor_user, is_active=True).first()
-        creditor_upi_str = creditor_active_upi.upi_id if creditor_active_upi else ""
+        creditor_upi_str = active_upis.get(creditor['userId'], "")
 
         simplified_debts.append({
             'fromUserId': debtor['userId'],
@@ -636,8 +687,8 @@ def group_detail_view(request, group_id):
     total_spend = sum(exp.amount for exp in expenses)
     contributions = {m.id: 0.0 for m in members}
     for exp in expenses:
-        payments = exp.payments.all()
-        if payments.exists():
+        payments = list(exp.payments.all())
+        if payments:
             for pmt in payments:
                 if pmt.user_id in contributions:
                     contributions[pmt.user_id] += pmt.amount
@@ -648,7 +699,7 @@ def group_detail_view(request, group_id):
     sorted_contribs = sorted(contributions.items(), key=lambda x: x[1], reverse=True)
     highest_contrib_name = "N/A"
     if sorted_contribs and sorted_contribs[0][1] > 0:
-        contrib_user = get_object_or_none(User, id=sorted_contribs[0][0])
+        contrib_user = user_map.get(sorted_contribs[0][0])
         if contrib_user:
             highest_contrib_name = f"{contrib_user.first_name if contrib_user.first_name else contrib_user.username} (₹{round(sorted_contribs[0][1], 2)})"
             
@@ -690,7 +741,7 @@ def group_detail_view(request, group_id):
         pie_categories.append(name)
         pie_values.append(val)
         
-    # Generate Analytics Charts using Matplotlib/Seaborn
+    # Generate Analytics Charts using Matplotlib/Seaborn (cached automatically)
     category_pie_chart = generate_spending_pie_chart(pie_categories, pie_values)
     
     standing_names = [b['name'] for b in balances_list]
@@ -708,8 +759,7 @@ def group_detail_view(request, group_id):
         profile_pic = None
         if hasattr(m.user, 'profile'):
             profile_pic = m.user.profile.avatar_base64 or m.user.profile.avatar
-        active_upi = MemberUpiId.objects.filter(user=m.user, is_active=True).first()
-        active_upi_str = active_upi.upi_id if active_upi else ""
+        active_upi_str = active_upis.get(m.user.id, "")
 
         extended_members.append({
             'id': m.user.id,
@@ -943,6 +993,7 @@ def add_expense_api(request):
                 month=txn_date.month,
                 year=txn_date.year
             )
+            cache.delete(f"liquidity_hist_{request.user.id}")
             return JsonResponse({'id': expense.id, 'status': 'success'}, status=201)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
@@ -991,7 +1042,9 @@ def edit_expense_api(request, expense_id):
             expense.year = txn_date.year
             expense.save()
             
-            recalculate_current_month(request.user)
+            cache.delete(f"liquidity_hist_{request.user.id}")
+            if expense.is_recurring:
+                recalculate_current_month(request.user)
             return JsonResponse({'status': 'success'})
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
@@ -1005,7 +1058,11 @@ def edit_expense_api(request, expense_id):
 def delete_expense_api(request, expense_id):
     if request.method == 'POST' or request.method == 'DELETE':
         expense = get_object_or_404(PersonalExpense, id=expense_id, user=request.user)
+        was_recurring = expense.is_recurring
         expense.delete()
+        cache.delete(f"liquidity_hist_{request.user.id}")
+        if was_recurring:
+            recalculate_current_month(request.user)
         return JsonResponse({'status': 'success'})
     return JsonResponse({'error': 'POST or DELETE required'}, status=405)
 
@@ -1641,13 +1698,14 @@ def get_user_group_balance(group, user_id):
     net = 0.0
     
     for exp in expenses:
-        for pmt in exp.payments.all():
+        pmts = list(exp.payments.all())
+        for pmt in pmts:
             if pmt.user_id == user_id:
                 net += pmt.amount
-        if not exp.payments.exists() and exp.paid_by_id == user_id:
+        if not pmts and exp.paid_by_id == user_id:
             net += exp.amount
             
-        for split in exp.splits.all():
+        for split in list(exp.splits.all()):
             if split.user_id == user_id:
                 net -= split.amount
                 
@@ -2621,19 +2679,19 @@ def spending_streaks_view(request):
     # Process recurring items dynamically
     process_recurring_finance(user)
     
-    # Fetch all personal expenses
-    expenses = PersonalExpense.objects.filter(user=user).order_by('-date')
-    
-    # Serialize expenses for streak calculations
-    expense_history_data = [
-        {
-            'date': exp.date.strftime('%Y-%m-%d'),
-            'amount': exp.amount,
-            'category': exp.category,
-            'description': exp.description
-        }
-        for exp in expenses
-    ]
+    # Fetch values only to avoid instantiating heavy model objects
+    expense_history_data = list(
+        PersonalExpense.objects.filter(user=user)
+        .order_by('-date')
+        .values('date', 'amount', 'category', 'description')
+    )
+    for exp in expense_history_data:
+        d = exp['date']
+        exp['date'] = d.strftime('%Y-%m-%d') if d else ''
+        exp['amount'] = float(exp['amount'])
+        if not exp['description']:
+            exp['description'] = ''
+            
     expense_history_json = json.dumps(expense_history_data)
     
     context = {
@@ -2646,12 +2704,10 @@ def spending_streaks_view(request):
 
 def get_user_liquidity_history(user):
     """
-    Computes 12-month liquidity history ending at current month.
+    Computes 12-month liquidity history ending at current month using database-level aggregations and caching.
     Each point contains: { month, short_month, year, month_num, closingBalance, outflow }
     """
-    from django.utils import timezone
-    from datetime import datetime
-    now = timezone.now()
+    now = django_timezone.now()
     
     months = []
     for i in range(11, -1, -1):
@@ -2670,37 +2726,53 @@ def get_user_liquidity_history(user):
             'outflow': 0.0
         } for (y, m) in months]
 
+    cache_key = f"liquidity_hist_{user.id}"
+    cached_history = cache.get(cache_key)
+    if cached_history is not None:
+        return cached_history
+
     first_y, first_m = months[0]
-    first_month_start = timezone.make_aware(datetime(first_y, first_m, 1, 0, 0, 0))
+    first_month_start = django_timezone.make_aware(datetime(first_y, first_m, 1, 0, 0, 0))
 
-    prior_expenses = PersonalExpense.objects.filter(user=user, date__lt=first_month_start)
-    running_balance = sum(e.amount if e.category == 'Income' else -e.amount for e in prior_expenses)
+    # Fast DB-level aggregation for prior balance
+    prior_agg = PersonalExpense.objects.filter(
+        user=user,
+        date__lt=first_month_start
+    ).aggregate(
+        income=Sum(Case(When(category='Income', then='amount'), default=Value(0.0), output_field=FloatField())),
+        expense=Sum(Case(When(~Q(category='Income'), then='amount'), default=Value(0.0), output_field=FloatField()))
+    )
+    running_balance = float((prior_agg['income'] or 0.0) - (prior_agg['expense'] or 0.0))
 
-    period_expenses = PersonalExpense.objects.filter(user=user, date__gte=first_month_start).order_by('date')
-    expenses_by_month = {}
-    for exp in period_expenses:
-        key = (exp.date.year, exp.date.month)
-        expenses_by_month.setdefault(key, []).append(exp)
+    # Fast DB-level aggregation for the 12-month period grouped by year and month
+    period_totals = PersonalExpense.objects.filter(
+        user=user,
+        date__gte=first_month_start
+    ).values('year', 'month').annotate(
+        income=Sum(Case(When(category='Income', then='amount'), default=Value(0.0), output_field=FloatField())),
+        outflow=Sum(Case(When(~Q(category='Income'), then='amount'), default=Value(0.0), output_field=FloatField()))
+    )
+
+    totals_by_month = {
+        (row['year'], row['month']): (float(row['income'] or 0.0), float(row['outflow'] or 0.0))
+        for row in period_totals
+    }
 
     history = []
     for (y, m) in months:
         dt = datetime(y, m, 1)
-        m_expenses = expenses_by_month.get((y, m), [])
-        monthly_outflow = 0.0
-        for exp in m_expenses:
-            if exp.category == 'Income':
-                running_balance += exp.amount
-            else:
-                running_balance -= exp.amount
-                monthly_outflow += exp.amount
+        m_income, m_outflow = totals_by_month.get((y, m), (0.0, 0.0))
+        running_balance += (m_income - m_outflow)
         history.append({
             'month': dt.strftime('%B %Y'),
             'short_month': dt.strftime('%b'),
             'year': y,
             'month_num': m,
             'closingBalance': round(running_balance, 2),
-            'outflow': round(monthly_outflow, 2)
+            'outflow': round(m_outflow, 2)
         })
+
+    cache.set(cache_key, history, timeout=300)
     return history
 
 

@@ -137,8 +137,27 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+            "OPTIONS": {
+                "timeout": 20,
+            },
         }
     }
+
+# ==================================================
+# CACHES
+# ==================================================
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "expenzo_cache",
+        "TIMEOUT": 300,
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+            "CULL_FREQUENCY": 3,
+        },
+    }
+}
 
 # ==================================================
 # PASSWORD VALIDATION

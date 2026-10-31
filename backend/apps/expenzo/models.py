@@ -57,6 +57,13 @@ class PersonalExpense(models.Model):
     is_recurring = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-date'], name='pe_user_date_idx'),
+            models.Index(fields=['user', 'year', 'month'], name='pe_user_yr_mo_idx'),
+            models.Index(fields=['user', 'is_recurring', 'year', 'month'], name='pe_user_rec_idx'),
+        ]
+
     def __str__(self):
         return f"{self.category}: {self.description} ({self.amount})"
 
@@ -73,6 +80,12 @@ class RecurringIncome(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'is_active'], name='ri_user_active_idx'),
+            models.Index(fields=['user', 'last_processed_year', 'last_processed_month'], name='ri_user_proc_idx'),
+        ]
+
     def __str__(self):
         return f"Recurring Income: {self.name} ({self.amount})"
 
@@ -88,6 +101,12 @@ class RecurringExpense(models.Model):
     last_processed_year = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'is_active'], name='re_user_active_idx'),
+            models.Index(fields=['user', 'last_processed_year', 'last_processed_month'], name='re_user_proc_idx'),
+        ]
 
     def __str__(self):
         return f"Recurring Expense: {self.name} ({self.amount})"
@@ -140,6 +159,11 @@ class GroupExpense(models.Model):
     date = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['group', '-date'], name='ge_grp_date_idx'),
+        ]
+
     def __str__(self):
         return f"{self.description} ({self.amount}) in {self.group.name}"
 
@@ -169,6 +193,11 @@ class Settlement(models.Model):
     is_settled = models.BooleanField(default=False)
     date = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['group', '-date'], name='setl_grp_date_idx'),
+        ]
+
     def __str__(self):
         return f"Settlement {self.from_user.username} -> {self.to_user.username} ({self.amount})"
 
@@ -181,6 +210,9 @@ class MemberUpiId(models.Model):
 
     class Meta:
         ordering = ['-is_active', '-created_at']
+        indexes = [
+            models.Index(fields=['user', 'is_active'], name='upi_user_active_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username}: {self.upi_id} ({self.nickname or 'No Nickname'})"

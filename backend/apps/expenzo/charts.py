@@ -1,10 +1,24 @@
+import base64
+import hashlib
+import io
+import json
+import logging
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import seaborn as sns
-import io
-import base64
+from django.core.cache import cache
 
+logger = logging.getLogger(__name__)
+
+
+def _chart_cache_key(prefix, payload):
+    """Generate a stable MD5 cache key from chart input payload."""
+    try:
+        raw = json.dumps(payload, sort_keys=True, default=str)
+    except Exception:
+        raw = repr(payload)
+    return f"chart_{prefix}_{hashlib.md5(raw.encode('utf-8')).hexdigest()}"
 
 
 def generate_spending_pie_chart(categories, values):
@@ -12,7 +26,12 @@ def generate_spending_pie_chart(categories, values):
         if not values or sum(values) == 0:
             return None
 
-        # Optimized from dpi=200 to dpi=100 for fast rasterization (200x200 px for 180x180 display)
+        cache_key = _chart_cache_key("pie", (categories, values))
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        # Fast rasterization with dpi=100
         fig, ax = plt.subplots(figsize=(2.0, 2.0), dpi=100)
         fig.patch.set_alpha(0.0)
         ax.patch.set_alpha(0.0)
@@ -35,17 +54,27 @@ def generate_spending_pie_chart(categories, values):
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=True)
         plt.close(fig)
-        return base64.b64encode(buf.getvalue()).decode('utf-8')
+        result = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        cache.set(cache_key, result, timeout=3600)
+        return result
     except Exception as e:
-        print("Error generating pie chart:", e)
+        logger.error("Error generating pie chart: %s", e)
         return None
+
 
 def generate_group_net_standing_chart(names, nets):
     try:
         if not names:
             return None
 
-        fig, ax = plt.subplots(figsize=(3.5, 2.0), dpi=200)
+        cache_key = _chart_cache_key("net_standing", (names, nets))
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        # Optimized from dpi=200 to dpi=100 for fast rasterization and low memory
+        fig, ax = plt.subplots(figsize=(3.5, 2.0), dpi=100)
         fig.patch.set_alpha(0.0)
         ax.patch.set_alpha(0.0)
 
@@ -71,27 +100,36 @@ def generate_group_net_standing_chart(names, nets):
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=True)
         plt.close(fig)
-        return base64.b64encode(buf.getvalue()).decode('utf-8')
+        result = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        cache.set(cache_key, result, timeout=3600)
+        return result
     except Exception as e:
-        print("Error generating net standing chart:", e)
+        logger.error("Error generating net standing chart: %s", e)
         return None
+
 
 def generate_payment_method_bar_chart(pm_stats):
     try:
         if not pm_stats:
             return None
-            
+
+        cache_key = _chart_cache_key("pm_bar", pm_stats)
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
         labels = []
         incomes = []
         expenses = []
-        
+
         for name, data in pm_stats.items():
             if data['income'] == 0 and data['expense'] == 0:
                 continue
             labels.append(name)
             incomes.append(data['income'])
             expenses.append(data['expense'])
-            
+
         if not labels:
             return None
 
@@ -99,13 +137,12 @@ def generate_payment_method_bar_chart(pm_stats):
         x = np.arange(len(labels))
         width = 0.35
 
-        fig, ax = plt.subplots(figsize=(4.0, 2.5), dpi=200)
+        fig, ax = plt.subplots(figsize=(4.0, 2.5), dpi=100)
         fig.patch.set_alpha(0.0)
         ax.patch.set_alpha(0.0)
 
-        # High-contrast colors
-        color_income = '#34d399' # Success Green
-        color_expense = '#fb7185' # Danger Red
+        color_income = '#34d399'
+        color_expense = '#fb7185'
 
         rects1 = ax.bar(x - width/2, incomes, width, label='Income', color=color_income, edgecolor='none')
         rects2 = ax.bar(x + width/2, expenses, width, label='Expense', color=color_expense, edgecolor='none')
@@ -115,12 +152,11 @@ def generate_payment_method_bar_chart(pm_stats):
         ax.spines['left'].set_color((1.0, 1.0, 1.0, 0.1))
         ax.spines['bottom'].set_color((1.0, 1.0, 1.0, 0.1))
         ax.tick_params(colors='#94a3b8', labelsize=8)
-        
+
         ax.set_xticks(x)
         ax.set_xticklabels(labels)
         plt.setp(ax.get_xticklabels(), rotation=30, ha='right')
 
-        # Add legend
         ax.legend(loc='upper right', frameon=False, labelcolor='#94a3b8', fontsize=8)
 
         plt.tight_layout()
@@ -128,9 +164,10 @@ def generate_payment_method_bar_chart(pm_stats):
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=True)
         plt.close(fig)
-        return base64.b64encode(buf.getvalue()).decode('utf-8')
+        result = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        cache.set(cache_key, result, timeout=3600)
+        return result
     except Exception as e:
-        print("Error generating payment method chart:", e)
+        logger.error("Error generating payment method chart: %s", e)
         return None
-
-
