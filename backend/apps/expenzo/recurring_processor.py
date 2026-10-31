@@ -1,9 +1,10 @@
 import calendar
+import uuid
 import logging
 from datetime import datetime
 
 from django.core.cache import cache
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import Q
 from django.utils import timezone as django_timezone
 
@@ -19,12 +20,31 @@ def process_recurring_finance(user, target_item=None):
     - Links PersonalExpense directly to its originating RecurringIncome or RecurringExpense.
     - Prevents duplicates using database UniqueConstraints and per-item checks.
     - Multiple items with identical names generate separate, distinct transactions.
-    - Concurrent worker requests are safe: database UniqueConstraints catch races atomically.
-    - Completion cache flag is only set if both models complete without error.
+    - Reconciles legacy records created before foreign keys were introduced to prevent past duplicates.
+    - Concurrent requests are stopped early via cache lock; DB constraints provide final safety.
+    - Completion cache flag is only set if processing completes without error.
     - Preserves historical backdated processing, execution days, leap years and month-end clamping.
     """
     if not user or not user.is_authenticated:
         return
+
+    # Validate target_item ownership and active status if explicitly provided
+    if target_item is not None:
+        if getattr(target_item, 'user_id', None) != user.id:
+            logger.warning(
+                "SECURITY: Unauthorized recurring target_item access attempt. "
+                "Item user: %s, Request user: %s",
+                getattr(target_item, 'user_id', None),
+                user.id
+            )
+            return
+
+        if not target_item.is_active:
+            return
+
+        if not isinstance(target_item, (RecurringIncome, RecurringExpense)):
+            logger.error("Invalid target_item type: %s", type(target_item))
+            return
 
     now = django_timezone.now()
     curr_year = now.year
@@ -36,10 +56,10 @@ def process_recurring_finance(user, target_item=None):
         return
 
     lock_key = f"rec_lock_{user.id}"
-    # Lightweight advisory lock per user (best-effort across workers)
-    has_lock = cache.add(lock_key, "1", timeout=30)
-    # Note: Even if cache lock is not shared across workers, database UniqueConstraints
-    # guarantee atomic, duplicate-free processing at the database engine level.
+    lock_token = uuid.uuid4().hex
+    # Stop processing immediately if this worker cannot acquire the advisory lock.
+    if not cache.add(lock_key, lock_token, timeout=30):
+        return
 
     created_any = False
     had_error = False
@@ -48,10 +68,8 @@ def process_recurring_finance(user, target_item=None):
         if target_item is not None:
             if isinstance(target_item, RecurringIncome):
                 processing_models = [(RecurringIncome, True, [target_item])]
-            elif isinstance(target_item, RecurringExpense):
-                processing_models = [(RecurringExpense, False, [target_item])]
             else:
-                return
+                processing_models = [(RecurringExpense, False, [target_item])]
         else:
             processing_models = [
                 (RecurringIncome, True, None),
@@ -59,6 +77,8 @@ def process_recurring_finance(user, target_item=None):
             ]
 
         for ItemModel, is_income, explicit_items in processing_models:
+            if had_error:
+                break
             if explicit_items is not None:
                 items_to_process = explicit_items
             else:
@@ -98,8 +118,9 @@ def process_recurring_finance(user, target_item=None):
                         y < curr_year
                         or (y == curr_year and m <= curr_month)
                     ):
+                        raw_day = getattr(item, 'execution_day', 1) or 1
                         last_day = calendar.monthrange(y, m)[1]
-                        exec_day = min(item.execution_day, last_day)
+                        exec_day = min(max(1, raw_day), last_day)
 
                         # Do not process before the execution day for current month
                         if (
@@ -112,12 +133,13 @@ def process_recurring_finance(user, target_item=None):
                         process_date = django_timezone.make_aware(
                             datetime(y, m, exec_day, 0, 0, 0)
                         )
-                        description = (
+                        expected_description = (
                             f"Fixed {'Income' if is_income else 'Expense'}: "
                             f"{item.name}"
                         )
+                        expected_category = "Income" if is_income else "Others"
 
-                        # Check existing transaction by source foreign key and month/year
+                        # 1. Primary check: duplicate check by source foreign key and month/year
                         if is_income:
                             already_exists = PersonalExpense.objects.filter(
                                 recurring_income=item,
@@ -131,16 +153,68 @@ def process_recurring_finance(user, target_item=None):
                                 month=m
                             ).exists()
 
+                        # 2. Backward compatibility: check if legacy transaction exists with NULL FK
+                        if not already_exists:
+                            legacy_qs = PersonalExpense.objects.filter(
+                                user=user,
+                                year=y,
+                                month=m,
+                                is_recurring=True,
+                                recurring_income__isnull=True,
+                                recurring_expense__isnull=True,
+                                description=expected_description,
+                                category=expected_category
+                            )
+                            if legacy_qs.exists():
+                                # A legacy recurring transaction already exists; prevent creating duplicates
+                                already_exists = True
+
+                                # Only link foreign key when match is strictly unambiguous
+                                exact_amount_matches = legacy_qs.filter(amount=item.amount)
+                                unambiguous_record = None
+
+                                if exact_amount_matches.count() == 1:
+                                    unambiguous_record = exact_amount_matches.first()
+                                elif exact_amount_matches.count() == 0 and legacy_qs.count() == 1:
+                                    unambiguous_record = legacy_qs.first()
+                                else:
+                                    ambiguous_count = legacy_qs.count()
+                                    logger.warning(
+                                        "Ambiguous legacy recurring records found for user %s, item %s (%s/%s). "
+                                        "Found %d matching records. Preserving all records and retrying later.",
+                                        user.pk, item.pk, m, y, ambiguous_count
+                                    )
+                                    # Do not advance this rule's processing marker: an ambiguous
+                                    # legacy match may belong to another rule with identical details.
+                                    had_error = True
+                                    break
+
+                                if unambiguous_record is not None:
+                                    if is_income:
+                                        unambiguous_record.recurring_income = item
+                                        update_f = ["recurring_income"]
+                                    else:
+                                        unambiguous_record.recurring_expense = item
+                                        update_f = ["recurring_expense"]
+                                    try:
+                                        unambiguous_record.save(update_fields=update_f)
+                                    except IntegrityError:
+                                        pass
+                                    except OperationalError as oe:
+                                        had_error = True
+                                        logger.warning("Database lock updating legacy recurring record: %s", oe)
+                                        break
+
                         if not already_exists:
                             try:
                                 with transaction.atomic():
                                     PersonalExpense.objects.create(
                                         user=user,
                                         amount=item.amount,
-                                        category="Income" if is_income else "Others",
+                                        category=expected_category,
                                         payment_method=item.payment_method,
                                         account=item.account,
-                                        description=description,
+                                        description=expected_description,
                                         date=process_date,
                                         month=m,
                                         year=y,
@@ -155,6 +229,12 @@ def process_recurring_finance(user, target_item=None):
                                     "Recurring transaction already created by concurrent process for item %s (%s/%s)",
                                     item.pk, m, y
                                 )
+                            except OperationalError as oe:
+                                had_error = True
+                                logger.warning(
+                                    "Database lock encountered during recurring processing: %s", oe
+                                )
+                                break
 
                         last_processed = (y, m)
 
@@ -164,14 +244,20 @@ def process_recurring_finance(user, target_item=None):
                             y += 1
 
                     if last_processed:
-                        item.last_processed_year = last_processed[0]
-                        item.last_processed_month = last_processed[1]
-                        item.save(
-                            update_fields=[
-                                "last_processed_year",
-                                "last_processed_month"
-                            ]
-                        )
+                        try:
+                            item.last_processed_year = last_processed[0]
+                            item.last_processed_month = last_processed[1]
+                            item.save(
+                                update_fields=[
+                                    "last_processed_year",
+                                    "last_processed_month"
+                                ]
+                            )
+                        except OperationalError as oe:
+                            had_error = True
+                            logger.warning(
+                                "Database lock saving recurring marker for item %s: %s", item.pk, oe
+                            )
 
             except Exception:
                 had_error = True
@@ -189,7 +275,9 @@ def process_recurring_finance(user, target_item=None):
             cache.set(cache_done_key, True, timeout=1800)
 
     finally:
-        if has_lock:
+        # Do not remove a lock that may have expired and been reacquired by
+        # another request while this processing run was still active.
+        if cache.get(lock_key) == lock_token:
             cache.delete(lock_key)
 
 
@@ -199,6 +287,7 @@ def recalculate_current_month(user, target_item=None):
     
     - If target_item is provided:
         Recalculates ONLY for that specific item.
+        Validates ownership and active status.
         Deletes ONLY that item's current-month transaction.
         Preserves all other recurring items, inactive items, and manual expenses.
     - If target_item is None (global recalculate):
@@ -209,6 +298,23 @@ def recalculate_current_month(user, target_item=None):
     """
     if not user or not user.is_authenticated:
         return
+
+    if target_item is not None:
+        if getattr(target_item, 'user_id', None) != user.id:
+            logger.warning(
+                "SECURITY: Unauthorized recurring recalculate attempt on item %s by user %s",
+                getattr(target_item, 'pk', None),
+                user.id
+            )
+            return
+
+        if not isinstance(target_item, (RecurringIncome, RecurringExpense)):
+            logger.error("Invalid target_item type for recalculate: %s", type(target_item))
+            return
+
+        # Never delete a generated transaction when the rule is inactive.
+        if not target_item.is_active:
+            return
 
     now = django_timezone.now()
     curr_year = now.year

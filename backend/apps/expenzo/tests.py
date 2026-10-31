@@ -619,4 +619,318 @@ class PerformanceAndOptimizationTestCase(TestCase):
                 recurring_expense=exp
             )
 
+    def test_concurrent_lock_exits_immediately(self):
+        """When another process holds the cache lock, processing exits immediately without doing work."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance
 
+        item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Electricity",
+            amount=1500.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        # Simulate another process holding the lock
+        lock_key = f"rec_lock_{self.user.id}"
+        cache.set(lock_key, "1", timeout=30)
+
+        # process_recurring_finance must exit immediately
+        process_recurring_finance(self.user)
+
+        # No expense should have been created because the lock was held
+        self.assertFalse(PersonalExpense.objects.filter(recurring_expense=item).exists())
+
+        # Cleanup lock and verify subsequent call acquires lock and succeeds
+        cache.delete(lock_key)
+        process_recurring_finance(self.user)
+        self.assertTrue(PersonalExpense.objects.filter(recurring_expense=item).exists())
+
+    def test_unauthorized_target_item_blocked(self):
+        """A target item belonging to another user must be rejected and not processed."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance, recalculate_current_month
+
+        other_user = User.objects.create_user(username='victim_user', password='Password123!')
+        other_item = RecurringExpense.objects.create(
+            user=other_user,
+            name="Victim Bill",
+            amount=2000.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        # Attacker tries to process or recalculate other user's item
+        process_recurring_finance(self.user, target_item=other_item)
+        self.assertFalse(PersonalExpense.objects.filter(recurring_expense=other_item).exists())
+
+        recalculate_current_month(self.user, target_item=other_item)
+        self.assertFalse(PersonalExpense.objects.filter(recurring_expense=other_item).exists())
+
+    def test_inactive_rules_not_processed(self):
+        """Inactive recurring rules must never generate transactions."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance
+
+        inactive_item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Old Magazine",
+            amount=250.0,
+            execution_day=1,
+            is_active=False
+        )
+
+        process_recurring_finance(self.user)
+        self.assertFalse(PersonalExpense.objects.filter(recurring_expense=inactive_item).exists())
+
+        # Explicit target_item call must also be ignored
+        process_recurring_finance(self.user, target_item=inactive_item)
+        self.assertFalse(PersonalExpense.objects.filter(recurring_expense=inactive_item).exists())
+
+    def test_legacy_null_fk_reconciliation_no_duplicates(self):
+        """Legacy transactions with NULL recurring foreign keys must be reconciled in-place without duplicate creation."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance
+        from django.utils import timezone
+        now = timezone.now()
+
+        item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Broadband",
+            amount=799.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        # Pre-existing legacy record created before foreign keys were introduced
+        legacy_tx = PersonalExpense.objects.create(
+            user=self.user,
+            amount=799.0,
+            category="Others",
+            payment_method="UPI",
+            account="Bank Account",
+            description="Fixed Expense: Broadband",
+            date=now,
+            month=now.month,
+            year=now.year,
+            is_recurring=True,
+            recurring_expense=None,
+            recurring_income=None
+        )
+
+        # Run process_recurring_finance
+        process_recurring_finance(self.user)
+
+        # Must not create a duplicate transaction
+        all_broadband = PersonalExpense.objects.filter(
+            user=self.user,
+            month=now.month,
+            year=now.year,
+            description="Fixed Expense: Broadband"
+        )
+        self.assertEqual(all_broadband.count(), 1)
+
+        # Legacy transaction should have been linked to the item
+        legacy_tx.refresh_from_db()
+        self.assertEqual(legacy_tx.recurring_expense_id, item.id)
+
+    def test_legacy_ambiguous_matches_preserved_without_arbitrary_link(self):
+        """When multiple legacy records match, do not arbitrarily link one. Preserve all records without duplicating."""
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance
+        from django.utils import timezone
+        now = timezone.now()
+
+        item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Cloud Storage",
+            amount=500.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        # Create 2 ambiguous legacy records with identical descriptions and amounts
+        legacy1 = PersonalExpense.objects.create(
+            user=self.user,
+            amount=500.0,
+            category="Others",
+            payment_method="UPI",
+            account="Bank Account",
+            description="Fixed Expense: Cloud Storage",
+            date=now,
+            month=now.month,
+            year=now.year,
+            is_recurring=True,
+            recurring_expense=None
+        )
+        legacy2 = PersonalExpense.objects.create(
+            user=self.user,
+            amount=500.0,
+            category="Others",
+            payment_method="UPI",
+            account="Bank Account",
+            description="Fixed Expense: Cloud Storage",
+            date=now,
+            month=now.month,
+            year=now.year,
+            is_recurring=True,
+            recurring_expense=None
+        )
+
+        process_recurring_finance(self.user)
+
+        # No duplicate 3rd transaction created
+        matching = PersonalExpense.objects.filter(
+            user=self.user,
+            month=now.month,
+            year=now.year,
+            description="Fixed Expense: Cloud Storage"
+        )
+        self.assertEqual(matching.count(), 2)
+
+        # Neither ambiguous record was arbitrarily linked; both remain preserved
+        legacy1.refresh_from_db()
+        legacy2.refresh_from_db()
+        self.assertIsNone(legacy1.recurring_expense)
+        self.assertIsNone(legacy2.recurring_expense)
+
+    def test_month_end_and_february_clamping(self):
+        """Execution day 31 must clamp to month end (e.g. 28/29 for Feb, 30 for April)."""
+        import calendar
+        from datetime import datetime
+        from .models import RecurringExpense, PersonalExpense
+        from .recurring_processor import process_recurring_finance
+        from django.utils import timezone
+        from unittest.mock import patch
+
+        item = RecurringExpense.objects.create(
+            user=self.user,
+            name="End of Month SIP",
+            amount=5000.0,
+            execution_day=31,
+            is_active=True
+        )
+
+        # Mock current time to April 30, 2025 (April has 30 days)
+        mock_april = timezone.make_aware(datetime(2025, 4, 30, 12, 0, 0))
+        with patch('django.utils.timezone.now', return_value=mock_april):
+            RecurringExpense.objects.filter(pk=item.pk).update(
+                created_at=timezone.make_aware(datetime(2025, 4, 1, 0, 0, 0))
+            )
+            item.refresh_from_db()
+            process_recurring_finance(self.user, target_item=item)
+
+            tx_april = PersonalExpense.objects.filter(recurring_expense=item, year=2025, month=4).first()
+            self.assertIsNotNone(tx_april)
+            self.assertEqual(tx_april.date.day, 30)
+
+        # Mock current time to Feb 28, 2025 (non-leap year, 28 days)
+        item2 = RecurringExpense.objects.create(
+            user=self.user,
+            name="Feb Non-Leap SIP",
+            amount=3000.0,
+            execution_day=31,
+            is_active=True
+        )
+        mock_feb_non_leap = timezone.make_aware(datetime(2025, 2, 28, 12, 0, 0))
+        with patch('django.utils.timezone.now', return_value=mock_feb_non_leap):
+            RecurringExpense.objects.filter(pk=item2.pk).update(
+                created_at=timezone.make_aware(datetime(2025, 2, 1, 0, 0, 0))
+            )
+            item2.refresh_from_db()
+            process_recurring_finance(self.user, target_item=item2)
+
+            tx_feb = PersonalExpense.objects.filter(recurring_expense=item2, year=2025, month=2).first()
+            self.assertIsNotNone(tx_feb)
+            self.assertEqual(tx_feb.date.day, 28)
+
+        # Mock current time to Feb 29, 2024 (leap year, 29 days)
+        item3 = RecurringExpense.objects.create(
+            user=self.user,
+            name="Feb Leap SIP",
+            amount=3000.0,
+            execution_day=31,
+            is_active=True
+        )
+        mock_feb_leap = timezone.make_aware(datetime(2024, 2, 29, 12, 0, 0))
+        with patch('django.utils.timezone.now', return_value=mock_feb_leap):
+            RecurringExpense.objects.filter(pk=item3.pk).update(
+                created_at=timezone.make_aware(datetime(2024, 2, 1, 0, 0, 0))
+            )
+            item3.refresh_from_db()
+            process_recurring_finance(self.user, target_item=item3)
+
+            tx_feb_leap = PersonalExpense.objects.filter(recurring_expense=item3, year=2024, month=2).first()
+            self.assertIsNotNone(tx_feb_leap)
+            self.assertEqual(tx_feb_leap.date.day, 29)
+
+    def test_failed_processing_retry_behavior(self):
+        """If processing encounters an error, the completion cache flag must NOT be set, allowing retry."""
+        from .models import RecurringExpense
+        from .recurring_processor import process_recurring_finance
+        from django.utils import timezone
+        from unittest.mock import patch
+        from django.db import OperationalError
+
+        now = timezone.now()
+        item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Failing Item",
+            amount=100.0,
+            execution_day=1,
+            is_active=True
+        )
+
+        done_cache_key = f"rec_done_{self.user.id}_{now.year}_{now.month}_{now.day}"
+        cache.delete(done_cache_key)
+
+        # Simulate database lock during create
+        with patch('apps.expenzo.models.PersonalExpense.objects.create', side_effect=OperationalError("database is locked")):
+            process_recurring_finance(self.user)
+
+        # Done cache flag must NOT be set because had_error is True
+        self.assertFalse(cache.get(done_cache_key))
+
+        # Now without error, retry should succeed and set the cache flag
+        process_recurring_finance(self.user)
+        self.assertTrue(cache.get(done_cache_key))
+
+
+
+
+
+class RecurringInactiveRecalculationRegressionTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        from .models import RecurringExpense, PersonalExpense
+        from django.utils import timezone
+        self.user = User.objects.create_user(username="inactive_recalc_user", password="test-password")
+        self.item = RecurringExpense.objects.create(
+            user=self.user,
+            name="Inactive Internet",
+            amount=900.0,
+            execution_day=1,
+            is_active=False,
+        )
+        now = timezone.now()
+        self.transaction = PersonalExpense.objects.create(
+            user=self.user,
+            amount=900.0,
+            category="Others",
+            payment_method="UPI",
+            account="Bank Account",
+            description="Fixed Expense: Inactive Internet",
+            date=now,
+            month=now.month,
+            year=now.year,
+            is_recurring=True,
+            recurring_expense=self.item,
+        )
+
+    def test_targeted_recalculation_does_not_delete_inactive_rule_transaction(self):
+        from .recurring_processor import recalculate_current_month
+        recalculate_current_month(self.user, target_item=self.item)
+        self.assertTrue(
+            type(self.transaction).objects.filter(pk=self.transaction.pk).exists()
+        )
