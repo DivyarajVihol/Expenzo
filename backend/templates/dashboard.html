@@ -84,6 +84,439 @@
     max-height: 55vh;
     overflow-y: auto;
   }
+
+  /* --- Scoped Transaction / Add Income Modal Redesign --- */
+  #transaction-modal.modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(5, 7, 12, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+
+  #transaction-modal .tx-modal-card {
+    background: linear-gradient(180deg, #18191e 0%, #121316 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 22px;
+    width: 100%;
+    max-width: 480px;
+    max-height: min(92vh, 660px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 
+      0 28px 64px -12px rgba(0, 0, 0, 0.9),
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 12px 36px -6px rgba(255, 163, 26, 0.09);
+    animation: txModalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes txModalPop {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  #transaction-modal .tx-modal-header {
+    flex-shrink: 0;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(22, 23, 28, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .tx-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+  }
+
+  .tx-header-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .icon-income-badge {
+    background: rgba(54, 214, 160, 0.12);
+    border: 1px solid rgba(54, 214, 160, 0.28);
+    color: var(--accent-success, #36d6a0);
+    box-shadow: 0 0 14px rgba(54, 214, 160, 0.18);
+  }
+
+  .icon-expense-badge {
+    background: rgba(255, 163, 26, 0.12);
+    border: 1px solid rgba(255, 163, 26, 0.28);
+    color: var(--accent-primary, #ffa31a);
+    box-shadow: 0 0 14px rgba(255, 163, 26, 0.18);
+  }
+
+  .tx-header-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .tx-modal-title {
+    font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f4f4f5;
+    letter-spacing: -0.015em;
+    margin: 0;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tx-modal-subtitle {
+    font-family: var(--font-body, 'Geist', sans-serif);
+    font-size: 0.76rem;
+    color: #a1a1aa;
+    margin: 3px 0 0 0;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tx-close-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: #a1a1aa;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+  }
+
+  .tx-close-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    transform: scale(1.05);
+  }
+
+  .tx-close-btn:active {
+    transform: scale(0.95);
+  }
+
+  #transaction-modal form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+  }
+
+  #transaction-modal .tx-modal-body {
+    flex: 1 1 auto;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.35rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
+
+  #transaction-modal .tx-modal-body::-webkit-scrollbar {
+    width: 5px;
+  }
+  #transaction-modal .tx-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #transaction-modal .tx-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 9999px;
+  }
+  #transaction-modal .tx-modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  .tx-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0 !important;
+  }
+
+  .tx-form-label {
+    font-family: var(--font-body, 'Geist', sans-serif);
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+  }
+
+  .tx-required-mark {
+    color: var(--accent-primary, #ffa31a);
+    font-weight: 700;
+  }
+
+  .tx-optional-hint {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: #71717a;
+    text-transform: capitalize;
+    letter-spacing: normal;
+  }
+
+  .tx-badge-currency {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--accent-primary, #ffa31a);
+    background: rgba(255, 163, 26, 0.1);
+    border: 1px solid rgba(255, 163, 26, 0.22);
+    padding: 1px 7px;
+    border-radius: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  .tx-amount-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 14px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tx-amount-box:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .tx-amount-box:focus-within {
+    border-color: var(--accent-primary, #ffa31a);
+    background: rgba(255, 163, 26, 0.025);
+    box-shadow: 0 0 0 3px rgba(255, 163, 26, 0.16);
+  }
+
+  .tx-amount-symbol {
+    padding-left: 1.1rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent-primary, #ffa31a);
+    font-family: var(--font-body, 'Geist', sans-serif);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  #transaction-modal input.tx-amount-input {
+    width: 100%;
+    border: none !important;
+    background: transparent !important;
+    padding: 0.75rem 1rem 0.75rem 0.45rem !important;
+    font-size: 1.45rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    font-family: var(--font-body, 'Geist', sans-serif);
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  #transaction-modal input.tx-amount-input::placeholder {
+    color: #52525b;
+    font-weight: 500;
+  }
+
+  #transaction-modal .tx-field-control {
+    width: 100%;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 0 1rem;
+    color: #f4f4f5;
+    font-size: 0.92rem;
+    font-family: var(--font-body, 'Geist', sans-serif);
+    transition: all 0.18s ease;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  #transaction-modal .tx-field-control:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  #transaction-modal .tx-field-control:focus {
+    border-color: var(--accent-primary, #ffa31a);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 3px rgba(255, 163, 26, 0.14);
+  }
+
+  #transaction-modal .tx-field-control::placeholder {
+    color: #52525b;
+    font-size: 0.88rem;
+  }
+
+  .tx-select-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .tx-select-wrapper select.tx-field-control {
+    padding-right: 2.6rem;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    background-color: #111216;
+  }
+
+  .tx-select-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #71717a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #transaction-modal select option {
+    background-color: #16171b;
+    color: #f4f4f5;
+    padding: 9px 12px;
+  }
+
+  #transaction-modal input[type="date"].tx-date-input {
+    color-scheme: dark;
+    cursor: pointer;
+  }
+
+  #transaction-modal .tx-modal-footer {
+    flex-shrink: 0;
+    padding: 1.1rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(18, 19, 23, 0.96);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  #transaction-modal .tx-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 42px;
+    padding: 0 1.4rem;
+    border-radius: 12px;
+    font-family: var(--font-body, 'Geist', sans-serif);
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid transparent;
+    text-decoration: none;
+    user-select: none;
+  }
+
+  #transaction-modal .tx-btn-secondary {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #d4d4d8;
+  }
+
+  #transaction-modal .tx-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+
+  #transaction-modal .tx-btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  #transaction-modal .tx-btn-primary {
+    background: var(--accent-primary, #ffa31a);
+    color: #090a0d;
+    font-weight: 700;
+    box-shadow: 0 4px 18px 0 rgba(255, 163, 26, 0.35);
+  }
+
+  #transaction-modal .tx-btn-primary:hover {
+    background: var(--accent-primary-hover, #ff8a36);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 22px 0 rgba(255, 163, 26, 0.45);
+  }
+
+  #transaction-modal .tx-btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 640px) {
+    #transaction-modal.modal-overlay {
+      padding: 0.75rem;
+    }
+    #transaction-modal .tx-modal-card {
+      max-width: 100%;
+      width: calc(100vw - 1.5rem);
+      max-height: calc(100dvh - 1.5rem);
+      border-radius: 18px;
+    }
+    #transaction-modal .tx-modal-header {
+      padding: 1rem 1.15rem;
+    }
+    #transaction-modal .tx-modal-body {
+      padding: 1.1rem 1.15rem;
+      gap: 1rem;
+    }
+    #transaction-modal .tx-modal-footer {
+      padding: 0.85rem 1.15rem;
+    }
+    #transaction-modal .tx-btn {
+      flex: 1;
+      padding: 0 0.85rem;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -1319,87 +1752,144 @@
 <!-- ===== END SCAN RECEIPT MODAL ===== -->
 
 <!-- Add Expense/Income Transaction Modal -->
-<div class="modal-overlay" id="transaction-modal" style="display: none;">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 class="chart-card-title" id="tx-modal-title">Add Transaction</h3>
-      <button onclick="closeTransactionModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
-        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+<div class="modal-overlay" id="transaction-modal" style="display: none;" onclick="if(event.target === this) closeTransactionModal()">
+  <div class="modal-content tx-modal-card">
+    <div class="modal-header tx-modal-header">
+      <div class="tx-header-left">
+        <div class="tx-header-icon-box icon-income-badge" id="tx-modal-icon">
+          <i data-lucide="arrow-down-left" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div class="tx-header-text">
+          <h3 class="chart-card-title tx-modal-title" id="tx-modal-title">Add Income</h3>
+          <p class="tx-modal-subtitle" id="tx-modal-subtitle">Record your incoming credits or revenue</p>
+        </div>
+      </div>
+      <button type="button" class="tx-close-btn" onclick="closeTransactionModal()" title="Close" aria-label="Close modal">
+        <i data-lucide="x" style="width: 18px; height: 18px;"></i>
       </button>
     </div>
     <form id="transaction-form" onsubmit="saveTransaction(event)">
       <input type="hidden" id="tx-id" value="">
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Amount (₹)</label>
-          <input
-            type="number"
-            id="tx-amount"
-            class="input-control"
-            placeholder="0.00"
-            required
-            min="0.01"
-            step="0.01"
-          />
+      <div class="modal-body tx-modal-body">
+        
+        <!-- 1. Amount Field (Hero Input) -->
+        <div class="form-group tx-form-group">
+          <label class="form-label tx-form-label" for="tx-amount">
+            <span>Amount <span class="tx-required-mark">*</span></span>
+            <span class="tx-badge-currency">INR (₹)</span>
+          </label>
+          <div class="tx-amount-box">
+            <span class="tx-amount-symbol">₹</span>
+            <input
+              type="number"
+              id="tx-amount"
+              class="input-control tx-amount-input"
+              placeholder="0.00"
+              required
+              min="0.01"
+              step="0.01"
+            />
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Description (Optional)</label>
-          <input
-            type="text"
-            id="tx-description"
-            class="input-control"
-            placeholder="e.g. Grocery, Lunch, Salary"
-          />
+
+        <!-- 2. Description Field -->
+        <div class="form-group tx-form-group">
+          <label class="form-label tx-form-label" for="tx-description">
+            <span>Description</span>
+            <span class="tx-optional-hint">Optional</span>
+          </label>
+          <div class="tx-input-box">
+            <input
+              type="text"
+              id="tx-description"
+              class="input-control tx-field-control"
+              placeholder="e.g. Salary, Client payment, Freelance, Dividend"
+            />
+          </div>
         </div>
-        <div class="form-group" id="tx-category-group">
-          <label class="form-label">Category</label>
-          <select id="tx-category" class="input-control" style="background: #0d121f;" required onchange="toggleCustomCategoryInput()">
-            <option value="" disabled selected>Select Category</option>
-            <option value="Food">Food</option>
-            <option value="Travel">Travel</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Rent">Rent</option>
-            <option value="Utilities">Utilities</option>
-            <option value="Health">Health</option>
-            <option value="Education">Education</option>
-            <option value="Investment">Investment</option>
-            <option value="Others">Others</option>
-            <option value="Income">Income</option>
-            <option value="__CUSTOM__">Custom Category...</option>
-          </select>
-          <input type="text" id="tx-custom-category" class="input-control" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />
+
+        <!-- 3. Category Field (dynamically shown for expense, hidden for income) -->
+        <div class="form-group tx-form-group" id="tx-category-group">
+          <label class="form-label tx-form-label" for="tx-category">
+            <span>Category <span class="tx-required-mark">*</span></span>
+          </label>
+          <div class="tx-select-wrapper">
+            <select id="tx-category" class="input-control tx-field-control" required onchange="toggleCustomCategoryInput()">
+              <option value="" disabled selected>Select Category</option>
+              <option value="Food">Food</option>
+              <option value="Travel">Travel</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Health">Health</option>
+              <option value="Education">Education</option>
+              <option value="Investment">Investment</option>
+              <option value="Others">Others</option>
+              <option value="Income">Income</option>
+              <option value="__CUSTOM__">Custom Category...</option>
+            </select>
+            <span class="tx-select-icon">
+              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+            </span>
+          </div>
+          <input type="text" id="tx-custom-category" class="input-control tx-field-control" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />
         </div>
-        <div class="form-group">
-          <label class="form-label">Account</label>
-          <select id="tx-account" class="input-control" style="background: #0d121f;" onchange="togglePaymentMethod()">
-            <option value="Bank Account">Bank Account</option>
-            <option value="Cash">Cash</option>
-            <option value="Credit Card">Credit Card</option>
-          </select>
+
+        <!-- 4. Account Field -->
+        <div class="form-group tx-form-group">
+          <label class="form-label tx-form-label" for="tx-account">
+            <span>Account <span class="tx-required-mark">*</span></span>
+          </label>
+          <div class="tx-select-wrapper">
+            <select id="tx-account" class="input-control tx-field-control" onchange="togglePaymentMethod()">
+              <option value="Bank Account">Bank Account</option>
+              <option value="Cash">Cash</option>
+              <option value="Credit Card">Credit Card</option>
+            </select>
+            <span class="tx-select-icon">
+              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+            </span>
+          </div>
         </div>
-        <div class="form-group" id="tx-payment-group">
-          <label class="form-label">Payment Method</label>
-          <select id="tx-payment" class="input-control" style="background: #0d121f;">
-            <option value="UPI">UPI</option>
-            <option value="Debit Card">Debit Card</option>
-            <option value="Bank Transfer">Bank Transfer</option>
-          </select>
+
+        <!-- 5. Payment Method Field -->
+        <div class="form-group tx-form-group" id="tx-payment-group">
+          <label class="form-label tx-form-label" for="tx-payment">
+            <span>Payment Method <span class="tx-required-mark">*</span></span>
+          </label>
+          <div class="tx-select-wrapper">
+            <select id="tx-payment" class="input-control tx-field-control">
+              <option value="UPI">UPI</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+            <span class="tx-select-icon">
+              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+            </span>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Date</label>
-          <input
-            type="date"
-            id="tx-date"
-            class="input-control"
-            value="{% now 'Y-m-d' %}"
-            required
-          />
+
+        <!-- 6. Date Field -->
+        <div class="form-group tx-form-group">
+          <label class="form-label tx-form-label" for="tx-date">
+            <span>Date <span class="tx-required-mark">*</span></span>
+          </label>
+          <div class="tx-input-box">
+            <input
+              type="date"
+              id="tx-date"
+              class="input-control tx-field-control tx-date-input"
+              value="{% now 'Y-m-d' %}"
+              required
+            />
+          </div>
         </div>
+
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeTransactionModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Log Transaction</button>
+      <div class="modal-footer tx-modal-footer">
+        <button type="button" class="btn btn-secondary tx-btn tx-btn-secondary" onclick="closeTransactionModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary tx-btn tx-btn-primary">Log Transaction</button>
       </div>
     </form>
   </div>
@@ -1519,6 +2009,8 @@
     const categorySelect = document.getElementById('tx-category');
     const paymentSelect = document.getElementById('tx-payment');
     const modal = document.getElementById('transaction-modal');
+    const subtitle = document.getElementById('tx-modal-subtitle');
+    const iconBox = document.getElementById('tx-modal-icon');
     
     // Reset form
     document.getElementById('transaction-form').reset();
@@ -1540,10 +2032,20 @@
 
     if (type === 'income') {
       title.innerText = 'Add Income';
+      if (subtitle) subtitle.innerText = 'Record your incoming credits or revenue';
+      if (iconBox) {
+        iconBox.className = 'tx-header-icon-box icon-income-badge';
+        iconBox.innerHTML = '<i data-lucide="arrow-down-left" style="width: 20px; height: 20px;"></i>';
+      }
       catGroup.style.display = 'none';
       categorySelect.value = 'Income';
     } else {
       title.innerText = 'Add Expense';
+      if (subtitle) subtitle.innerText = 'Record your outgoing spend or purchase';
+      if (iconBox) {
+        iconBox.className = 'tx-header-icon-box icon-expense-badge';
+        iconBox.innerHTML = '<i data-lucide="arrow-up-right" style="width: 20px; height: 20px;"></i>';
+      }
       catGroup.style.display = 'block';
       categorySelect.value = defaultCat;
     }
@@ -1600,11 +2102,24 @@
 
     const title = document.getElementById('tx-modal-title');
     const catGroup = document.getElementById('tx-category-group');
-    title.innerText = 'Edit Expense';
+    const subtitle = document.getElementById('tx-modal-subtitle');
+    const iconBox = document.getElementById('tx-modal-icon');
     
     if (category === 'Income') {
+      title.innerText = 'Edit Income';
+      if (subtitle) subtitle.innerText = 'Update your incoming credit details';
+      if (iconBox) {
+        iconBox.className = 'tx-header-icon-box icon-income-badge';
+        iconBox.innerHTML = '<i data-lucide="arrow-down-left" style="width: 20px; height: 20px;"></i>';
+      }
       catGroup.style.display = 'none';
     } else {
+      title.innerText = 'Edit Expense';
+      if (subtitle) subtitle.innerText = 'Update your expense record';
+      if (iconBox) {
+        iconBox.className = 'tx-header-icon-box icon-expense-badge';
+        iconBox.innerHTML = '<i data-lucide="edit-3" style="width: 20px; height: 20px;"></i>';
+      }
       catGroup.style.display = 'block';
     }
 
