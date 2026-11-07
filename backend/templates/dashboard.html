@@ -1042,75 +1042,152 @@
     </div>
   </div>
 
-  <!-- 4. SECONDARY SECTION: CATEGORY DISTRIBUTION (5 cols) & PAYMENT METHODS (7 cols) -->
+  <!-- 4. SECONDARY SECTION: CATEGORY DISTRIBUTION (5 cols) & PAYMENT METHOD BREAKDOWN (7 cols) -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
     <!-- Category Spending Allocation (5 cols) -->
     <div id="category-distribution-section" class="lg:col-span-5 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col justify-between">
       <div class="flex items-center justify-between mb-3">
         <div>
           <h2 class="font-display text-base text-on-surface font-bold">Category Distribution</h2>
-          <p class="font-body-sm text-xs text-on-surface-variant">{{ category_breakdown|length }} active channels</p>
+          <p class="font-body-sm text-xs text-on-surface-variant">
+            {% if category_breakdown %}
+              {{ category_breakdown|length }} active categor{{ category_breakdown|length|pluralize:"y,ies" }}
+            {% else %}
+              No active categories
+            {% endif %}
+          </p>
         </div>
-        <span class="font-label-md text-xs text-primary font-semibold">{{ active_month_label }}</span>
-      </div>
-
-      <!-- Segmented Stack Bar Visual -->
-      <div class="w-full h-3 bg-surface-container border border-white/5 rounded-full overflow-hidden flex gap-0.5 p-0.5 mb-3">
         {% if category_breakdown %}
-          {% for cat in category_breakdown %}
-            <div class="h-full rounded-full transition-all" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};" title="{{ cat.name }}: {{ cat.percentage }}%"></div>
-          {% endfor %}
-        {% else %}
-          <div class="h-full bg-surface-bright rounded-full w-full opacity-40"></div>
+          <span class="font-label-md text-xs text-primary font-semibold">₹{{ total_month_spend|floatformat:2 }}</span>
         {% endif %}
       </div>
 
-      <!-- Itemized Category Bars -->
-      <div class="flex flex-col gap-2.5 max-h-56 overflow-y-auto pr-1">
-        {% if category_breakdown %}
-          {% for cat in category_breakdown %}
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center justify-between text-xs font-body-sm">
-                <span class="text-on-surface font-medium flex items-center gap-1.5 min-w-0">
-                  <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ cat.color }};"></span>
-                  <span class="truncate">{{ cat.name }}</span>
+      {% if not category_breakdown %}
+        <!-- State A: 0 Categories (Empty State) -->
+        <div class="text-center py-7 flex flex-col items-center justify-center my-auto">
+          <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-outline mb-2">
+            <span class="material-symbols-outlined text-xl">pie_chart</span>
+          </div>
+          <span class="font-display text-xs font-bold text-on-surface">No categorized expenses</span>
+          <p class="text-[11px] text-outline mt-0.5">No expense entries logged for this period.</p>
+        </div>
+
+      {% elif category_breakdown|length == 1 %}
+        <!-- State B: Exactly 1 Category (Compact Single-Category Summary) -->
+        {% with cat=category_breakdown.0 %}
+        <div class="flex flex-col justify-between my-auto py-1 gap-3">
+          <div class="p-3.5 rounded-xl bg-surface-container/40 border border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: {{ cat.color }}20; color: {{ cat.color }};">
+                <span class="material-symbols-outlined text-lg">
+                  {% if cat.name == 'Food' %}restaurant
+                  {% elif cat.name == 'Shopping' %}shopping_bag
+                  {% elif cat.name == 'Travel' %}flight
+                  {% elif cat.name == 'Entertainment' %}movie
+                  {% elif cat.name == 'Bills' or cat.name == 'Utilities' %}receipt
+                  {% else %}category{% endif %}
                 </span>
-                <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-                  <span class="font-display text-xs font-semibold text-on-surface tabular-nums">₹{{ cat.value|floatformat:2 }}</span>
-                  <span class="font-label-md text-[11px] text-on-surface-variant font-mono">{{ cat.percentage }}%</span>
-                </div>
               </div>
-              <div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
-                <div class="h-full rounded-full transition-all" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};"></div>
+              <div class="min-w-0">
+                <div class="font-display text-sm font-bold text-on-surface truncate">{{ cat.name }}</div>
+                <div class="text-[11px] text-on-surface-variant">Sole active spending category</div>
               </div>
             </div>
-          {% endfor %}
-        {% else %}
-          <div class="text-center py-6 text-xs text-outline">
-            No expenses recorded for {{ active_month_label }}.
+            <div class="text-right flex-shrink-0 ml-3">
+              <div class="font-display text-base font-bold text-on-surface tabular-nums">₹{{ cat.value|floatformat:2 }}</div>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold" style="background-color: {{ cat.color }}20; color: {{ cat.color }};">100% of spend</span>
+            </div>
           </div>
-        {% endif %}
+
+          <!-- Compact Horizontal Progress Bar -->
+          <div class="flex flex-col gap-1">
+            <div class="w-full h-2 rounded-full overflow-hidden bg-surface-container">
+              <div class="h-full rounded-full transition-all" style="width: 100%; background-color: {{ cat.color }};"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-on-surface-variant">
+              <span>All expenditures under {{ cat.name }}</span>
+              <span class="font-mono text-outline">₹{{ cat.value|floatformat:2 }}</span>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+
+      {% else %}
+        <!-- State C: Multiple Categories (Proportional Breakdown) -->
+        <div class="flex flex-col gap-3 my-auto py-1">
+          <!-- Segmented Stack Bar Visual -->
+          <div class="w-full h-2.5 bg-surface-container border border-white/5 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+            {% for cat in category_breakdown %}
+              <div class="h-full rounded-full transition-all" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};" title="{{ cat.name }}: {{ cat.percentage }}%"></div>
+            {% endfor %}
+          </div>
+
+          <!-- Itemized Category Rows -->
+          <div class="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1">
+            {% for cat in category_breakdown %}
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center justify-between text-xs font-body-sm">
+                  <span class="text-on-surface font-medium flex items-center gap-1.5 min-w-0">
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ cat.color }};"></span>
+                    <span class="truncate">{{ cat.name }}</span>
+                  </span>
+                  <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                    <span class="font-display text-xs font-semibold text-on-surface tabular-nums">₹{{ cat.value|floatformat:2 }}</span>
+                    <span class="font-label-md text-[11px] text-on-surface-variant font-mono">{{ cat.percentage }}%</span>
+                  </div>
+                </div>
+                <div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};"></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-on-surface-variant mt-2">
+        <span>Allocation Basis</span>
+        <span class="font-label-md text-xs font-semibold text-on-surface">Monthly Spend</span>
       </div>
     </div>
 
-    <!-- Spending Channels & Payment Methods (7 cols) -->
+    <!-- Payment Method Breakdown (7 cols) -->
     <div class="lg:col-span-7 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col justify-between">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <h2 class="font-display text-base text-on-surface font-bold">Payment Methods & Velocity</h2>
-          <p class="font-body-sm text-xs text-on-surface-variant">Spending volume breakdown by payment channel</p>
+          <h2 class="font-display text-base text-on-surface font-bold">Payment Method Breakdown</h2>
+          <p class="font-body-sm text-xs text-on-surface-variant">
+            {% if active_payment_methods %}
+              {{ active_payment_methods|length }} active method{{ active_payment_methods|length|pluralize }}
+            {% else %}
+              Active payment methods & spending
+            {% endif %}
+          </p>
         </div>
-        <span class="text-xs text-outline">{{ payment_method_breakdown|length }} channels</span>
+        <span class="text-xs text-outline">{{ payment_method_breakdown|length }} supported</span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-auto">
-        {% for pm in payment_method_breakdown %}
-          <div class="p-3 rounded-xl bg-surface-container/40 border border-white/5 flex items-center justify-between hover:bg-surface-container/70 transition-all">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-white/5 flex items-center justify-center text-primary flex-shrink-0">
+      <!-- ACTIVE PAYMENT METHODS -->
+      <div class="my-auto py-1">
+        {% if not active_payment_methods %}
+          <!-- No Active Methods State -->
+          <div class="text-center py-7 flex flex-col items-center justify-center">
+            <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-outline mb-2">
+              <span class="material-symbols-outlined text-xl">payments</span>
+            </div>
+            <span class="font-display text-xs font-bold text-on-surface">No payment activity</span>
+            <p class="text-[11px] text-outline mt-0.5">No transactions logged under payment methods for this period.</p>
+          </div>
+
+        {% elif active_payment_methods|length == 1 %}
+          <!-- Single Active Method (Clean Banner Row) -->
+          {% with pm=active_payment_methods.0 %}
+          <div class="p-3.5 rounded-xl bg-surface-container/40 border border-white/5 flex items-center justify-between hover:bg-surface-container/70 transition-all">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-surface-container-high border border-white/5 flex items-center justify-center text-primary flex-shrink-0">
                 {% if pm.name == 'UPI' %}
                   <span class="material-symbols-outlined text-base">qr_code_scanner</span>
-                {% elif pm.name == 'Credit Card' or pm.name == 'Debit Card' %}
+                {% elif 'Card' in pm.name %}
                   <span class="material-symbols-outlined text-base">credit_card</span>
                 {% elif pm.name == 'Cash' %}
                   <span class="material-symbols-outlined text-base">payments</span>
@@ -1119,27 +1196,85 @@
                 {% endif %}
               </div>
               <div class="min-w-0">
-                <div class="font-label-md text-xs font-semibold text-on-surface truncate">{{ pm.name }}</div>
-                <div class="text-[10px] text-on-surface-variant">{{ pm.count }} transactions</div>
+                <div class="font-label-md text-xs font-bold text-on-surface truncate">{{ pm.name }}</div>
+                <div class="text-[11px] text-on-surface-variant">{{ pm.count }} transaction{{ pm.count|pluralize }} logged</div>
               </div>
             </div>
-            <div class="text-right flex-shrink-0 ml-2">
-              <div class="font-display text-sm font-bold text-on-surface tabular-nums">
+            <div class="text-right flex-shrink-0 ml-3">
+              <div class="font-display text-base font-bold text-on-surface tabular-nums">
                 ₹{{ pm.expense|floatformat:2 }}
               </div>
-              <div class="text-[10px] text-tertiary">In: ₹{{ pm.income|floatformat:0 }}</div>
+              <span class="text-[10px] text-primary font-medium">100% of method spend</span>
             </div>
           </div>
-        {% empty %}
-          <div class="col-span-full text-center py-6 text-xs text-outline">
-            No payment method data recorded.
+          {% endwith %}
+
+        {% else %}
+          <!-- Multiple Active Methods Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {% for pm in active_payment_methods %}
+              <div class="p-3 rounded-xl bg-surface-container/40 border border-white/5 flex items-center justify-between hover:bg-surface-container/70 transition-all">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-white/5 flex items-center justify-center text-primary flex-shrink-0">
+                    {% if pm.name == 'UPI' %}
+                      <span class="material-symbols-outlined text-base">qr_code_scanner</span>
+                    {% elif 'Card' in pm.name %}
+                      <span class="material-symbols-outlined text-base">credit_card</span>
+                    {% elif pm.name == 'Cash' %}
+                      <span class="material-symbols-outlined text-base">payments</span>
+                    {% else %}
+                      <span class="material-symbols-outlined text-base">account_balance</span>
+                    {% endif %}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-label-md text-xs font-semibold text-on-surface truncate">{{ pm.name }}</div>
+                    <div class="text-[10px] text-on-surface-variant">{{ pm.count }} transaction{{ pm.count|pluralize }}</div>
+                  </div>
+                </div>
+                <div class="text-right flex-shrink-0 ml-2">
+                  <div class="font-display text-sm font-bold text-on-surface tabular-nums">
+                    ₹{{ pm.expense|floatformat:2 }}
+                  </div>
+                  <div class="text-[10px] text-on-surface-variant font-medium">Spent</div>
+                </div>
+              </div>
+            {% endfor %}
           </div>
-        {% endfor %}
+        {% endif %}
+
+        <!-- Expandable Inactive Payment Methods Toggle -->
+        {% if inactive_payment_methods %}
+          <div class="mt-3 pt-2.5 border-t border-white/5">
+            <button type="button"
+                    id="toggle-inactive-pm-btn"
+                    onclick="toggleInactivePaymentMethods()"
+                    class="inline-flex items-center gap-1.5 text-[11px] font-medium text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+              <span class="material-symbols-outlined text-sm" id="toggle-inactive-pm-icon">expand_more</span>
+              <span id="toggle-inactive-pm-text">Show other supported methods ({{ inactive_payment_methods|length }})</span>
+            </button>
+            <div id="inactive-pm-container" class="hidden mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {% for pm in inactive_payment_methods %}
+                <div class="p-2.5 rounded-xl bg-surface-container/20 border border-white/5 flex items-center justify-between opacity-60 hover:opacity-100 transition-opacity">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="material-symbols-outlined text-sm text-outline">
+                      {% if pm.name == 'UPI' %}qr_code_scanner
+                      {% elif 'Card' in pm.name %}credit_card
+                      {% elif pm.name == 'Cash' %}payments
+                      {% else %}account_balance{% endif %}
+                    </span>
+                    <span class="text-xs text-on-surface-variant truncate">{{ pm.name }}</span>
+                  </div>
+                  <span class="text-[10px] text-outline">0 transactions</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
       </div>
 
       <!-- Footer Summary -->
       <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-on-surface-variant mt-2">
-        <span>Total Month Expenditure</span>
+        <span>Total Period Expenditure</span>
         <span class="font-display text-sm font-bold text-error tabular-nums">₹{{ total_month_spend|floatformat:2 }}</span>
       </div>
     </div>
@@ -1154,7 +1289,7 @@
         </div>
         <div>
           <h2 class="font-display text-base text-on-surface font-bold">Recent Transactions</h2>
-          <p class="font-body-sm text-xs text-on-surface-variant">Latest 20 financial operations & settlements</p>
+          <p class="font-body-sm text-xs text-on-surface-variant">Latest activity & settlements</p>
         </div>
       </div>
       <a href="{% url 'history' %}" class="inline-flex items-center gap-1 text-xs text-primary hover:underline font-bold no-underline">
@@ -1166,8 +1301,9 @@
     <!-- Transaction List Rows -->
     <div class="flex flex-col gap-2">
       {% if recent_transactions %}
-        {% for exp in recent_transactions %}
-          <div class="transaction-item-row flex items-center justify-between p-3 sm:px-4 sm:py-3 rounded-xl bg-surface-container/30 border border-white/5 hover:bg-surface-container-high/60 transition-all group"
+        <!-- Top 5 recent transactions -->
+        {% for exp in recent_transactions|slice:":5" %}
+          <div class="transaction-item-row flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-xl bg-surface-container/30 border border-white/5 hover:bg-surface-container-high/60 transition-all group relative"
                data-id="{{ exp.id }}"
                data-amount="{{ exp.amount }}"
                data-desc="{{ exp.description }}"
@@ -1179,7 +1315,7 @@
                onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')">
             
             <div class="flex items-center gap-3 min-w-0">
-              <div class="w-9 h-9 rounded-full bg-surface-container-highest border border-white/5 flex items-center justify-center flex-shrink-0 {% if exp.category == 'Income' %}text-tertiary{% else %}text-primary{% endif %}">
+              <div class="w-8 h-8 rounded-full bg-surface-container-highest border border-white/5 flex items-center justify-center flex-shrink-0 {% if exp.category == 'Income' %}text-tertiary{% else %}text-primary{% endif %}">
                 {% if exp.category == 'Income' %}
                   <span class="material-symbols-outlined text-base">south_west</span>
                 {% elif exp.category == 'Food' %}
@@ -1198,8 +1334,8 @@
                 <span class="text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
                   {{ exp.description|default:exp.category }}
                 </span>
-                <span class="text-xs text-on-surface-variant truncate">
-                  {{ exp.payment_method }} • {{ exp.account }} • {{ exp.date|date:"j M Y" }}
+                <span class="text-[11px] text-on-surface-variant truncate">
+                  {{ exp.date|date:"j M Y" }} • {{ exp.payment_method }} • {{ exp.account }}
                 </span>
               </div>
             </div>
@@ -1212,26 +1348,130 @@
                 <span class="text-[10px] text-outline">{{ exp.category }}</span>
               </div>
               
-              <!-- Action Buttons -->
-              <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+              <!-- Contextual Three-Dot Actions Menu -->
+              <div class="relative tx-action-dropdown-wrapper" onclick="event.stopPropagation()">
                 <button type="button"
-                        onclick="event.stopPropagation(); openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')"
-                        class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                        title="Edit Transaction">
-                  <span class="material-symbols-outlined text-base">edit</span>
+                        onclick="toggleTxActionMenu(event, 'tx-menu-{{ exp.id }}')"
+                        class="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/10 transition-colors cursor-pointer"
+                        title="Actions"
+                        aria-label="Transaction actions">
+                  <span class="material-symbols-outlined text-base">more_vert</span>
                 </button>
-                <button type="button"
-                        onclick="event.stopPropagation(); deleteTransaction('{{ exp.id }}')"
-                        class="p-1.5 text-on-surface-variant hover:text-error hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Transaction">
-                  <span class="material-symbols-outlined text-base">delete</span>
-                </button>
+                <div id="tx-menu-{{ exp.id }}"
+                     class="tx-dropdown-menu hidden absolute right-0 top-8 z-30 min-w-[130px] py-1 bg-surface-container-highest border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.7)] backdrop-blur-xl">
+                  <button type="button"
+                          onclick="event.stopPropagation(); closeAllTxMenus(); openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')"
+                          class="w-full px-3 py-1.5 text-left text-xs text-on-surface hover:bg-white/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">edit</span>
+                    <span>Edit</span>
+                  </button>
+                  <button type="button"
+                          onclick="event.stopPropagation(); closeAllTxMenus(); deleteTransaction('{{ exp.id }}')"
+                          class="w-full px-3 py-1.5 text-left text-xs text-error hover:bg-error/10 flex items-center gap-2 transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                    <span>Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         {% endfor %}
+
+        <!-- Expandable remaining transactions if more than 5 exist -->
+        {% if recent_transactions|length > 5 %}
+          <div id="remaining-txs-container" class="hidden flex flex-col gap-2">
+            {% for exp in recent_transactions|slice:"5:" %}
+              <div class="transaction-item-row flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-xl bg-surface-container/30 border border-white/5 hover:bg-surface-container-high/60 transition-all group relative"
+                   data-id="{{ exp.id }}"
+                   data-amount="{{ exp.amount }}"
+                   data-desc="{{ exp.description }}"
+                   data-category="{{ exp.category }}"
+                   data-account="{{ exp.account }}"
+                   data-method="{{ exp.payment_method }}"
+                   data-date="{{ exp.date|date:'Y-m-d' }}"
+                   style="cursor: pointer;"
+                   onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')">
+                
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-8 h-8 rounded-full bg-surface-container-highest border border-white/5 flex items-center justify-center flex-shrink-0 {% if exp.category == 'Income' %}text-tertiary{% else %}text-primary{% endif %}">
+                    {% if exp.category == 'Income' %}
+                      <span class="material-symbols-outlined text-base">south_west</span>
+                    {% elif exp.category == 'Food' %}
+                      <span class="material-symbols-outlined text-base">restaurant</span>
+                    {% elif exp.category == 'Shopping' %}
+                      <span class="material-symbols-outlined text-base">shopping_bag</span>
+                    {% elif exp.category == 'Travel' %}
+                      <span class="material-symbols-outlined text-base">flight</span>
+                    {% elif exp.category == 'Entertainment' %}
+                      <span class="material-symbols-outlined text-base">movie</span>
+                    {% else %}
+                      <span class="material-symbols-outlined text-base">receipt</span>
+                    {% endif %}
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+                      {{ exp.description|default:exp.category }}
+                    </span>
+                    <span class="text-[11px] text-on-surface-variant truncate">
+                      {{ exp.date|date:"j M Y" }} • {{ exp.payment_method }} • {{ exp.account }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 flex-shrink-0 ml-3">
+                  <div class="flex flex-col items-end">
+                    <span class="font-display text-sm font-bold tabular-nums {% if exp.category == 'Income' %}text-tertiary{% else %}text-error{% endif %}">
+                      {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+                    </span>
+                    <span class="text-[10px] text-outline">{{ exp.category }}</span>
+                  </div>
+                  
+                  <!-- Contextual Three-Dot Actions Menu -->
+                  <div class="relative tx-action-dropdown-wrapper" onclick="event.stopPropagation()">
+                    <button type="button"
+                            onclick="toggleTxActionMenu(event, 'tx-menu-{{ exp.id }}')"
+                            class="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/10 transition-colors cursor-pointer"
+                            title="Actions"
+                            aria-label="Transaction actions">
+                      <span class="material-symbols-outlined text-base">more_vert</span>
+                    </button>
+                    <div id="tx-menu-{{ exp.id }}"
+                         class="tx-dropdown-menu hidden absolute right-0 top-8 z-30 min-w-[130px] py-1 bg-surface-container-highest border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.7)] backdrop-blur-xl">
+                      <button type="button"
+                              onclick="event.stopPropagation(); closeAllTxMenus(); openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')"
+                              class="w-full px-3 py-1.5 text-left text-xs text-on-surface hover:bg-white/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer">
+                        <span class="material-symbols-outlined text-sm">edit</span>
+                        <span>Edit</span>
+                      </button>
+                      <button type="button"
+                              onclick="event.stopPropagation(); closeAllTxMenus(); deleteTransaction('{{ exp.id }}')"
+                              class="w-full px-3 py-1.5 text-left text-xs text-error hover:bg-error/10 flex items-center gap-2 transition-colors cursor-pointer">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <button type="button"
+                    id="toggle-more-txs-btn"
+                    onclick="toggleMoreTransactions()"
+                    class="text-xs text-on-surface-variant hover:text-primary transition-colors font-medium flex items-center gap-1 cursor-pointer">
+              <span class="material-symbols-outlined text-sm" id="toggle-more-txs-icon">expand_more</span>
+              <span id="toggle-more-txs-text">Show {{ recent_transactions|length|add:"-5" }} more recent transactions</span>
+            </button>
+            <a href="{% url 'history' %}" class="text-xs text-primary hover:underline font-semibold no-underline">
+              View All in Ledger →
+            </a>
+          </div>
+        {% endif %}
+
       {% else %}
-        <div class="text-center py-12 flex flex-col items-center justify-center">
+        <div class="text-center py-10 flex flex-col items-center justify-center">
           <div class="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center text-outline mb-3">
             <span class="material-symbols-outlined text-2xl">receipt_long</span>
           </div>
@@ -1243,11 +1483,13 @@
               Start tracking by logging your first expense or income above.
             {% endif %}
           </p>
-          <button type="button" onclick="openTransactionModal('expense')" class="mt-3 px-3 py-1.5 rounded-xl bg-primary text-on-primary-container font-label-md text-xs font-bold shadow-[0_0_12px_rgba(255,163,26,0.3)] cursor-pointer">
+          <button type="button" onclick="openTransactionModal('expense')" class="mt-3 px-3.5 py-2 rounded-xl bg-primary text-on-primary-container font-label-md text-xs font-bold shadow-[0_0_12px_rgba(255,163,26,0.3)] cursor-pointer">
             + Log First Expense
           </button>
         </div>
       {% endif %}
+    </div>
+  </div>
     </div>
   </div>
 </div>
@@ -2525,6 +2767,60 @@
       saveBtn.disabled = false;
       saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>Save Expense';
       if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
+  // Contextual Three-Dot Actions Menu
+  function toggleTxActionMenu(e, menuId) {
+    e.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    const isHidden = menu.classList.contains('hidden');
+    closeAllTxMenus();
+    if (isHidden) {
+      menu.classList.remove('hidden');
+    }
+  }
+
+  function closeAllTxMenus() {
+    document.querySelectorAll('.tx-dropdown-menu').forEach(m => m.classList.add('hidden'));
+  }
+
+  document.addEventListener('click', closeAllTxMenus);
+
+  // Inactive Payment Methods Toggle
+  function toggleInactivePaymentMethods() {
+    const container = document.getElementById('inactive-pm-container');
+    const icon = document.getElementById('toggle-inactive-pm-icon');
+    const text = document.getElementById('toggle-inactive-pm-text');
+    if (!container) return;
+    const isHidden = container.classList.contains('hidden');
+    if (isHidden) {
+      container.classList.remove('hidden');
+      if (icon) icon.textContent = 'expand_less';
+      if (text) text.textContent = 'Hide inactive methods';
+    } else {
+      container.classList.add('hidden');
+      if (icon) icon.textContent = 'expand_more';
+      if (text) text.textContent = 'Show other supported methods';
+    }
+  }
+
+  // More Recent Transactions Toggle
+  function toggleMoreTransactions() {
+    const container = document.getElementById('remaining-txs-container');
+    const icon = document.getElementById('toggle-more-txs-icon');
+    const text = document.getElementById('toggle-more-txs-text');
+    if (!container) return;
+    const isHidden = container.classList.contains('hidden');
+    if (isHidden) {
+      container.classList.remove('hidden');
+      if (icon) icon.textContent = 'expand_less';
+      if (text) text.textContent = 'Show top 5 only';
+    } else {
+      container.classList.add('hidden');
+      if (icon) icon.textContent = 'expand_more';
+      if (text) text.textContent = 'Show more recent transactions';
     }
   }
 

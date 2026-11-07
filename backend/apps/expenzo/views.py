@@ -187,6 +187,8 @@ def dashboard_view(request):
         }
         for name, data in pm_stats.items()
     ]
+    active_payment_methods = [pm for pm in payment_method_breakdown if pm['count'] > 0 or pm['expense'] > 0]
+    inactive_payment_methods = [pm for pm in payment_method_breakdown if pm['count'] == 0 and pm['expense'] == 0]
     
     pm_chart_base64 = None
     
@@ -260,6 +262,8 @@ def dashboard_view(request):
         'pie_chart': pie_chart_base64,
         'account_breakdown': account_breakdown,
         'payment_method_breakdown': payment_method_breakdown,
+        'active_payment_methods': active_payment_methods,
+        'inactive_payment_methods': inactive_payment_methods,
         'pm_chart': pm_chart_base64,
         'filter_type': filter_type,
         'search_query': search_query,
