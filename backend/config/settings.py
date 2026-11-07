@@ -279,6 +279,10 @@ STORAGES = {
     },
 }
 
+# WhiteNoise production caching for immutable/static assets (1 year)
+WHITENOISE_MAX_AGE = 31536000
+WHITENOISE_MANIFEST_STRICT = False
+
 # ==================================================
 # MEDIA FILES
 # ==================================================
