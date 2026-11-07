@@ -460,9 +460,17 @@ def history_view(request):
             'expenses': exps,
             'total_spend': total_spend,
             'total_income': total_income,
+            'net_movement': total_income - total_spend,
+            'tx_count': len(exps),
             'category_breakdown': breakdown
         })
         
+    total_filtered_spend = sum(m['total_spend'] for m in grouped_months)
+    total_filtered_income = sum(m['total_income'] for m in grouped_months)
+    total_filtered_tx_count = sum(m['tx_count'] for m in grouped_months)
+    total_filtered_net = total_filtered_income - total_filtered_spend
+    has_active_filters = bool(search_query or category_filter != 'All' or account_filter != 'All' or payment_filter != 'All')
+
     context = {
         'grouped_months': grouped_months,
         'categories': categories,
@@ -471,7 +479,12 @@ def history_view(request):
         'search_query': search_query,
         'selected_category': category_filter,
         'selected_account': account_filter,
-        'selected_payment': payment_filter
+        'selected_payment': payment_filter,
+        'total_filtered_spend': total_filtered_spend,
+        'total_filtered_income': total_filtered_income,
+        'total_filtered_tx_count': total_filtered_tx_count,
+        'total_filtered_net': total_filtered_net,
+        'has_active_filters': has_active_filters,
     }
     return render(request, 'history.html', context)
 

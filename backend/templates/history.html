@@ -1,354 +1,925 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Expense History - EXPENZO{% endblock %}
+{% block title %}Personal Spend — Expense History | EXPENZO{% endblock %}
 
 {% block extra_css %}
 <style>
-  .history-container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 0.5rem;
+  :root {
+    --bg-base: #111318;
+    --surface-card: #20232A;
+    --surface-elevated: #292D36;
+    --surface-subtle: #16181F;
+    --accent-amber: #FFAC35;
+    --accent-green: #19C783;
+    --accent-coral: #FF6262;
+    --text-high: #F5F5F5;
+    --text-muted: #A7ABB4;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-focus: rgba(255, 172, 53, 0.4);
   }
-  .history-header-row {
+
+  .history-container {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0.5rem 0.25rem 3rem 0.25rem;
+  }
+
+  /* Header & Navigation Pills */
+  .ledger-page-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 1.25rem;
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
-    gap: 1rem;
   }
-  .btn-back-dashboard {
+
+  .sub-nav-pill-strip {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 0.9rem;
-    text-decoration: none;
-    margin-bottom: 0.5rem;
-    transition: var(--transition-fast);
-  }
-  .btn-back-dashboard:hover {
-    color: var(--accent-primary);
-  }
-  .filters-card {
-    padding: 1.5rem;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    background: rgba(32, 35, 42, 0.7);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    backdrop-filter: blur(16px);
     margin-bottom: 1.5rem;
-    background: rgba(18, 19, 22, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: var(--glass-blur);
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    overflow-x: auto;
+    max-width: 100%;
   }
-  .filters-row {
-    display: flex;
-    gap: 1.25rem;
-    flex-wrap: wrap;
+
+  .sub-nav-pill {
+    display: inline-flex;
     align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
   }
-  .filter-group {
-    flex: 1 1 200px;
+
+  .sub-nav-pill:hover {
+    color: var(--text-high);
+    background: rgba(255, 255, 255, 0.05);
   }
-  .filter-group label {
-    display: block;
+
+  .sub-nav-pill.active {
+    background: var(--accent-amber);
+    color: #111318;
+    box-shadow: 0 0 16px rgba(255, 172, 53, 0.25);
+  }
+
+  /* Telemetry Cards */
+  .telemetry-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .telemetry-card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.6rem;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .telemetry-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px);
+  }
+
+  .telemetry-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+
+  .telemetry-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Filter Panel */
+  .ledger-filter-panel {
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 2.2fr 1fr 1fr 1fr;
+    gap: 1rem;
+    align-items: flex-end;
+  }
+
+  .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .filter-field label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-secondary);
-    margin-bottom: 0.5rem;
+    color: var(--text-muted);
   }
-  .filter-group .input-control, .filter-group select {
-    background: #090a0d !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 12px;
-    color: var(--text-primary);
-    padding: 0.65rem 1rem;
-    font-size: 0.9rem;
+
+  .ledger-input, .ledger-select {
+    background: var(--surface-subtle) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 10px;
+    color: var(--text-high) !important;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.84rem;
+    height: 42px;
     width: 100%;
-    transition: var(--transition-fast);
-  }
-  .filter-group .input-control:focus, .filter-group select:focus {
-    border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 12px rgba(255, 163, 26, 0.25) !important;
     outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
   }
-  .month-group-card {
-    margin-bottom: 1.25rem;
+
+  .ledger-input:focus, .ledger-select:focus {
+    border-color: var(--accent-amber) !important;
+    box-shadow: 0 0 0 3px rgba(255, 172, 53, 0.15) !important;
+  }
+
+  .search-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-wrapper .search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    pointer-events: none;
+  }
+
+  .search-wrapper input {
+    padding-left: 2.5rem;
+    padding-right: 2.2rem;
+  }
+
+  .search-clear-btn {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color 0.15s ease;
+  }
+
+  .search-clear-btn:hover {
+    color: var(--text-high);
+  }
+
+  .filter-active-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 172, 53, 0.08);
+    border: 1px solid rgba(255, 172, 53, 0.25);
+    color: var(--accent-amber);
+    padding: 0.25rem 0.65rem;
     border-radius: 20px;
-    background: rgba(18, 19, 22, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: var(--glass-blur);
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    transition: var(--transition-fast);
+    font-size: 0.72rem;
+    font-weight: 600;
   }
+
+  .btn-reset-filters {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    margin-left: auto;
+  }
+
+  .btn-reset-filters:hover {
+    color: var(--text-high);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  /* Export Action Toolbar */
+  .export-toolbar-card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    padding: 1.15rem 1.5rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-high);
+  }
+
+  .export-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .export-btn-pdf:hover {
+    border-color: rgba(255, 172, 53, 0.4);
+    box-shadow: 0 0 14px rgba(255, 172, 53, 0.15);
+  }
+
+  .export-btn-excel:hover {
+    border-color: rgba(25, 199, 131, 0.4);
+    box-shadow: 0 0 14px rgba(25, 199, 131, 0.15);
+  }
+
+  /* Monthly Section Grouping */
+  .month-group-card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    margin-bottom: 1.25rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+  }
+
   .month-group-card:hover {
-    border-color: rgba(255, 163, 26, 0.35);
+    border-color: rgba(255, 255, 255, 0.14);
   }
+
   .month-group-header {
-    padding: 1.25rem 1.75rem;
+    padding: 1.15rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
     user-select: none;
-    transition: var(--transition-fast);
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.015);
+    transition: background 0.15s ease;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
   }
+
+  .month-group-card.collapsed .month-group-header {
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+  }
+
   .month-group-header:hover {
-    background: rgba(255, 163, 26, 0.04);
+    background: rgba(255, 255, 255, 0.035);
   }
-  .month-title-info {
+
+  .month-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .month-header-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-high);
+    letter-spacing: -0.01em;
+  }
+
+  .month-header-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-badge-spent {
+    background: rgba(255, 98, 98, 0.1);
+    color: var(--accent-coral);
+    border: 1px solid rgba(255, 98, 98, 0.2);
+  }
+
+  .stat-badge-income {
+    background: rgba(25, 199, 131, 0.1);
+    color: var(--accent-green);
+    border: 1px solid rgba(25, 199, 131, 0.2);
+  }
+
+  .stat-badge-net {
+    background: rgba(255, 172, 53, 0.1);
+    color: var(--accent-amber);
+    border: 1px solid rgba(255, 172, 53, 0.2);
+  }
+
+  .stat-badge-count {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .month-header-right {
     display: flex;
     align-items: center;
     gap: 1rem;
   }
-  .month-label {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .month-total-spend {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border-color);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-  }
-  .month-breakdown-row {
+
+  .category-breakdown-strip {
     display: flex;
-    gap: 0.75rem;
+    align-items: center;
+    gap: 0.35rem;
     flex-wrap: wrap;
-    align-items: center;
   }
-  .breakdown-pill {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 20px;
+
+  .cat-mini-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+  }
+
+  .chevron-indicator {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    transition: transform 0.2s ease, background 0.15s ease, color 0.15s ease;
   }
+
+  .chevron-indicator.expanded {
+    transform: rotate(180deg);
+    color: var(--accent-amber);
+    background: rgba(255, 172, 53, 0.1);
+  }
+
+  /* Ledger Table / List */
   .month-expenses-content {
-    border-top: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(17, 19, 24, 0.4);
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
   }
-  .tx-table {
+
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+
+  .ledger-table th {
+    text-align: left;
+    padding: 0.85rem 1.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.015);
+  }
+
+  .ledger-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.12s ease;
+  }
+
+  .ledger-row:last-child {
+    border-bottom: none;
+  }
+
+  .ledger-row:hover {
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .ledger-cell {
+    padding: 0.95rem 1.5rem;
+    vertical-align: middle;
+  }
+
+  .category-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--surface-subtle);
+  }
+
+  .category-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+
+  .category-pill-income {
+    background: rgba(25, 199, 131, 0.1);
+    color: var(--accent-green);
+    border-color: rgba(25, 199, 131, 0.25);
+  }
+
+  .category-pill-expense {
+    background: rgba(255, 172, 53, 0.08);
+    color: var(--accent-amber);
+    border-color: rgba(255, 172, 53, 0.2);
+  }
+
+  .amount-val {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+    letter-spacing: -0.01em;
+  }
+
+  .amount-val-income {
+    color: var(--accent-green);
+  }
+
+  .amount-val-expense {
+    color: var(--accent-coral);
+  }
+
+  /* Contextual 3-Dot Action Menu */
+  .tx-menu-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .btn-tx-menu {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .btn-tx-menu:hover {
+    color: var(--text-high);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-subtle);
+  }
+
+  .tx-menu-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: #181B22;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
+    padding: 0.35rem;
+    min-width: 155px;
+    z-index: 100;
+    display: none;
+  }
+
+  .tx-menu-dropdown.show {
+    display: block;
+  }
+
+  .tx-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: none;
+    background: none;
+    color: var(--text-high);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease;
+  }
+
+  .tx-menu-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .tx-menu-item-delete {
+    color: var(--accent-coral);
+  }
+
+  .tx-menu-item-delete:hover {
+    background: rgba(255, 98, 98, 0.1);
+  }
+
+  /* Modals */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  .modal-content {
+    background: #181B22;
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    max-height: 65vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .form-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-high);
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-primary {
+    background: var(--accent-amber);
+    border: 1px solid var(--accent-amber);
+    color: #111318;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+
+  /* Responsive Desktop Table vs Mobile Cards */
+  .ledger-desktop-table {
+    display: table;
     width: 100%;
     border-collapse: collapse;
   }
-  .tx-table th {
-    text-align: left;
-    padding: 1rem 1.75rem;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border-color);
-    font-weight: 600;
-  }
-  .tx-table td {
-    padding: 1rem 1.75rem;
-    font-size: 0.9rem;
-    border-bottom: 1px solid rgba(255,255,255,0.02);
-    color: var(--text-primary);
-  }
-  .tx-table tr:last-child td {
-    border-bottom: none;
-  }
-  .amount-income {
-    color: var(--accent-success);
-    font-weight: 700;
-  }
-  .amount-expense {
-    color: var(--accent-danger);
-    font-weight: 700;
-  }
-  .text-success { color: var(--accent-success); }
-  .text-danger { color: var(--accent-danger); }
-  .icon-income { color: var(--accent-success); }
-  .icon-expense { color: var(--accent-primary); }
-  
-  .border-income { border: 1px solid var(--accent-success); }
-  .border-expense { border: 1px solid var(--accent-primary); }
 
-  .modal-body {
-    max-height: 55vh;
-    overflow-y: auto;
-  }
-  .empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: var(--text-secondary);
+  .ledger-mobile-cards {
+    display: none;
   }
 
-  @media (max-width: 768px) {
-    .month-expenses-content {
-      overflow-x: hidden;
+  @media (max-width: 640px) {
+    .ledger-desktop-table {
+      display: none !important;
     }
-    .tx-table thead {
-      display: none;
+
+    .ledger-mobile-cards {
+      display: block !important;
     }
-    .tx-table, .tx-table tbody, .tx-table tr, .tx-table td {
-      display: block;
+  }
+  @media (max-width: 900px) {
+    .filter-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .history-container {
+      padding: 0.5rem 0.25rem 2rem 0.25rem;
+    }
+
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .telemetry-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .export-toolbar-card {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .export-toolbar-card > div:last-child {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .export-btn {
+      justify-content: center;
       width: 100%;
     }
-    .tx-table tr {
-      margin-bottom: 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background: rgba(255,255,255,0.01);
+
+    .month-group-header {
+      padding: 1rem;
     }
-    .tx-table td {
+
+    /* Mobile Card Layout for Transactions */
+    .ledger-table thead {
+      display: none;
+    }
+
+    .ledger-table, .ledger-table tbody, .ledger-row, .ledger-cell {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .ledger-row {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .ledger-cell {
+      padding: 0;
+      border: none;
+    }
+
+    .mobile-row-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      text-align: right !important;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 0.85rem;
+      gap: 0.75rem;
+      width: 100%;
     }
-    .tx-table td:last-child {
-      border-bottom: none;
-    }
-    .tx-table td::before {
-      content: attr(data-label);
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-size: 0.7rem;
-      text-align: left;
-    }
-    .month-title-info {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.25rem;
-    }
-  }
 
-  .tabs-row {
-    display: flex;
-    gap: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 2rem;
-  }
-  .tab-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    padding: 0.75rem 1rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: var(--transition-fast);
-    text-decoration: none;
-    display: inline-block;
-  }
-  .tab-btn:hover {
-    color: var(--text-primary);
-  }
-  .tab-btn.active {
-    color: var(--text-primary);
-    border-bottom-color: var(--accent-primary);
-  }
-  .tab-btn.active::after {
-    display: none !important;
+    .mobile-row-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.4rem;
+      padding-left: 2.75rem;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="history-container">
-  
-  <!-- Header row -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+
+  <!-- Page Header -->
+  <header class="ledger-page-header">
     <div>
-      <div class="flex items-center gap-2">
-        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Personal Spend</h1>
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">HISTORY</span>
+      <div class="flex items-center gap-2.5">
+        <h1 class="text-2xl lg:text-3xl font-extrabold text-[#F5F5F5] tracking-tight">Personal Spend</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#FFAC35]/15 border border-[#FFAC35]/30 text-[#FFAC35] text-[11px] font-bold font-mono tracking-wider">
+          HISTORY
+        </span>
       </div>
-      <p class="text-sm text-on-surface-variant mt-1">Complete multi-account ledger and historical telemetry.</p>
+      <p class="text-xs sm:text-sm text-[#A7ABB4] mt-1.5 font-normal">
+        Track, filter, and audit your multi-account personal transactions and financial telemetry.
+      </p>
     </div>
-    
-    <div class="flex items-center gap-3">
-      <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright border border-white/5 text-on-surface text-xs font-semibold transition-all">
-        <span class="material-symbols-outlined text-sm text-primary">arrow_back</span>
+
+    <div class="flex items-center gap-2.5">
+      <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#20232A] hover:bg-[#292D36] border border-white/10 text-[#F5F5F5] text-xs font-semibold transition-all">
+        <span class="material-symbols-outlined text-sm text-[#FFAC35]">arrow_back</span>
         <span>Back to Deck</span>
       </a>
     </div>
-  </div>
+  </header>
 
-  <!-- Navigation Sub-Pills -->
-  <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit mb-6 overflow-x-auto">
-    <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">dashboard</span>
+  <!-- Sub Navigation Pills -->
+  <nav class="sub-nav-pill-strip" aria-label="Financial Views">
+    <a href="{% url 'dashboard' %}" class="sub-nav-pill">
+      <span class="material-symbols-outlined text-[15px]">dashboard</span>
       <span>Dashboard</span>
     </a>
-    <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">receipt_long</span>
+    <a href="{% url 'history' %}" class="sub-nav-pill active">
+      <span class="material-symbols-outlined text-[15px]">receipt_long</span>
       <span>Expense History</span>
     </a>
-    <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
+    <a href="{% url 'recurring' %}" class="sub-nav-pill">
+      <span class="material-symbols-outlined text-[15px]">sync_saved_locally</span>
       <span>Recurring Finance</span>
     </a>
-    <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">monitoring</span>
+    <a href="{% url 'personal_charts' %}" class="sub-nav-pill">
+      <span class="material-symbols-outlined text-[15px]">monitoring</span>
       <span>Charts</span>
     </a>
-  </div>
+  </nav>
 
-  <!-- Filters Card -->
-  <div class="glass-card filters-card">
+  <!-- Telemetry Strip -->
+  <section class="telemetry-grid" aria-label="Ledger Telemetry">
+    <div class="telemetry-card">
+      <div class="telemetry-label">
+        <span>Filtered Spent</span>
+        <span class="material-symbols-outlined text-sm text-[#FF6262]">trending_down</span>
+      </div>
+      <div class="telemetry-value text-[#FF6262]">
+        ₹{{ total_filtered_spend|floatformat:2 }}
+      </div>
+    </div>
+
+    <div class="telemetry-card">
+      <div class="telemetry-label">
+        <span>Filtered Inflow</span>
+        <span class="material-symbols-outlined text-sm text-[#19C783]">trending_up</span>
+      </div>
+      <div class="telemetry-value text-[#19C783]">
+        ₹{{ total_filtered_income|floatformat:2 }}
+      </div>
+    </div>
+
+    <div class="telemetry-card">
+      <div class="telemetry-label">
+        <span>Net Flow</span>
+        <span class="material-symbols-outlined text-sm {% if total_filtered_net >= 0 %}text-[#19C783]{% else %}text-[#FF6262]{% endif %}">
+          {% if total_filtered_net >= 0 %}account_balance_wallet{% else %}price_check{% endif %}
+        </span>
+      </div>
+      <div class="telemetry-value {% if total_filtered_net >= 0 %}text-[#19C783]{% else %}text-[#FF6262]{% endif %}">
+        {% if total_filtered_net >= 0 %}+{% endif %}₹{{ total_filtered_net|floatformat:2 }}
+      </div>
+    </div>
+
+    <div class="telemetry-card">
+      <div class="telemetry-label">
+        <span>Ledger Entries</span>
+        <span class="material-symbols-outlined text-sm text-[#FFAC35]">format_list_bulleted</span>
+      </div>
+      <div class="telemetry-value text-[#F5F5F5]">
+        {{ total_filtered_tx_count }} <span class="text-xs font-medium text-[#A7ABB4]">txs</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter Panel -->
+  <section class="ledger-filter-panel" aria-label="Ledger Filters">
     <form method="GET" action="{% url 'history' %}" id="filter-form">
       <button type="submit" style="display: none;" tabindex="-1" aria-hidden="true"></button>
-      <div class="filters-row">
-        <!-- Search bar -->
-        <div class="filter-group" style="flex: 2 1 300px; position: relative;">
-          <label class="form-label font-xs">Search Description</label>
-          <div style="position: relative;">
-            <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px;"></i>
+      <div class="filter-grid">
+        <!-- Search Description -->
+        <div class="filter-field">
+          <label for="filter-search">Search Description</label>
+          <div class="search-wrapper">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input
+              type="text"
+              name="search"
+              id="filter-search"
+              placeholder="e.g. rent, coffee, client salary, grocery..."
+              class="ledger-input"
+              value="{{ search_query }}"
+              onchange="document.getElementById('filter-form').submit()"
+            />
             {% if search_query %}
-              <input
-                type="text"
-                name="search"
-                placeholder="e.g. rent, lunch, grocery..."
-                class="input-control"
-                value="{{ search_query }}"
-                style="padding-left: 2.25rem; padding-right: 2.25rem; box-sizing: border-box; width: 100%;"
-                onchange="document.getElementById('filter-form').submit()"
-              />
-            {% else %}
-              <input
-                type="text"
-                name="search"
-                placeholder="e.g. rent, lunch, grocery..."
-                class="input-control"
-                value="{{ search_query }}"
-                style="padding-left: 2.25rem; box-sizing: border-box; width: 100%;"
-                onchange="document.getElementById('filter-form').submit()"
-              />
-            {% endif %}
-            {% if search_query %}
-              <a href="javascript:void(0)" aria-label="Clear search" onclick="document.querySelector('input[name=search]').value=''; document.getElementById('filter-form').submit();" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
-                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
-              </a>
+              <button
+                type="button"
+                class="search-clear-btn"
+                aria-label="Clear search query"
+                onclick="document.getElementById('filter-search').value=''; document.getElementById('filter-form').submit();"
+              >
+                <span class="material-symbols-outlined text-base">close</span>
+              </button>
             {% endif %}
           </div>
         </div>
 
         <!-- Category Filter -->
-        <div class="filter-group">
-          <label for="filter-category" class="form-label font-xs">Category</label>
-          <select name="category" id="filter-category" aria-label="Filter by category" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
+        <div class="filter-field">
+          <label for="filter-category">Category</label>
+          <select name="category" id="filter-category" class="ledger-select" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Categories</option>
             {% for cat in categories %}
               <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -357,9 +928,9 @@
         </div>
 
         <!-- Account Filter -->
-        <div class="filter-group">
-          <label for="filter-account" class="form-label font-xs">Account</label>
-          <select name="account" id="filter-account" aria-label="Filter by account" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
+        <div class="filter-field">
+          <label for="filter-account">Account</label>
+          <select name="account" id="filter-account" class="ledger-select" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Accounts</option>
             {% for acc in accounts %}
               <option value="{{ acc }}" {% if selected_account == acc %}selected{% endif %}>{{ acc }}</option>
@@ -368,9 +939,9 @@
         </div>
 
         <!-- Payment Method Filter -->
-        <div class="filter-group">
-          <label for="filter-payment-method" class="form-label font-xs">Payment Method</label>
-          <select name="paymentMethod" id="filter-payment-method" aria-label="Filter by payment method" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
+        <div class="filter-field">
+          <label for="filter-payment-method">Payment Method</label>
+          <select name="paymentMethod" id="filter-payment-method" class="ledger-select" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Methods</option>
             {% for method in payment_methods %}
               <option value="{{ method }}" {% if selected_payment == method %}selected{% endif %}>{{ method }}</option>
@@ -378,136 +949,381 @@
           </select>
         </div>
       </div>
-    </form>
-  </div>
 
-  <!-- Export Expense History -->
-  <div class="rounded-2xl bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 p-5 mb-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div>
-        <h2 class="font-display text-base font-bold text-on-surface flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-lg">download</span>
-          <span>Export Expense Statement</span>
-        </h3>
-        <p class="text-xs text-on-surface-variant mt-1">Download complete transaction statements for personal compliance, tax filing, or auditing.</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <a href="{% url 'export_expenses_pdf' %}" download class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-primary-container/20 border border-white/10 hover:border-primary/40 text-on-surface text-xs font-bold transition-all shadow-[0_0_15px_rgba(255,163,26,0.1)]">
-          <span class="material-symbols-outlined text-base text-primary">picture_as_pdf</span>
-          <span>Download PDF</span>
-        </a>
-        <a href="{% url 'export_expenses_excel' %}" download class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-tertiary-container/20 border border-white/10 hover:border-tertiary/40 text-on-surface text-xs font-bold transition-all shadow-[0_0_15px_rgba(83,236,180,0.1)]">
-          <span class="material-symbols-outlined text-base text-tertiary">table_view</span>
-          <span>Download Excel</span>
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <!-- History Groups Lists -->
-  {% if not grouped_months %}
-    <div class="glass-card empty-state">
-      <i data-lucide="info" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
-      <h2 style="font-size: 1.1rem; font-weight: 600;">No Transaction Records Found</h2>
-      <p style="font-size: 0.9rem; margin-top: 0.25rem;">Try adjusting your filters or add transactions on the dashboard.</p>
-    </div>
-  {% else %}
-    {% for month in grouped_months %}
-      <div class="month-group-card">
-        <!-- Collapsible Header -->
-        <div class="month-group-header" onclick="toggleMonth('{{ month.key }}')">
-          <div class="month-title-info" style="align-items: center; flex-wrap: wrap;">
-            <span class="month-label">{{ month.label }}</span>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              {% if month.total_income > 0 %}
-                <span class="month-total-spend" style="color: var(--accent-success); border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">Income: ₹{{ month.total_income|floatformat:2 }}</span>
-              {% endif %}
-              {% if month.total_spend > 0 or month.total_income == 0 %}
-                <span class="month-total-spend" style="color: var(--accent-danger); border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.05);">Spend: ₹{{ month.total_spend|floatformat:2 }}</span>
-              {% endif %}
-            </div>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 1.5rem;">
-            <!-- Category Pills Breakdown -->
-            <div class="month-breakdown-row" style="display: flex; gap: 0.5rem;">
-              {% for break in month.category_breakdown %}
-                <span class="breakdown-pill color-border-apply" data-color="{{ break.color|default:'#000' }}" style="background: rgba(255,255,255,0.01);">
-                  <span class="color-bg-apply" data-color="{{ break.color|default:'#000' }}" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%;"></span>
-                  {{ break.name }}: ₹{{ break.amount|floatformat:0 }}
-                </span>
-              {% endfor %}
-            </div>
-            <!-- Arrow indicators -->
-            <i data-lucide="chevron-down" id="arrow-{{ month.key }}" style="color: var(--text-secondary); width: 20px; height: 20px;"></i>
-          </div>
+      <!-- Active Filters Strip -->
+      {% if has_active_filters %}
+        <div class="filter-active-chips">
+          <span class="text-xs text-[#A7ABB4] font-medium">Active Filters:</span>
+          {% if search_query %}
+            <span class="filter-chip">
+              Search: "{{ search_query }}"
+            </span>
+          {% endif %}
+          {% if selected_category != 'All' %}
+            <span class="filter-chip">
+              Category: {{ selected_category }}
+            </span>
+          {% endif %}
+          {% if selected_account != 'All' %}
+            <span class="filter-chip">
+              Account: {{ selected_account }}
+            </span>
+          {% endif %}
+          {% if selected_payment != 'All' %}
+            <span class="filter-chip">
+              Method: {{ selected_payment }}
+            </span>
+          {% endif %}
+          <a href="{% url 'history' %}" class="btn-reset-filters">
+            <span class="material-symbols-outlined text-sm">filter_alt_off</span>
+            <span>Reset All</span>
+          </a>
         </div>
+      {% endif %}
+    </form>
+  </section>
 
-        <!-- Collapsible Table -->
-        <div class="month-expenses-content" id="content-{{ month.key }}" style="display: none;">
-          <table class="tx-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Account / Method</th>
-                <th style="text-align: right;">Amount</th>
-                <th style="text-align: right; width: 80px;" aria-label="Actions"><span class="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
+  <!-- Export Statement Toolbar -->
+  <section class="export-toolbar-card" aria-label="Statement Export">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-[#FFAC35]/10 border border-[#FFAC35]/25 flex items-center justify-center text-[#FFAC35] flex-shrink-0">
+        <span class="material-symbols-outlined text-xl">file_download</span>
+      </div>
+      <div>
+        <h2 class="text-sm font-bold text-[#F5F5F5] flex items-center gap-1.5">
+          <span>Export Statement</span>
+        </h2>
+        <p class="text-xs text-[#A7ABB4] mt-0.5">
+          Generate compliant PDF statements or structured Excel spreadsheets for personal auditing and tax filings.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <a href="{% url 'export_expenses_pdf' %}" download class="export-btn export-btn-pdf" title="Export as PDF">
+        <span class="material-symbols-outlined text-base text-[#FFAC35]">picture_as_pdf</span>
+        <span>Download PDF</span>
+      </a>
+      <a href="{% url 'export_expenses_excel' %}" download class="export-btn export-btn-excel" title="Export as Excel">
+        <span class="material-symbols-outlined text-base text-[#19C783]">table_view</span>
+        <span>Download Excel</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Monthly Transaction Groupings -->
+  <section aria-label="Monthly Transactions Ledger">
+    {% if not grouped_months %}
+      <div class="bg-[#20232A] border border-white/5 rounded-2xl p-12 text-center">
+        <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#A7ABB4]">
+          <span class="material-symbols-outlined text-3xl">receipt_long</span>
+        </div>
+        <h2 class="text-base font-bold text-[#F5F5F5]">No Ledger Records Found</h2>
+        <p class="text-xs text-[#A7ABB4] mt-1 max-w-md mx-auto">
+          No transactions match your current search and filter settings. Try clearing your filters or record transactions from the dashboard.
+        </p>
+        {% if has_active_filters %}
+          <div class="mt-4">
+            <a href="{% url 'history' %}" class="btn-primary inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2">
+              <span class="material-symbols-outlined text-sm">filter_alt_off</span>
+              <span>Clear Active Filters</span>
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="flex items-center justify-between mb-3 px-1">
+        <span class="text-xs font-bold text-[#A7ABB4] uppercase tracking-wider">
+          Historical Ledger ({{ grouped_months|length }} Monthly Cycles)
+        </span>
+        <button
+          type="button"
+          id="toggle-all-months-btn"
+          onclick="toggleAllMonths()"
+          class="text-xs font-semibold text-[#FFAC35] hover:underline flex items-center gap-1 bg-transparent border-0 cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-sm" id="toggle-all-icon">unfold_more</span>
+          <span id="toggle-all-text">Expand All</span>
+        </button>
+      </div>
+
+      {% for month in grouped_months %}
+        <div class="month-group-card" id="card-{{ month.key }}">
+          <!-- Collapsible Header -->
+          <div class="month-group-header" onclick="toggleMonth('{{ month.key }}')" role="button" tabindex="0" aria-expanded="false" aria-controls="content-{{ month.key }}">
+            <div class="month-header-left">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg text-[#FFAC35]">calendar_month</span>
+                <span class="month-header-title">{{ month.label }}</span>
+              </div>
+              
+              <div class="month-header-stats">
+                {% if month.total_income > 0 %}
+                  <span class="stat-badge stat-badge-income">
+                    +₹{{ month.total_income|floatformat:2 }} In
+                  </span>
+                {% endif %}
+                <span class="stat-badge stat-badge-spent">
+                  -₹{{ month.total_spend|floatformat:2 }} Spent
+                </span>
+                <span class="stat-badge stat-badge-net">
+                  Net: {% if month.net_movement >= 0 %}+{% endif %}₹{{ month.net_movement|floatformat:2 }}
+                </span>
+                <span class="stat-badge stat-badge-count">
+                  {{ month.tx_count }} records
+                </span>
+              </div>
+            </div>
+
+            <div class="month-header-right">
+              <!-- Category Breakdown Pills -->
+              <div class="category-breakdown-strip hidden md:flex">
+                {% for break in month.category_breakdown|slice:":4" %}
+                  <span class="cat-mini-chip">
+                    <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ break.color|default:'#FFAC35' }};"></span>
+                    <span>{{ break.name }}: ₹{{ break.amount|floatformat:0 }}</span>
+                  </span>
+                {% endfor %}
+                {% if month.category_breakdown|length > 4 %}
+                  <span class="cat-mini-chip">+{{ month.category_breakdown|length|add:"-4" }}</span>
+                {% endif %}
+              </div>
+
+              <!-- Chevron indicator -->
+              <div class="chevron-indicator" id="arrow-{{ month.key }}">
+                <span class="material-symbols-outlined text-base">expand_more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collapsible Table Content -->
+          <div class="month-expenses-content" id="content-{{ month.key }}" style="display: none;">
+            <!-- Desktop Table View -->
+            <table class="ledger-table ledger-desktop-table">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">Date</th>
+                  <th>Description</th>
+                  <th style="width: 150px;">Category</th>
+                  <th style="width: 180px;">Account & Method</th>
+                  <th style="text-align: right; width: 140px;">Amount</th>
+                  <th style="text-align: right; width: 60px;" aria-label="Actions"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for exp in month.expenses %}
+                  <tr class="ledger-row"
+                      data-id="{{ exp.id }}"
+                      data-amount="{{ exp.amount }}"
+                      data-desc="{{ exp.description }}"
+                      data-category="{{ exp.category }}"
+                      data-account="{{ exp.account }}"
+                      data-method="{{ exp.payment_method }}"
+                      data-date="{{ exp.date|date:'Y-m-d' }}">
+                    
+                    <!-- Date Column -->
+                    <td class="ledger-cell" style="white-space: nowrap;">
+                      <div class="text-xs font-semibold text-[#F5F5F5]">{{ exp.date|date:"d M Y" }}</div>
+                      <div class="text-[11px] text-[#A7ABB4]">{{ exp.date|date:"l" }}</div>
+                    </td>
+
+                    <!-- Description Column -->
+                    <td class="ledger-cell">
+                      <div class="flex items-center gap-3">
+                        <div class="category-icon-box {% if exp.category == 'Income' %}text-[#19C783]{% else %}text-[#FFAC35]{% endif %}">
+                          {% if exp.category == 'Income' %}
+                            <span class="material-symbols-outlined text-lg">south_west</span>
+                          {% elif exp.category == 'Food' %}
+                            <span class="material-symbols-outlined text-lg">restaurant</span>
+                          {% elif exp.category == 'Travel' %}
+                            <span class="material-symbols-outlined text-lg">flight</span>
+                          {% elif exp.category == 'Shopping' %}
+                            <span class="material-symbols-outlined text-lg">shopping_bag</span>
+                          {% elif exp.category == 'Entertainment' %}
+                            <span class="material-symbols-outlined text-lg">movie</span>
+                          {% elif exp.category == 'Rent' %}
+                            <span class="material-symbols-outlined text-lg">home</span>
+                          {% elif exp.category == 'Utilities' %}
+                            <span class="material-symbols-outlined text-lg">bolt</span>
+                          {% elif exp.category == 'Health' %}
+                            <span class="material-symbols-outlined text-lg">medical_services</span>
+                          {% elif exp.category == 'Education' %}
+                            <span class="material-symbols-outlined text-lg">school</span>
+                          {% elif exp.category == 'Investment' %}
+                            <span class="material-symbols-outlined text-lg">trending_up</span>
+                          {% else %}
+                            <span class="material-symbols-outlined text-lg">receipt</span>
+                          {% endif %}
+                        </div>
+
+                        <div class="min-w-0">
+                          <div class="font-semibold text-sm text-[#F5F5F5] truncate flex items-center gap-1.5">
+                            <span>{{ exp.description|default:exp.category }}</span>
+                            {% if exp.is_recurring %}
+                              <span class="material-symbols-outlined text-[13px] text-[#FFAC35]" title="Recurring Transaction">sync</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Category Column -->
+                    <td class="ledger-cell">
+                      <span class="category-pill {% if exp.category == 'Income' %}category-pill-income{% else %}category-pill-expense{% endif %}">
+                        {{ exp.category }}
+                      </span>
+                    </td>
+
+                    <!-- Account / Method Column -->
+                    <td class="ledger-cell">
+                      <div class="text-xs font-semibold text-[#F5F5F5]">{{ exp.account }}</div>
+                      <div class="text-[11px] text-[#A7ABB4]">{{ exp.payment_method }}</div>
+                    </td>
+
+                    <!-- Amount Column -->
+                    <td class="ledger-cell" style="text-align: right; white-space: nowrap;">
+                      <span class="amount-val {% if exp.category == 'Income' %}amount-val-income{% else %}amount-val-expense{% endif %}">
+                        {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+                      </span>
+                    </td>
+
+                    <!-- Contextual 3-Dot Action Menu -->
+                    <td class="ledger-cell" style="text-align: right;">
+                      <div class="tx-menu-wrapper">
+                        <button
+                          type="button"
+                          class="btn-tx-menu"
+                          aria-label="Transaction Options"
+                          onclick="toggleTxActionMenu(event, 'tx-menu-{{ exp.id }}')"
+                        >
+                          <span class="material-symbols-outlined text-lg">more_vert</span>
+                        </button>
+
+                        <div class="tx-menu-dropdown" id="tx-menu-{{ exp.id }}">
+                          <button
+                            type="button"
+                            class="tx-menu-item"
+                            onclick="triggerEditTx('{{ exp.id }}')"
+                          >
+                            <span class="material-symbols-outlined text-sm text-[#FFAC35]">edit</span>
+                            <span>Edit Transaction</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="tx-menu-item tx-menu-item-delete"
+                            onclick="triggerDeleteTx('{{ exp.id }}')"
+                          >
+                            <span class="material-symbols-outlined text-sm text-[#FF6262]">delete</span>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <!-- Mobile Card Layout -->
+            <div class="ledger-mobile-cards">
               {% for exp in month.expenses %}
-                <tr data-id="{{ exp.id }}"
-                    data-amount="{{ exp.amount }}"
-                    data-desc="{{ exp.description }}"
-                    data-category="{{ exp.category }}"
-                    data-account="{{ exp.account }}"
-                    data-method="{{ exp.payment_method }}"
-                    data-date="{{ exp.date|date:'Y-m-d' }}">
-                  <td data-label="Date">{{ exp.date|date:"F d, Y" }}</td>
-                  <td data-label="Description" style="font-weight: 500;">{{ exp.description }}</td>
-                  <td data-label="Category">
-                    <span class="breakdown-pill {% if exp.category == 'Income' %}border-income{% else %}border-expense{% endif %}" style="width: fit-content; padding: 0.1rem 0.5rem;">
+                <div class="ledger-row"
+                     data-id="{{ exp.id }}"
+                     data-amount="{{ exp.amount }}"
+                     data-desc="{{ exp.description }}"
+                     data-category="{{ exp.category }}"
+                     data-account="{{ exp.account }}"
+                     data-method="{{ exp.payment_method }}"
+                     data-date="{{ exp.date|date:'Y-m-d' }}">
+                  
+                  <div class="mobile-row-top">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <div class="category-icon-box {% if exp.category == 'Income' %}text-[#19C783]{% else %}text-[#FFAC35]{% endif %}">
+                        {% if exp.category == 'Income' %}
+                          <span class="material-symbols-outlined text-base">south_west</span>
+                        {% elif exp.category == 'Food' %}
+                          <span class="material-symbols-outlined text-base">restaurant</span>
+                        {% elif exp.category == 'Travel' %}
+                          <span class="material-symbols-outlined text-base">flight</span>
+                        {% elif exp.category == 'Shopping' %}
+                          <span class="material-symbols-outlined text-base">shopping_bag</span>
+                        {% elif exp.category == 'Entertainment' %}
+                          <span class="material-symbols-outlined text-base">movie</span>
+                        {% elif exp.category == 'Rent' %}
+                          <span class="material-symbols-outlined text-base">home</span>
+                        {% elif exp.category == 'Utilities' %}
+                          <span class="material-symbols-outlined text-base">bolt</span>
+                        {% elif exp.category == 'Health' %}
+                          <span class="material-symbols-outlined text-base">medical_services</span>
+                        {% elif exp.category == 'Education' %}
+                          <span class="material-symbols-outlined text-base">school</span>
+                        {% elif exp.category == 'Investment' %}
+                          <span class="material-symbols-outlined text-base">trending_up</span>
+                        {% else %}
+                          <span class="material-symbols-outlined text-base">receipt</span>
+                        {% endif %}
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-xs font-semibold text-[#F5F5F5] truncate">
+                          {{ exp.description|default:exp.category }}
+                        </div>
+                        <div class="text-[11px] text-[#A7ABB4]">
+                          {{ exp.date|date:"d M Y" }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <span class="amount-val {% if exp.category == 'Income' %}amount-val-income{% else %}amount-val-expense{% endif %}">
+                        {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
+                      </span>
+
+                      <div class="tx-menu-wrapper">
+                        <button
+                          type="button"
+                          class="btn-tx-menu"
+                          aria-label="Transaction Options"
+                          onclick="toggleTxActionMenu(event, 'tx-menu-mob-{{ exp.id }}')"
+                        >
+                          <span class="material-symbols-outlined text-base">more_vert</span>
+                        </button>
+
+                        <div class="tx-menu-dropdown" id="tx-menu-mob-{{ exp.id }}">
+                          <button
+                            type="button"
+                            class="tx-menu-item"
+                            onclick="triggerEditTx('{{ exp.id }}')"
+                          >
+                            <span class="material-symbols-outlined text-sm text-[#FFAC35]">edit</span>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="tx-menu-item tx-menu-item-delete"
+                            onclick="triggerDeleteTx('{{ exp.id }}')"
+                          >
+                            <span class="material-symbols-outlined text-sm text-[#FF6262]">delete</span>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mobile-row-bottom">
+                    <span>{{ exp.account }} • {{ exp.payment_method }}</span>
+                    <span class="category-pill {% if exp.category == 'Income' %}category-pill-income{% else %}category-pill-expense{% endif %}">
                       {{ exp.category }}
                     </span>
-                  </td>
-                  <td data-label="Account / Method">
-                    <span style="font-weight: 500;">{{ exp.account }}</span><br>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">{{ exp.payment_method }}</span>
-                  </td>
-                  <td data-label="Amount" style="text-align: right; white-space: nowrap;" class="{% if exp.category == 'Income' %}amount-income{% else %}amount-expense{% endif %}">
-                    {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
-                  </td>
-                  <td data-label="Actions" style="text-align: right; white-space: nowrap;">
-                    <div style="display: inline-flex; align-items: center; gap: 14px; justify-content: flex-end;">
-                      <button
-                        type="button"
-                        class="btn-edit-transaction"
-                        style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; box-sizing: border-box; transition: var(--transition-fast);"
-                        title="Edit Transaction"
-                      >
-                        <i data-lucide="pencil" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
-                      </button>
-                      <button
-                        type="button"
-                        class="btn-delete-transaction"
-                        data-id="{{ exp.id }}"
-                        style="background: none; border: none; color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; box-sizing: border-box; transition: var(--transition-fast);"
-                        title="Delete Expense"
-                      >
-                        <i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--accent-danger);"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               {% endfor %}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
-      </div>
-    {% endfor %}
-  {% endif %}
+      {% endfor %}
+    {% endif %}
+  </section>
 
 </div>
 
@@ -515,9 +1331,9 @@
 <div class="modal-overlay" id="transaction-modal" style="display: none;">
   <div class="modal-content">
     <div class="modal-header">
-      <h2 class="chart-card-title" id="tx-modal-title">Edit Expense</h2>
-      <button onclick="closeTransactionModal()" aria-label="Close modal" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
-        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      <h2 class="text-base font-bold text-[#F5F5F5]" id="tx-modal-title">Edit Expense</h2>
+      <button type="button" onclick="closeTransactionModal()" aria-label="Close modal" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+        <span class="material-symbols-outlined text-xl">close</span>
       </button>
     </div>
     <form id="transaction-form" onsubmit="saveTransaction(event)">
@@ -525,16 +1341,16 @@
       <input type="hidden" id="tx-id" value="">
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">Amount (₹)</label>
-          <input type="number" id="tx-amount" class="input-control" placeholder="0.00" required min="0.01" step="0.01" />
+          <label class="form-label" for="tx-amount">Amount (₹)</label>
+          <input type="number" id="tx-amount" class="ledger-input" placeholder="0.00" required min="0.01" step="0.01" />
         </div>
         <div class="form-group">
-          <label class="form-label">Description</label>
-          <input type="text" id="tx-description" class="input-control" placeholder="e.g. Grocery, Lunch" required />
+          <label class="form-label" for="tx-description">Description</label>
+          <input type="text" id="tx-description" class="ledger-input" placeholder="e.g. Grocery, Lunch" required />
         </div>
         <div class="form-group" id="tx-category-group">
-          <label class="form-label">Category</label>
-          <select id="tx-category" class="input-control" style="background: #0d121f;" onchange="toggleCustomCategoryInput()">
+          <label class="form-label" for="tx-category">Category</label>
+          <select id="tx-category" class="ledger-select" onchange="toggleCustomCategoryInput()">
             <option value="Food">Food</option>
             <option value="Travel">Travel</option>
             <option value="Shopping">Shopping</option>
@@ -548,19 +1364,19 @@
             <option value="Income">Income</option>
             <option value="__CUSTOM__">Custom Category...</option>
           </select>
-          <input type="text" id="tx-custom-category" class="input-control" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />
+          <input type="text" id="tx-custom-category" class="ledger-input" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />
         </div>
         <div class="form-group">
-          <label class="form-label">Account</label>
-          <select id="tx-account" class="input-control" style="background: #0d121f;" onchange="togglePaymentMethod()">
+          <label class="form-label" for="tx-account">Account</label>
+          <select id="tx-account" class="ledger-select" onchange="togglePaymentMethod()">
             <option value="Bank Account">Bank Account</option>
             <option value="Cash">Cash</option>
             <option value="Credit Card">Credit Card</option>
           </select>
         </div>
         <div class="form-group" id="tx-payment-group">
-          <label class="form-label">Payment Method</label>
-          <select id="tx-payment" class="input-control" style="background: #0d121f;">
+          <label class="form-label" for="tx-payment">Payment Method</label>
+          <select id="tx-payment" class="ledger-select">
             <option value="UPI">UPI</option>
             <option value="Debit Card">Debit Card</option>
             <option value="Bank Transfer">Bank Transfer</option>
@@ -569,30 +1385,33 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Date</label>
-          <input type="date" id="tx-date" class="input-control" value="{% now 'Y-m-d' %}" required />
+          <label class="form-label" for="tx-date">Date</label>
+          <input type="date" id="tx-date" class="ledger-input" value="{% now 'Y-m-d' %}" required />
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeTransactionModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <button type="button" class="btn-secondary" onclick="closeTransactionModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Save Changes</button>
       </div>
     </form>
   </div>
+</div>
 
 <!-- Generic Delete Modal -->
 <div class="modal-overlay" id="delete-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
   <div class="modal-content" style="max-width: 400px; padding: 2rem;">
     <div style="text-align: center;">
-      <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
-      <h2 id="delete-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Confirm Action</h3>
-      <p id="delete-modal-message" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+      <div class="w-12 h-12 rounded-full bg-[#FF6262]/15 border border-[#FF6262]/30 flex items-center justify-center text-[#FF6262] mx-auto mb-3">
+        <span class="material-symbols-outlined text-2xl">warning</span>
+      </div>
+      <h2 id="delete-modal-title" style="margin-bottom: 0.5rem; color: #F5F5F5; font-size: 1.15rem; font-weight: 700;">Confirm Action</h2>
+      <p id="delete-modal-message" style="color: #A7ABB4; margin-bottom: 1.5rem; font-size: 0.85rem; line-height: 1.4;">
         Are you sure you want to proceed? This action cannot be undone.
       </p>
     </div>
-    <div style="display: flex; gap: 1rem; justify-content: center;">
-      <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
-      <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="flex: 1; background: var(--accent-danger); border-color: var(--accent-danger);">Delete</button>
+    <div style="display: flex; gap: 0.75rem; justify-content: center;">
+      <button type="button" class="btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
+      <button type="button" class="btn-primary" id="confirm-delete-btn" style="flex: 1; background: #FF6262; border-color: #FF6262; color: #fff;">Delete</button>
     </div>
   </div>
 </div>
@@ -601,19 +1420,110 @@
 
 {% block extra_js %}
 <script>
-  // Automatically expand the first month group on load
-  window.addEventListener('DOMContentLoaded', () => {
+  let deleteActionCallback = null;
+  let allMonthsExpanded = false;
+
+  // Global Contextual Dropdown Closer
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.tx-menu-wrapper')) {
+      closeAllTxMenus();
+    }
+  });
+
+  function closeAllTxMenus() {
+    document.querySelectorAll('.tx-menu-dropdown.show').forEach(m => m.classList.remove('show'));
+  }
+
+  function toggleTxActionMenu(event, menuId) {
+    event.stopPropagation();
+    event.preventDefault();
+    const targetMenu = document.getElementById(menuId);
+    if (!targetMenu) return;
+    const isShown = targetMenu.classList.contains('show');
+    closeAllTxMenus();
+    if (!isShown) {
+      targetMenu.classList.add('show');
+    }
+  }
+
+  function triggerEditTx(id) {
+    closeAllTxMenus();
+    const row = document.querySelector(`[data-id="${id}"]`);
+    if (row) {
+      openEditPersonalModal(
+        row.dataset.id,
+        row.dataset.amount,
+        row.dataset.desc,
+        row.dataset.category,
+        row.dataset.account,
+        row.dataset.method,
+        row.dataset.date
+      );
+    }
+  }
+
+  function triggerDeleteTx(id) {
+    closeAllTxMenus();
+    deletePersonalExpense(id);
+  }
+
+  // Month Expand / Collapse Logic
+  function toggleMonth(key) {
+    const content = document.getElementById(`content-${key}`);
+    const arrow = document.getElementById(`arrow-${key}`);
+    const card = document.getElementById(`card-${key}`);
+    if (!content) return;
+
+    if (content.style.display === 'none' || content.style.display === '') {
+      content.style.display = 'block';
+      if (arrow) arrow.classList.add('expanded');
+      if (card) card.classList.remove('collapsed');
+    } else {
+      content.style.display = 'none';
+      if (arrow) arrow.classList.remove('expanded');
+      if (card) card.classList.add('collapsed');
+    }
+  }
+
+  function toggleAllMonths() {
+    allMonthsExpanded = !allMonthsExpanded;
+    const toggleBtnText = document.getElementById('toggle-all-text');
+    const toggleBtnIcon = document.getElementById('toggle-all-icon');
+
+    document.querySelectorAll('.month-expenses-content').forEach(content => {
+      content.style.display = allMonthsExpanded ? 'block' : 'none';
+    });
+
+    document.querySelectorAll('.chevron-indicator').forEach(arrow => {
+      if (allMonthsExpanded) {
+        arrow.classList.add('expanded');
+      } else {
+        arrow.classList.remove('expanded');
+      }
+    });
+
+    document.querySelectorAll('.month-group-card').forEach(card => {
+      if (allMonthsExpanded) {
+        card.classList.remove('collapsed');
+      } else {
+        card.classList.add('collapsed');
+      }
+    });
+
+    if (toggleBtnText) {
+      toggleBtnText.innerText = allMonthsExpanded ? 'Collapse All' : 'Expand All';
+    }
+    if (toggleBtnIcon) {
+      toggleBtnIcon.innerText = allMonthsExpanded ? 'unfold_less' : 'unfold_more';
+    }
+  }
+
+  // Auto-expand first month on load
+  function initHistoryPage() {
     const firstKey = "{{ grouped_months.0.key|default:'' }}";
     if (firstKey) {
       toggleMonth(firstKey);
     }
-
-    document.querySelectorAll('.color-border-apply').forEach(el => {
-      el.style.borderColor = el.getAttribute('data-color');
-    });
-    document.querySelectorAll('.color-bg-apply').forEach(el => {
-      el.style.backgroundColor = el.getAttribute('data-color');
-    });
 
     const confirmBtn = document.getElementById('confirm-delete-btn');
     if (confirmBtn) {
@@ -629,30 +1539,30 @@
     const urlParams = new URLSearchParams(window.location.search);
     const filterDate = urlParams.get('date');
     if (filterDate) {
-      document.querySelectorAll('.tx-table tbody tr').forEach(row => {
+      document.querySelectorAll('[data-date]').forEach(row => {
         if (row.getAttribute('data-date') !== filterDate) {
           row.style.display = 'none';
         }
       });
 
       document.querySelectorAll('.month-group-card').forEach(card => {
-        const visibleRows = card.querySelectorAll('.tx-table tbody tr:not([style*="display: none"])');
+        const visibleRows = card.querySelectorAll('[data-date]:not([style*="display: none"])');
         if (visibleRows.length === 0) {
           card.style.display = 'none';
         } else {
           card.style.display = 'block';
           const content = card.querySelector('.month-expenses-content');
           if (content) content.style.display = 'block';
-          const arrow = card.querySelector('.month-group-header i');
-          if (arrow) arrow.setAttribute('data-lucide', 'chevron-up');
+          const arrow = card.querySelector('.chevron-indicator');
+          if (arrow) arrow.classList.add('expanded');
         }
       });
 
       const container = document.querySelector('.history-container');
       if (container) {
         const banner = document.createElement('div');
-        banner.className = 'glass-card';
-        banner.style.cssText = 'padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--accent-primary); border-radius: var(--radius-md);';
+        banner.className = 'telemetry-card';
+        banner.style.cssText = 'padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-color: var(--accent-amber);';
         
         const dateParts = filterDate.split('-');
         let formattedDate = filterDate;
@@ -661,74 +1571,32 @@
         }
         
         banner.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="filter" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
-            <span style="font-size: 0.9rem; color: var(--text-primary);">Showing transactions for <strong>${formattedDate}</strong></span>
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <span class="material-symbols-outlined text-lg text-[#FFAC35]">filter_alt</span>
+            <span style="font-size: 0.85rem; color: #F5F5F5;">Telemetry Filter: Showing records for <strong>${formattedDate}</strong></span>
           </div>
-          <a href="{% url 'history' %}" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; height: auto; display: inline-flex; align-items: center; text-decoration: none;">Clear Filter</a>
+          <a href="{% url 'history' %}" class="btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; text-decoration: none;">Clear Date</a>
         `;
-        container.insertBefore(banner, container.querySelector('.filters-card'));
-        if (window.lucide) window.lucide.createIcons();
+        container.insertBefore(banner, container.querySelector('.ledger-filter-panel'));
       }
     }
-  });
-
-  // Global event delegation for action buttons
-  document.addEventListener('click', (e) => {
-    const editBtn = e.target.closest('.btn-edit-transaction');
-    if (editBtn) {
-      e.stopPropagation();
-      e.preventDefault();
-      const row = editBtn.closest('tr');
-      if (row) {
-        openEditPersonalModal(
-          row.dataset.id,
-          row.dataset.amount,
-          row.dataset.desc,
-          row.dataset.category,
-          row.dataset.account,
-          row.dataset.method,
-          row.dataset.date
-        );
-      }
-      return;
-    }
-
-    const deleteBtn = e.target.closest('.btn-delete-transaction');
-    if (deleteBtn) {
-      e.stopPropagation();
-      e.preventDefault();
-      const id = deleteBtn.getAttribute('data-id');
-      if (id) {
-        deletePersonalExpense(id);
-      }
-      return;
-    }
-  });
-
-  function toggleMonth(key) {
-    const content = document.getElementById(`content-${key}`);
-    const arrow = document.getElementById(`arrow-${key}`);
-    
-    if (content.style.display === 'none') {
-      content.style.display = 'block';
-      arrow.setAttribute('data-lucide', 'chevron-up');
-    } else {
-      content.style.display = 'none';
-      arrow.setAttribute('data-lucide', 'chevron-down');
-    }
-    
-    lucide.createIcons();
   }
 
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHistoryPage);
+  } else {
+    initHistoryPage();
+  }
 
+  // Modal handlers
   function togglePaymentMethod() {
     const accountSelect = document.getElementById('tx-account');
     const paymentGroup = document.getElementById('tx-payment-group');
     const paymentSelect = document.getElementById('tx-payment');
+    if (!accountSelect || !paymentSelect) return;
     
     if (accountSelect.value === 'Bank Account') {
-      paymentGroup.style.display = 'block';
+      if (paymentGroup) paymentGroup.style.display = 'block';
       if (paymentSelect.options.length < 3) {
         paymentSelect.innerHTML = '<option value="UPI">UPI</option><option value="Debit Card">Debit Card</option><option value="Bank Transfer">Bank Transfer</option>';
       }
@@ -736,7 +1604,7 @@
         paymentSelect.value = 'UPI';
       }
     } else {
-      paymentGroup.style.display = 'none';
+      if (paymentGroup) paymentGroup.style.display = 'none';
       if (accountSelect.value === 'Cash') {
         paymentSelect.innerHTML = '<option value="Cash">Cash</option>';
         paymentSelect.value = 'Cash';
@@ -750,6 +1618,7 @@
   function toggleCustomCategoryInput() {
     const categorySelect = document.getElementById('tx-category');
     const customInput = document.getElementById('tx-custom-category');
+    if (!categorySelect || !customInput) return;
     if (categorySelect.value === '__CUSTOM__') {
       customInput.style.display = 'block';
       customInput.required = true;
@@ -805,16 +1674,17 @@
 
     const title = document.getElementById('tx-modal-title');
     const catGroup = document.getElementById('tx-category-group');
-    title.innerText = 'Edit Expense';
+    if (title) title.innerText = 'Edit Expense';
     
-    if (category === 'Income') {
-      catGroup.style.display = 'none';
-    } else {
-      catGroup.style.display = 'block';
+    if (catGroup) {
+      if (category === 'Income') {
+        catGroup.style.display = 'none';
+      } else {
+        catGroup.style.display = 'block';
+      }
     }
 
     document.getElementById('transaction-modal').style.display = 'flex';
-    lucide.createIcons();
   }
 
   function closeTransactionModal() {
@@ -857,8 +1727,6 @@
       alert('Error saving transaction');
     }
   }
-
-  let deleteActionCallback = null;
 
   function openGenericDeleteModal(title, message, callback) {
     document.getElementById('delete-modal-title').innerText = title;
