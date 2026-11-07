@@ -4,9 +4,9 @@
 {% block title %}Access Denied - EXPENZO{% endblock %}
 
 {% block content %}
-<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center; color: var(--text-secondary);">
-  <i data-lucide="shield-alert" style="width: 64px; height: 64px; color: var(--accent-danger); margin-bottom: 1.5rem;"></i>
-  <h1 style="color: var(--text-primary); margin-bottom: 0.5rem; font-size: 2rem;">Access Denied</h1>
+<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center; color: #A7ABB4;">
+  <span class="material-symbols-outlined text-6xl text-rose-500 mb-4" style="display: block;">gpp_maybe</span>
+  <h1 style="color: #F5F5F5; margin-bottom: 0.5rem; font-size: 2rem; font-weight: 700;">Access Denied</h1>
   <p style="font-size: 1rem; max-width: 450px; line-height: 1.5;">
     {% if error %}
       {{ error }}
@@ -15,13 +15,13 @@
     {% endif %}
   </p>
   {% if error %}
-  <a href="{% url 'login' %}" class="btn btn-primary" style="margin-top: 2rem; padding: 0.6rem 1.5rem; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
-    <i data-lucide="home" style="width: 18px; height: 18px;"></i>
+  <a href="{% url 'login' %}" class="btn btn-primary" style="margin-top: 2rem; padding: 0.6rem 1.5rem; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; border-radius: 0.75rem;">
+    <span class="material-symbols-outlined text-lg">home</span>
     <span>Go Home</span>
   </a>
   {% else %}
-  <a href="{% url 'groups' %}" class="btn btn-primary" style="margin-top: 2rem; padding: 0.6rem 1.5rem; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
-    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+  <a href="{% url 'groups' %}" class="btn btn-primary" style="margin-top: 2rem; padding: 0.6rem 1.5rem; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; border-radius: 0.75rem;">
+    <span class="material-symbols-outlined text-lg">arrow_back</span>
     <span>Back to Groups</span>
   </a>
   {% endif %}

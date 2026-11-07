@@ -616,10 +616,6 @@
       <span class="material-symbols-outlined text-sm">monitoring</span>
       <span>Charts & Analytics</span>
     </a>
-    <a href="{% url 'spending_streaks' %}" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-      <span class="material-symbols-outlined text-sm">local_fire_department</span>
-      <span>Streaks</span>
-    </a>
   </div>
 
   <!-- 2. FOUR-CARD FINANCIAL OVERVIEW -->
@@ -1502,11 +1498,11 @@
     <!-- Header -->
     <div class="modal-header">
       <div style="display:flex;align-items:center;gap:0.6rem;">
-        <i data-lucide="scan-line" style="width:20px;height:20px;color:var(--accent-primary);"></i>
+        <span class="material-symbols-outlined text-xl text-primary">document_scanner</span>
         <h3 class="chart-card-title" style="margin:0;" id="scan-modal-title">Scan Receipt</h3>
       </div>
       <button onclick="closeScanReceiptModal()" aria-label="Close scan receipt modal" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;">
-        <i data-lucide="x" style="width:20px;height:20px;"></i>
+        <span class="material-symbols-outlined text-xl">close</span>
       </button>
     </div>
 
@@ -1523,7 +1519,7 @@
            ondrop="handleReceiptDrop(event)"
            onclick="document.getElementById('scan-file-input').click()"
            style="border:2px dashed rgba(129,140,248,0.4);border-radius:14px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:rgba(129,140,248,0.04);">
-        <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--accent-primary);margin:0 auto 0.75rem;display:block;opacity:0.8;"></i>
+        <span class="material-symbols-outlined text-4xl text-primary mx-auto mb-3 block opacity-80" style="font-size: 40px;">cloud_upload</span>
         <p style="font-size:0.95rem;font-weight:600;color:var(--text-primary);margin:0 0 0.35rem;">Drop receipt here or click to browse</p>
         <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">PDF, PNG, JPG, JPEG, WEBP &nbsp;·&nbsp; Max 10 MB</p>
       </div>
@@ -1541,7 +1537,7 @@
         <button type="button" class="btn btn-secondary" onclick="closeScanReceiptModal()">Cancel</button>
         <button type="button" class="btn btn-primary" id="scan-process-btn" onclick="processReceipt()" disabled
                 style="opacity:0.5;transition:opacity 0.2s;">
-          <i data-lucide="cpu" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
+          <span class="material-symbols-outlined text-sm align-middle mr-1 text-primary">memory</span>
           Scan Receipt
         </button>
       </div>
@@ -1550,7 +1546,7 @@
     <!-- SCREEN 2: Loading / OCR Progress -->
     <div id="scan-screen-loading" class="modal-body" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
       <div style="width:64px;height:64px;border-radius:50%;background:rgba(129,140,248,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
-        <i data-lucide="scan-line" style="width:32px;height:32px;color:var(--accent-primary);" id="scan-loading-icon"></i>
+        <span class="material-symbols-outlined text-3xl text-primary animate-spin" id="scan-loading-icon" style="font-size: 32px;">sync</span>
       </div>
       <h4 id="scan-loading-msg" style="font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 0.35rem;">Scanning Receipt...</h4>
       <p id="scan-loading-sub" style="font-size:0.82rem;color:var(--text-secondary);margin:0 0 1.5rem;">Please wait while we read your receipt.</p>
@@ -1566,12 +1562,12 @@
 
       <!-- OCR Confidence badge -->
       <div id="scan-confidence-bar" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;padding:0.6rem 0.85rem;border-radius:10px;background:rgba(129,140,248,0.07);border:1px solid rgba(129,140,248,0.15);">
-        <i data-lucide="shield-check" style="width:15px;height:15px;color:var(--accent-primary);flex-shrink:0;"></i>
+        <span class="material-symbols-outlined text-base text-primary flex-shrink-0">verified_user</span>
         <span style="font-size:0.78rem;color:var(--text-secondary);flex:1;">OCR Accuracy</span>
         <span id="scan-confidence-val" style="font-size:0.85rem;font-weight:700;color:var(--accent-primary);">—</span>
       </div>
       <div id="scan-low-confidence-note" style="display:none;font-size:0.78rem;color:#fb923c;margin-bottom:0.85rem;padding:0.5rem 0.75rem;background:rgba(251,146,60,0.08);border-radius:8px;border:1px solid rgba(251,146,60,0.2);">
-        <i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>
+        <span class="material-symbols-outlined text-xs align-middle mr-1 text-amber-400">warning</span>
         Please verify the extracted information before saving.
       </div>
 
@@ -1629,11 +1625,11 @@
 
       <div class="modal-footer" style="margin-top:0.5rem;">
         <button type="button" class="btn btn-secondary" onclick="resetScanModal()">
-          <i data-lucide="arrow-left" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>
+          <span class="material-symbols-outlined text-xs align-middle mr-1">arrow_back</span>
           Back
         </button>
         <button type="button" class="btn btn-primary" onclick="saveScanExpense()" id="scan-save-btn">
-          <i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>
+          <span class="material-symbols-outlined text-xs align-middle mr-1">save</span>
           Save Expense
         </button>
       </div>
@@ -1641,7 +1637,7 @@
 
     <!-- SCREEN 4: Error -->
     <div id="scan-screen-error" class="modal-body" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
-      <i data-lucide="file-x" style="width:48px;height:48px;color:var(--accent-danger);margin:0 auto 1rem;display:block;"></i>
+      <span class="material-symbols-outlined text-5xl text-rose-500 mx-auto mb-4 block" style="font-size: 48px;">error</span>
       <h4 style="font-size:1rem;color:var(--text-primary);margin:0 0 0.5rem;">Unable to Read Receipt</h4>
       <p id="scan-error-msg" style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 1.5rem;">Please upload a clearer image and try again.</p>
       <div style="display:flex;gap:0.75rem;justify-content:center;">
@@ -1660,7 +1656,7 @@
     <div class="modal-header tx-modal-header">
       <div class="tx-header-left">
         <div class="tx-header-icon-box icon-income-badge" id="tx-modal-icon">
-          <i data-lucide="arrow-down-left" style="width: 20px; height: 20px;"></i>
+          <span class="material-symbols-outlined text-xl">south_west</span>
         </div>
         <div class="tx-header-text">
           <h3 class="chart-card-title tx-modal-title" id="tx-modal-title">Add Income</h3>
@@ -1668,7 +1664,7 @@
         </div>
       </div>
       <button type="button" class="tx-close-btn" onclick="closeTransactionModal()" title="Close" aria-label="Close modal">
-        <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        <span class="material-symbols-outlined text-lg">close</span>
       </button>
     </div>
     <form id="transaction-form" onsubmit="saveTransaction(event)">
@@ -1733,7 +1729,7 @@
               <option value="__CUSTOM__">Custom Category...</option>
             </select>
             <span class="tx-select-icon">
-              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+              <span class="material-symbols-outlined text-base">expand_more</span>
             </span>
           </div>
           <input type="text" id="tx-custom-category" class="input-control tx-field-control" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />
@@ -1751,7 +1747,7 @@
               <option value="Credit Card">Credit Card</option>
             </select>
             <span class="tx-select-icon">
-              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+              <span class="material-symbols-outlined text-base">expand_more</span>
             </span>
           </div>
         </div>
@@ -1768,7 +1764,7 @@
               <option value="Bank Transfer">Bank Transfer</option>
             </select>
             <span class="tx-select-icon">
-              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+              <span class="material-symbols-outlined text-base">expand_more</span>
             </span>
           </div>
         </div>
@@ -1802,7 +1798,7 @@
 <div class="modal-overlay" id="delete-modal" style="display: none;">
   <div class="modal-content" style="max-width: 400px; padding: 2rem;">
     <div style="text-align: center;">
-      <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
+      <span class="material-symbols-outlined text-5xl text-rose-500 mb-4 block" style="font-size: 48px;">warning</span>
       <h3 style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Delete Transaction</h3>
       <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
         Are you sure you want to delete this transaction? This action cannot be undone.
@@ -1820,7 +1816,7 @@
   <div class="modal-content" style="max-width: 400px; padding: 2rem;">
     <div style="text-align: center; margin-bottom: 1.5rem;">
       <div style="width: 64px; height: 64px; background: rgba(245, 158, 11, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-        <i data-lucide="alert-triangle" style="width: 32px; height: 32px; color: #f59e0b;"></i>
+        <span class="material-symbols-outlined text-3xl text-amber-500" style="font-size: 32px;">warning</span>
       </div>
       <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">Insufficient Balance</h3>
       <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;" id="negative-balance-message">
@@ -1938,7 +1934,7 @@
       if (subtitle) subtitle.innerText = 'Record your incoming credits or revenue';
       if (iconBox) {
         iconBox.className = 'tx-header-icon-box icon-income-badge';
-        iconBox.innerHTML = '<i data-lucide="arrow-down-left" style="width: 20px; height: 20px;"></i>';
+        iconBox.innerHTML = '<span class="material-symbols-outlined text-xl">south_west</span>';
       }
       catGroup.style.display = 'none';
       categorySelect.value = 'Income';
@@ -1947,14 +1943,14 @@
       if (subtitle) subtitle.innerText = 'Record your outgoing spend or purchase';
       if (iconBox) {
         iconBox.className = 'tx-header-icon-box icon-expense-badge';
-        iconBox.innerHTML = '<i data-lucide="arrow-up-right" style="width: 20px; height: 20px;"></i>';
+        iconBox.innerHTML = '<span class="material-symbols-outlined text-xl">north_east</span>';
       }
       catGroup.style.display = 'block';
       categorySelect.value = defaultCat;
     }
 
     modal.style.display = 'flex';
-    lucide.createIcons();
+    // lucide.createIcons();
   }
 
   function openEditPersonalModal(id, amount, description, category, account, paymentMethod, date) {
@@ -2013,7 +2009,7 @@
       if (subtitle) subtitle.innerText = 'Update your incoming credit details';
       if (iconBox) {
         iconBox.className = 'tx-header-icon-box icon-income-badge';
-        iconBox.innerHTML = '<i data-lucide="arrow-down-left" style="width: 20px; height: 20px;"></i>';
+        iconBox.innerHTML = '<span class="material-symbols-outlined text-xl">south_west</span>';
       }
       catGroup.style.display = 'none';
     } else {
@@ -2021,13 +2017,13 @@
       if (subtitle) subtitle.innerText = 'Update your expense record';
       if (iconBox) {
         iconBox.className = 'tx-header-icon-box icon-expense-badge';
-        iconBox.innerHTML = '<i data-lucide="edit-3" style="width: 20px; height: 20px;"></i>';
+        iconBox.innerHTML = '<span class="material-symbols-outlined text-xl">edit</span>';
       }
       catGroup.style.display = 'block';
     }
 
     document.getElementById('transaction-modal').style.display = 'flex';
-    lucide.createIcons();
+    // lucide.createIcons();
   }
 
   function closeTransactionModal() {
@@ -2176,7 +2172,7 @@
   function openScanReceiptModal() {
     resetScanModal();
     document.getElementById('scan-receipt-modal').style.display = 'flex';
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.// lucide.createIcons();
   }
 
   function closeScanReceiptModal() {
@@ -2188,7 +2184,7 @@
     ['upload','loading','preview','error'].forEach(s => {
       document.getElementById('scan-screen-' + s).style.display = (s === name ? '' : 'none');
     });
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.// lucide.createIcons();
   }
 
   function resetScanModal() {
@@ -2274,7 +2270,7 @@
       document.getElementById('scan-process-btn').disabled = false;
       document.getElementById('scan-process-btn').style.opacity = '1';
     }
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.// lucide.createIcons();
   }
 
   function handleReceiptDrop(e) {
@@ -2671,9 +2667,9 @@
     // Display verify note message
     if (noteEl) {
       if (!dateInput.value) {
-        noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Unable to detect the receipt date. Please select it manually.`;
+        noteEl.innerHTML = `<span class="material-symbols-outlined text-xs align-middle mr-1 text-amber-400">warning</span>Unable to detect the receipt date. Please select it manually.`;
       } else {
-        noteEl.innerHTML = `<i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Please verify the extracted information before saving.`;
+        noteEl.innerHTML = `<span class="material-symbols-outlined text-xs align-middle mr-1 text-amber-400">warning</span>Please verify the extracted information before saving.`;
       }
       noteEl.style.display = 'flex';
       noteEl.style.color = '#fb923c';
@@ -2681,7 +2677,7 @@
       noteEl.style.borderColor = 'rgba(251,146,60,0.2)';
     }
 
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.// lucide.createIcons();
   }
 
   function showScanPreviewManual() {
@@ -2758,15 +2754,15 @@
         const err = await res.json();
         alert(err.error || 'Failed to save expense. Please try again.');
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>Save Expense';
-        if (window.lucide) window.lucide.createIcons();
+        saveBtn.innerHTML = '<span class="material-symbols-outlined text-xs align-middle mr-1">save</span>Save Expense';
+        if (window.lucide) window.// lucide.createIcons();
       }
     } catch (err) {
       console.error(err);
       alert('Error saving expense.');
       saveBtn.disabled = false;
-      saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>Save Expense';
-      if (window.lucide) window.lucide.createIcons();
+      saveBtn.innerHTML = '<span class="material-symbols-outlined text-xs align-middle mr-1">save</span>Save Expense';
+      if (window.lucide) window.// lucide.createIcons();
     }
   }
 

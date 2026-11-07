@@ -1439,6 +1439,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/lucide.min.js' %}"></script>
 <script>
   const allExpenses = [
     {% for exp in expenses %}

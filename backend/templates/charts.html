@@ -286,7 +286,7 @@
 
     <!-- Empty State Area -->
     <div id="analytics-empty-state" style="display: block; text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary);">
-      <i data-lucide="bar-chart-2" style="width: 48px; height: 48px; margin: 0 auto 1rem auto; opacity: 0.3; display: block;"></i>
+      <span class="material-symbols-outlined text-5xl opacity-30 mx-auto mb-4 block" style="font-size: 48px;">bar_chart</span>
       <p id="analytics-empty-message" style="font-size: 0.9rem; margin: 0; color: var(--text-secondary);">No expense data available for the selected period.</p>
     </div>
   </div>
@@ -374,7 +374,7 @@
 
     <!-- Empty State -->
     <div id="flow-empty-state" style="display: none; text-align: center; padding: 4rem 1.5rem; color: var(--text-secondary);">
-      <i data-lucide="info" style="width: 48px; height: 48px; margin: 0 auto 1rem auto; opacity: 0.3; display: block;"></i>
+      <span class="material-symbols-outlined text-5xl opacity-30 mx-auto mb-4 block" style="font-size: 48px;">info</span>
       <p style="font-size: 0.9rem; margin: 0; color: var(--text-secondary);">No expense data available for the selected period.</p>
     </div>
 
@@ -459,7 +459,7 @@
     labelSpan.textContent = 'Select Month';
     
     const calendarIcon = document.createElement('i');
-    calendarIcon.setAttribute('data-lucide', 'calendar');
+    calendarIcon.className = 'material-symbols-outlined'; calendarIcon.textContent = 'calendar_today';
     calendarIcon.style.cssText = 'width: 16px; height: 16px; opacity: 0.6; pointer-events: none;';
     
     trigger.appendChild(labelSpan);
@@ -475,7 +475,7 @@
     const prevYearBtn = document.createElement('button');
     prevYearBtn.type = 'button';
     prevYearBtn.style.cssText = 'background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; display: flex; align-items: center;';
-    prevYearBtn.innerHTML = '<i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>';
+    prevYearBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">chevron_left</span>';
     
     const yearDisplay = document.createElement('span');
     yearDisplay.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.95rem;';
@@ -484,7 +484,7 @@
     const nextYearBtn = document.createElement('button');
     nextYearBtn.type = 'button';
     nextYearBtn.style.cssText = 'background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; display: flex; align-items: center;';
-    nextYearBtn.innerHTML = '<i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>';
+    nextYearBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">chevron_right</span>';
     
     yearNav.appendChild(prevYearBtn);
     yearNav.appendChild(yearDisplay);
@@ -584,7 +584,7 @@
         });
         dropdown.style.display = 'block';
         updateDisplay();
-        if (window.lucide) lucide.createIcons();
+        // lucide replaced by Material Symbols
       }
     }
     
@@ -857,9 +857,7 @@
       chartContainer.appendChild(barWrapper);
     });
 
-    if (window.lucide) {
-      window.lucide.createIcons();
-    }
+    // lucide replaced by Material Symbols
   }
 
   // Create shared floating tooltip on body level
@@ -929,7 +927,7 @@
         emptyState.id = 'heatmap-empty-state';
         emptyState.style.cssText = "text-align: center; padding: 2rem 1.5rem; color: var(--text-secondary);";
         emptyState.innerHTML = `
-          <i data-lucide="info" style="width: 24px; height: 24px; margin: 0 auto 0.5rem auto; opacity: 0.5; display: block;"></i>
+          <span class="material-symbols-outlined text-2xl opacity-50 mx-auto mb-2 block" style="font-size: 24px;">info</span>
           <p style="margin: 0; font-size: 0.85rem;">No expense activity found for this year.</p>
         `;
         container.appendChild(emptyState);
@@ -1035,9 +1033,7 @@
       
       container.style.opacity = '1';
       
-      if (window.lucide) {
-        window.lucide.createIcons();
-      }
+      // lucide replaced by Material Symbols
     }, 150);
   }
 

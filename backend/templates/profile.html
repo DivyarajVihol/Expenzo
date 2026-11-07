@@ -320,17 +320,17 @@
 
   <!-- Generic Delete Modal -->
   <div class="modal-overlay" id="delete-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
-    <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div class="modal-content" style="max-width: 400px; padding: 2rem; background: #20232A; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.25rem;">
       <div style="text-align: center;">
-        <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
-        <h3 id="delete-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Confirm Action</h3>
-        <p id="delete-modal-message" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+        <span class="material-symbols-outlined text-5xl text-rose-500 mb-3" style="display: block;">warning</span>
+        <h3 id="delete-modal-title" style="margin-bottom: 0.5rem; color: #F5F5F5; font-size: 1.25rem; font-weight: 700;">Confirm Action</h3>
+        <p id="delete-modal-message" style="color: #A7ABB4; margin-bottom: 1.5rem; font-size: 0.9rem;">
           Are you sure you want to proceed? This action cannot be undone.
         </p>
       </div>
       <div style="display: flex; gap: 1rem; justify-content: center;">
-        <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
-        <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="flex: 1; background: var(--accent-danger); border-color: var(--accent-danger);">Delete</button>
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1; border-radius: 0.75rem;">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="flex: 1; background: #FF6262; border-color: #FF6262; border-radius: 0.75rem; color: #ffffff;">Delete</button>
       </div>
     </div>
   </div>
@@ -430,8 +430,7 @@
       msgBox.innerHTML = `<div style="color: #f43f5e; font-size: 0.9rem; margin-bottom: 1rem;">An unexpected error occurred.</div>`;
     } finally {
       btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="lock" style="width: 18px; height: 18px;"></i> Update Password`;
-      lucide.createIcons();
+      btn.innerHTML = `<span class="material-symbols-outlined text-base text-primary">key</span> <span>Update Password</span>`;
     }
   }
 
@@ -449,7 +448,7 @@
     deleteActionCallback = null;
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
+  function initProfileDeleteListener() {
     const confirmBtn = document.getElementById('confirm-delete-btn');
     if (confirmBtn) {
       confirmBtn.addEventListener('click', () => {
@@ -459,7 +458,13 @@
         }
       });
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProfileDeleteListener);
+  } else {
+    initProfileDeleteListener();
+  }
 
   function deleteAccount() {
     openGenericDeleteModal(
@@ -486,12 +491,6 @@
       }
     );
   }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.lucide) {
-      lucide.createIcons();
-    }
-  });
 </script>
 {% endblock %}
 

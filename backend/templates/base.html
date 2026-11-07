@@ -487,7 +487,7 @@
         <aside class="sidebar animate__animated animate__fadeInLeft" id="app-sidebar" aria-label="Main Navigation">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
                 <a href="{% url 'dashboard' %}" class="logo-container" style="margin-bottom: 0;" aria-label="Go to Dashboard">
-                    <i data-lucide="wallet" class="logo-icon"></i>
+                    <span class="material-symbols-outlined logo-icon" style="font-size: 22px; color: var(--accent-primary);">account_balance_wallet</span>
                     <span class="logo-text">EXPENZO</span>
                 </a>
                 <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar (Ctrl+\)">
@@ -525,7 +525,7 @@
                                 {% elif user.profile.avatar %}
                                     <img src="{{ user.profile.avatar }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
                                 {% else %}
-                                    <i data-lucide="user" style="color: var(--text-muted);"></i>
+                                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-muted);">person</span>
                                 {% endif %}
                             </div>
                             <div style="min-width: 0; flex: 1;">
@@ -538,7 +538,7 @@
                             </div>
                         </a>
                         <a href="{% url 'logout' %}" class="btn btn-secondary" style="display: flex; width: 100%; justify-content: center; gap: 0.5rem; padding: 0.45rem 1rem; font-size: 0.85rem; text-decoration: none; align-items: center; box-sizing: border-box; border-radius: 10px;">
-                            <i data-lucide="log-out" style="width: 15px; height: 15px;"></i>
+                            <span class="material-symbols-outlined" style="font-size: 16px;">logout</span>
                             <span>Logout</span>
                         </a>
                     </div>
@@ -563,7 +563,7 @@
                     <!-- Collapsed Brand Logo (Visible only when sidebar is collapsed on desktop) -->
                     <a href="{% url 'dashboard' %}" class="collapsed-brand" id="collapsed-brand" aria-label="EXPENZO Home">
                         <span class="collapsed-logo-badge">
-                            <i data-lucide="wallet" class="logo-icon-sm"></i>
+                            <span class="material-symbols-outlined logo-icon-sm" style="font-size: 18px; color: var(--accent-primary);">account_balance_wallet</span>
                         </span>
                         <span class="collapsed-logo-text">EXPENZO</span>
                     </a>
@@ -576,7 +576,6 @@
                             {% elif request.resolver_match.url_name == 'history' %}Personal Spend
                             {% elif request.resolver_match.url_name == 'recurring' %}Recurring Finance
                             {% elif request.resolver_match.url_name == 'personal_charts' %}Analytics & Charts
-                            {% elif request.resolver_match.url_name == 'spending_streaks' %}Spending Streaks
                             {% elif request.resolver_match.url_name == 'groups' %}Group Splits
                             {% elif request.resolver_match.url_name == 'group_detail' %}Group Details
                             {% elif request.resolver_match.url_name == 'profile' %}My Profile
@@ -599,7 +598,7 @@
                             {% elif user.profile.avatar %}
                                 <img src="{{ user.profile.avatar }}" alt="">
                             {% else %}
-                                <i data-lucide="user"></i>
+                                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted);">person</span>
                             {% endif %}
                         </div>
                         <span class="topbar-username">{% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</span>
@@ -615,7 +614,7 @@
                     <span class="hamburger-line bottom"></span>
                 </button>
                 <div class="mobile-header-logo">
-                    <i data-lucide="wallet" class="logo-icon" style="width: 20px; height: 20px;"></i>
+                    <span class="material-symbols-outlined logo-icon" style="font-size: 20px; color: var(--accent-primary);">account_balance_wallet</span>
                     <span class="logo-text">EXPENZO</span>
                 </div>
             </div>
@@ -630,23 +629,7 @@
         <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
     </div>
 
-    <!-- Lucide Icon CDN Script (Deferred & Idle Scheduled) -->
-    <script defer src="{% static 'js/lucide.min.js' %}?v=1.0"></script>
     <script>
-        function scheduleLucide() {
-            if (window.lucide && typeof window.lucide.createIcons === 'function') {
-                if ('requestIdleCallback' in window) {
-                    window.requestIdleCallback(() => window.lucide.createIcons(), { timeout: 1500 });
-                } else {
-                    setTimeout(() => window.lucide.createIcons(), 150);
-                }
-            }
-        }
-        if (window.lucide) {
-            scheduleLucide();
-        } else {
-            window.addEventListener('DOMContentLoaded', scheduleLucide);
-        }
         document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app-container');
             const toggleBtn = document.getElementById('sidebar-toggle-btn');
@@ -1109,8 +1092,7 @@
 
     })();
     </script>
-<!-- Expenzo Professional Subtle Animations Script -->
-    <script defer src="{% static 'js/animations.js' %}?v=1.0"></script>
+<!-- Page Extra Scripts -->
 {% block extra_js %}{% endblock %}
 </body>
 </html>
