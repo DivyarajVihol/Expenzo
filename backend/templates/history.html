@@ -309,7 +309,7 @@
   <!-- Filters Card -->
   <div class="glass-card filters-card">
     <form method="GET" action="{% url 'history' %}" id="filter-form">
-      <button type="submit" style="display: none;"></button>
+      <button type="submit" style="display: none;" tabindex="-1" aria-hidden="true"></button>
       <div class="filters-row">
         <!-- Search bar -->
         <div class="filter-group" style="flex: 2 1 300px; position: relative;">
@@ -338,7 +338,7 @@
               />
             {% endif %}
             {% if search_query %}
-              <a href="javascript:void(0)" onclick="document.querySelector('input[name=search]').value=''; document.getElementById('filter-form').submit();" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
+              <a href="javascript:void(0)" aria-label="Clear search" onclick="document.querySelector('input[name=search]').value=''; document.getElementById('filter-form').submit();" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
                 <i data-lucide="x" style="width: 16px; height: 16px;"></i>
               </a>
             {% endif %}
@@ -347,8 +347,8 @@
 
         <!-- Category Filter -->
         <div class="filter-group">
-          <label class="form-label font-xs">Category</label>
-          <select name="category" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
+          <label for="filter-category" class="form-label font-xs">Category</label>
+          <select name="category" id="filter-category" aria-label="Filter by category" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Categories</option>
             {% for cat in categories %}
               <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -358,8 +358,8 @@
 
         <!-- Account Filter -->
         <div class="filter-group">
-          <label class="form-label font-xs">Account</label>
-          <select name="account" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
+          <label for="filter-account" class="form-label font-xs">Account</label>
+          <select name="account" id="filter-account" aria-label="Filter by account" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Accounts</option>
             {% for acc in accounts %}
               <option value="{{ acc }}" {% if selected_account == acc %}selected{% endif %}>{{ acc }}</option>
@@ -369,8 +369,8 @@
 
         <!-- Payment Method Filter -->
         <div class="filter-group">
-          <label class="form-label font-xs">Payment Method</label>
-          <select name="paymentMethod" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
+          <label for="filter-payment-method" class="form-label font-xs">Payment Method</label>
+          <select name="paymentMethod" id="filter-payment-method" aria-label="Filter by payment method" class="input-control" style="background: #090a0d;" onchange="document.getElementById('filter-form').submit()">
             <option value="All">All Methods</option>
             {% for method in payment_methods %}
               <option value="{{ method }}" {% if selected_payment == method %}selected{% endif %}>{{ method }}</option>
@@ -385,7 +385,7 @@
   <div class="rounded-2xl bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 p-5 mb-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h3 class="font-display text-base font-bold text-on-surface flex items-center gap-2">
+        <h2 class="font-display text-base font-bold text-on-surface flex items-center gap-2">
           <span class="material-symbols-outlined text-primary text-lg">download</span>
           <span>Export Expense Statement</span>
         </h3>
@@ -408,7 +408,7 @@
   {% if not grouped_months %}
     <div class="glass-card empty-state">
       <i data-lucide="info" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
-      <h3>No Transaction Records Found</h3>
+      <h2 style="font-size: 1.1rem; font-weight: 600;">No Transaction Records Found</h2>
       <p style="font-size: 0.9rem; margin-top: 0.25rem;">Try adjusting your filters or add transactions on the dashboard.</p>
     </div>
   {% else %}
@@ -453,7 +453,7 @@
                 <th>Category</th>
                 <th>Account / Method</th>
                 <th style="text-align: right;">Amount</th>
-                <th style="text-align: right; width: 80px;"></th>
+                <th style="text-align: right; width: 80px;" aria-label="Actions"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -515,8 +515,8 @@
 <div class="modal-overlay" id="transaction-modal" style="display: none;">
   <div class="modal-content">
     <div class="modal-header">
-      <h3 class="chart-card-title" id="tx-modal-title">Edit Expense</h3>
-      <button onclick="closeTransactionModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+      <h2 class="chart-card-title" id="tx-modal-title">Edit Expense</h2>
+      <button onclick="closeTransactionModal()" aria-label="Close modal" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
       </button>
     </div>
@@ -585,7 +585,7 @@
   <div class="modal-content" style="max-width: 400px; padding: 2rem;">
     <div style="text-align: center;">
       <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--accent-danger); margin-bottom: 1rem;"></i>
-      <h3 id="delete-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Confirm Action</h3>
+      <h2 id="delete-modal-title" style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem;">Confirm Action</h3>
       <p id="delete-modal-message" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
         Are you sure you want to proceed? This action cannot be undone.
       </p>

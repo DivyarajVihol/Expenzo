@@ -944,7 +944,7 @@
     <div class="glass-card filters-card">
       <form method="GET" action="{% url 'group_detail' group_id=group.id %}" id="filter-form">
         <input type="hidden" name="tab" value="history">
-        <button type="submit" style="display: none;"></button>
+        <button type="submit" style="display: none;" tabindex="-1" aria-hidden="true"></button>
         <div class="filters-row">
           <!-- Search bar -->
           <div class="filter-group" style="flex: 2 1 300px; position: relative;">
@@ -961,7 +961,7 @@
                 onchange="document.getElementById('filter-form').submit()"
               />
               {% if search_query %}
-                <a href="javascript:void(0)" onclick="document.querySelector('input[name=search]').value=''; document.getElementById('filter-form').submit();" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
+                <a href="javascript:void(0)" aria-label="Clear search" onclick="document.querySelector('input[name=search]').value=''; document.getElementById('filter-form').submit();" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;">
                   <i data-lucide="x" style="width: 16px; height: 16px;"></i>
                 </a>
               {% endif %}
@@ -970,8 +970,8 @@
 
           <!-- Category Filter -->
           <div class="filter-group">
-            <label class="form-label font-xs">Category</label>
-            <select name="category" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
+            <label for="group-filter-category" class="form-label font-xs">Category</label>
+            <select name="category" id="group-filter-category" aria-label="Filter by category" class="input-control" style="background: #0d121f;" onchange="document.getElementById('filter-form').submit()">
               <option value="All">All Categories</option>
               {% for cat in categories %}
                 <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -1049,7 +1049,7 @@
                   <th>Category</th>
                   <th>Paid By</th>
                   <th style="text-align: right;">Amount</th>
-                  <th style="text-align: right; width: 50px;"></th>
+                  <th style="text-align: right; width: 50px;" aria-label="Actions"><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -1121,7 +1121,7 @@
   <div class="modal-content premium-settle-modal">
     <div class="modal-header" style="border-bottom: none; padding-bottom: 0.5rem;">
       <h3 style="display: none;">Settle Up</h3>
-      <button onclick="closeSettleModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
+      <button onclick="closeSettleModal()" aria-label="Close settle modal" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
       </button>
     </div>
@@ -1246,7 +1246,7 @@
   <div class="modal-content" style="max-width: 480px;">
     <div class="modal-header">
       <h3 class="chart-card-title">Add Group Expense</h3>
-      <button onclick="closeExpenseModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+      <button onclick="closeExpenseModal()" aria-label="Close add group expense modal" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
       </button>
     </div>
@@ -1289,13 +1289,13 @@
           </label>
           <div id="payers-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
             <div class="payer-row" style="display: flex; gap: 0.5rem; align-items: center;">
-              <select class="input-control payer-select" style="background: #0d121f; flex: 1;" required>
+              <select class="input-control payer-select" aria-label="Select payer" style="background: #0d121f; flex: 1;" required>
                 {% for m in members %}
                   <option value="{{ m.id }}">{{ m.first_name|default:m.username }}</option>
                 {% endfor %}
               </select>
               <input type="number" class="input-control payer-amount" placeholder="Amount (₹)" style="width: 120px;" required min="0.01" step="0.01">
-              <button type="button" onclick="removePayerRow(this)" style="background: none; border: none; color: var(--accent-danger); cursor: pointer; padding: 0.25rem; visibility: hidden;">
+              <button type="button" onclick="removePayerRow(this)" aria-label="Remove payer" style="background: none; border: none; color: var(--accent-danger); cursor: pointer; padding: 0.25rem; visibility: hidden;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
               </button>
             </div>
@@ -1303,7 +1303,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Split Method</label>
-          <select id="exp-split-type" class="input-control" style="background: #0d121f;" onchange="toggleSplitInputs(this.value)">
+          <select id="exp-split-type" aria-label="Split Method" class="input-control" style="background: #0d121f;" onchange="toggleSplitInputs(this.value)">
             <option value="EQUAL">Split Equally</option>
             <option value="EXACT">Exact Shares</option>
             <option value="PERCENTAGE">Percentage Splits</option>
@@ -1337,13 +1337,13 @@
 
 <template id="payer-row-template">
   <div class="payer-row" style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
-    <select class="input-control payer-select" style="background: #0d121f; flex: 1;" required>
+    <select class="input-control payer-select" aria-label="Select payer" style="background: #0d121f; flex: 1;" required>
       {% for m in members %}
         <option value="{{ m.id }}">{{ m.first_name|default:m.username }}</option>
       {% endfor %}
     </select>
     <input type="number" class="input-control payer-amount" placeholder="Amount (₹)" style="width: 120px;" required min="0.01" step="0.01">
-    <button type="button" onclick="removePayerRow(this)" style="background: none; border: none; color: var(--accent-danger); cursor: pointer; padding: 0.25rem;">
+    <button type="button" onclick="removePayerRow(this)" aria-label="Remove payer" style="background: none; border: none; color: var(--accent-danger); cursor: pointer; padding: 0.25rem;">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
     </button>
   </div>
@@ -1356,7 +1356,7 @@
   <div class="modal-content premium-settle-modal" style="width: 480px; max-width: 95vw;">
     <div class="modal-header" style="border-bottom: none; padding-bottom: 0.5rem;">
       <h3 style="display: none;">Manage UPI IDs</h3>
-      <button onclick="closeManageUpiModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
+      <button onclick="closeManageUpiModal()" aria-label="Close manage UPI modal" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
       </button>
     </div>

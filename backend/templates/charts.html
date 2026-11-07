@@ -185,12 +185,13 @@
     <div class="glass-card" style="padding: 1.5rem 1.75rem;">
       <div class="spending-card-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div>
-          <h3 class="spending-title">Monthly Spending</h3>
+          <h2 class="spending-title">Monthly Spending</h2>
           <p class="spending-subtitle">Category breakdown for the selected month</p>
         </div>
         <div>
           <select
             class="recent-transactions-select"
+            aria-label="Filter by month"
             onchange="changeMonth(this.value)"
             style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;"
           >
@@ -228,7 +229,7 @@
   <!-- Expense Analytics Card -->
   <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem;">
     <div style="margin-bottom: 1.5rem;">
-      <h3 class="spending-title" style="margin: 0 0 0.25rem 0;">Expense Analytics</h3>
+      <h2 class="spending-title" style="margin: 0 0 0.25rem 0;">Expense Analytics</h2>
       <p class="spending-subtitle" style="margin: 0;">Analyze your spending over a custom date range.</p>
     </div>
 
@@ -244,7 +245,7 @@
       </div>
       <div style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 0.4rem;">
         <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Category</label>
-        <select id="analytics-category" class="input-control select-control-dark" style="background: #0d121f; color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 8px; appearance: auto;">
+        <select id="analytics-category" aria-label="Filter by category" class="input-control select-control-dark" style="background: #0d121f; color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 8px; appearance: auto;">
           <option value="ALL">All Categories</option>
         </select>
       </div>
@@ -294,11 +295,11 @@
   <div class="glass-card" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem; margin-bottom: 2rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h3 class="spending-title" style="margin: 0 0 0.25rem 0;">Expense Heatmap</h3>
+        <h2 class="spending-title" style="margin: 0 0 0.25rem 0;">Expense Heatmap</h2>
         <p class="spending-subtitle" style="margin: 0;">Visualize your daily spending activity throughout the year.</p>
       </div>
       <div>
-        <select id="heatmap-year" class="recent-transactions-select" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;">
+        <select id="heatmap-year" aria-label="Select year" class="recent-transactions-select" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;">
           <!-- Years populated dynamically via JS -->
         </select>
       </div>
@@ -327,7 +328,7 @@
   <div class="glass-card fade-in-load" style="padding: 1.5rem 1.75rem; margin-top: 1.5rem; margin-bottom: 2rem; opacity: 0; transition: opacity 0.5s ease; position: relative;" id="flow-analytics-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h3 class="spending-title" style="margin: 0 0 0.25rem 0;">Where Did My Money Go?</h3>
+        <h2 class="spending-title" style="margin: 0 0 0.25rem 0;">Where Did My Money Go?</h2>
         <p class="spending-subtitle" style="margin: 0;">Visualize how your income was distributed across different expense categories.</p>
       </div>
       
@@ -335,7 +336,7 @@
       <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
         <!-- Time Range Selector -->
         <div>
-          <select id="flow-time-range" class="recent-transactions-select" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;" onchange="handleFlowFilterChange()">
+          <select id="flow-time-range" aria-label="Select flow time range" class="recent-transactions-select" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;" onchange="handleFlowFilterChange()">
             <option value="current_month">Current Month</option>
             <option value="last_month">Last Month</option>
             <option value="last_3_months">Last 3 Months</option>
@@ -354,7 +355,7 @@
 
         <!-- Category Filter -->
         <div>
-          <select id="flow-category-filter" class="recent-transactions-select" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;" onchange="handleFlowFilterChange()">
+          <select id="flow-category-filter" aria-label="Filter flow by category" class="recent-transactions-select" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--text-primary); cursor: pointer; appearance: auto;" onchange="handleFlowFilterChange()">
             <option value="ALL">All Categories</option>
             <option value="Food">Food</option>
             <option value="Transport">Transport</option>
@@ -992,6 +993,8 @@
         
         const cell = document.createElement('div');
         cell.className = 'heatmap-cell';
+        cell.setAttribute('role', 'button');
+        cell.setAttribute('tabindex', '0');
         cell.style.cssText = `width: 10px; height: 10px; border-radius: 2px; background: ${bgColor}; cursor: pointer; transition: transform 0.1s ease;`;
         
         cell.addEventListener('mouseenter', () => {
@@ -1249,7 +1252,7 @@
 
     if (income > 0) {
       colSources.innerHTML += `
-        <div class="flow-node" id="node-income" data-val="${income}" aria-label="Income, ₹${income.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Income: ₹${income.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+        <div role="group" class="flow-node" id="node-income" data-val="${income}" aria-label="Income, ₹${income.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Income: ₹${income.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
           <span class="flow-node-title">Income</span>
           <span class="flow-node-value">₹${income.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
@@ -1257,7 +1260,7 @@
     }
     if (deficit > 0) {
       colSources.innerHTML += `
-        <div class="flow-node" id="node-deficit" data-val="${deficit}" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.05);" aria-label="Savings Drawdown, ₹${deficit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Savings Drawdown: ₹${deficit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+        <div role="group" class="flow-node" id="node-deficit" data-val="${deficit}" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.05);" aria-label="Savings Drawdown, ₹${deficit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Savings Drawdown: ₹${deficit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
           <span class="flow-node-title" style="color: #fb7185;">Savings Drawdown</span>
           <span class="flow-node-value" style="color: #fb7185;">₹${deficit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
@@ -1266,7 +1269,7 @@
 
     if (savings > 0 || income > 0) {
       colMid.innerHTML += `
-        <div class="flow-node" id="node-savings" data-val="${savings}" style="border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.05);" aria-label="Savings, ₹${savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Savings: ₹${savings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+        <div role="group" class="flow-node" id="node-savings" data-val="${savings}" style="border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.05);" aria-label="Savings, ₹${savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Savings: ₹${savings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
           <span class="flow-node-title" style="color: #34d399;">Savings</span>
           <span class="flow-node-value" style="color: #34d399;">₹${savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
@@ -1274,7 +1277,7 @@
     }
     if (expenses > 0) {
       colMid.innerHTML += `
-        <div class="flow-node" id="node-expenses" data-val="${expenses}" aria-label="Expenses, ₹${expenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Expenses: ₹${expenses.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
+        <div role="group" class="flow-node" id="node-expenses" data-val="${expenses}" aria-label="Expenses, ₹${expenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}" title="Expenses: ₹${expenses.toLocaleString('en-IN', { minimumFractionDigits: 2 })}">
           <span class="flow-node-title">Expenses</span>
           <span class="flow-node-value">₹${expenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
@@ -1284,7 +1287,7 @@
     const sortedCategories = Object.entries(categorySums).sort((a,b) => b[1] - a[1]);
     if (sortedCategories.length === 0) {
       colTargets.innerHTML = `
-        <div class="flow-node" style="cursor: default;" aria-label="No Expenses">
+        <div role="group" class="flow-node" style="cursor: default;" aria-label="No Expenses">
           <span class="flow-node-title">No Expenses</span>
           <span class="flow-node-value">₹0</span>
         </div>
@@ -1296,7 +1299,7 @@
         const ariaLabel = `${cat}, ₹${val.toLocaleString('en-IN', { maximumFractionDigits: 0 })}, ${pct}% of total spending, ${txns} transaction${txns === 1 ? '' : 's'}`;
         
         colTargets.innerHTML += `
-          <div class="flow-node" id="node-cat-${cat}" data-cat="${cat}" data-val="${val}" aria-label="${ariaLabel}" title="${cat}: ₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${pct}%, ${txns} txns)">
+          <div role="group" class="flow-node" id="node-cat-${cat}" data-cat="${cat}" data-val="${val}" aria-label="${ariaLabel}" title="${cat}: ₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${pct}%, ${txns} txns)">
             <span class="flow-node-title">${cat}</span>
             <span class="flow-node-value">₹${val.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>

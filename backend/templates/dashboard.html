@@ -1133,7 +1133,7 @@
         </style>
 
         <div class="relative pt-2 pb-1">
-          <div id="swappable-card-stack-container" aria-label="3-card interactive swappable stack">
+          <div id="swappable-card-stack-container" role="region" aria-label="3-card interactive swappable stack">
             <!-- 1. CARD Card (Card Balance) -->
             <div class="card-swappable-item pos-front rounded-2xl bg-gradient-to-br from-surface-container-high via-surface-container to-surface-container-lowest border border-white/10 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.85)] overflow-hidden" data-card-index="0" role="button" tabindex="0" aria-label="Card Balance Card">
               <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-primary/5 to-transparent pointer-events-none"></div>
@@ -1602,7 +1602,7 @@
         <i data-lucide="scan-line" style="width:20px;height:20px;color:var(--accent-primary);"></i>
         <h3 class="chart-card-title" style="margin:0;" id="scan-modal-title">Scan Receipt</h3>
       </div>
-      <button onclick="closeScanReceiptModal()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;">
+      <button onclick="closeScanReceiptModal()" aria-label="Close scan receipt modal" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;">
         <i data-lucide="x" style="width:20px;height:20px;"></i>
       </button>
     </div>

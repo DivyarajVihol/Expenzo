@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=general-sans@700&display=swap');
+/* Fonts are preloaded and loaded via <link> in HTML for optimal FCP & parallel loading */
 
 /* Global Loader */
 .global-loader {
@@ -712,7 +711,8 @@ html, body {
 
 .btn-primary {
   background: var(--accent-primary);
-  color: #ffffff;
+  color: #090a0d;
+  font-weight: 600;
   box-shadow: 0 4px 14px 0 var(--accent-primary-glow);
 }
 
