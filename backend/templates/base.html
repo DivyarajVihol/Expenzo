@@ -31,8 +31,51 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600&display=swap" rel="stylesheet">
     <link href="https://api.fontshare.com/v2/css?f[]=general-sans@700&display=swap" rel="stylesheet">
     
-    <!-- Precompiled Tailored Tailwind CSS -->
-    <link rel="stylesheet" href="{% static 'css/tailwind.generated.css' %}?v=1.0">
+    <!-- Tailwind CSS with Obsidian Telemetry Configuration -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface": "#121316",
+                        "surface-dim": "#121316",
+                        "surface-bright": "#343538",
+                        "surface-container-lowest": "#090a0d",
+                        "surface-container-low": "#18191c",
+                        "surface-container": "#1e1f23",
+                        "surface-container-high": "#28292e",
+                        "surface-container-highest": "#33343a",
+                        "on-surface": "#e5e2e1",
+                        "on-surface-variant": "#d9c3ad",
+                        "inverse-surface": "#e5e2e1",
+                        "inverse-on-surface": "#1e1f23",
+                        "outline": "#a18d7a",
+                        "outline-variant": "#493e35",
+                        "primary": "#ffc98e",
+                        "primary-container": "#ffa31a",
+                        "on-primary": "#482a00",
+                        "on-primary-container": "#090a0d",
+                        "secondary": "#ffb86d",
+                        "secondary-container": "#905500",
+                        "tertiary": "#53ecb4",
+                        "tertiary-container": "#00533a",
+                        "on-tertiary": "#003825",
+                        "error": "#ff7185",
+                        "error-container": "#93000a",
+                        "background": "#090a0d",
+                        "on-background": "#e5e2e1"
+                    },
+                    fontFamily: {
+                        "display": ["'Space Grotesk'", "sans-serif"],
+                        "body": ["Geist", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+                        "label": ["Geist", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
 
     <!-- Immediate Critical CSS for Collapsible Sidebar & Full-Width Dashboard -->
     <style id="expenzo-collapsible-sidebar-styles">
