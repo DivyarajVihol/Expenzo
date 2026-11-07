@@ -42,31 +42,38 @@
   --animate-duration: 0.7s;
   --animate-delay: 0.15s;
 
-  /* Obsidian Telemetry Color Palette */
-  --bg-main: #090a0d;
-  --bg-sidebar: rgba(18, 19, 22, 0.85);
-  --bg-card: rgba(24, 25, 28, 0.65);
-  --bg-card-hover: rgba(33, 34, 40, 0.85);
+  color-scheme: dark;
+
+  /* Expenzo Canonical Dark Finance Tokens */
+  --bg-main: #111318;
+  --bg-secondary: #171A20;
+  --surface-card: #20232A;
+  --surface-elevated: #292D36;
+  --surface-subtle: #16181F;
+  --bg-sidebar: rgba(23, 26, 32, 0.92);
+  --bg-card: #20232A;
+  --bg-card-hover: #292D36;
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 163, 26, 0.35);
+  --border-hover: rgba(255, 172, 53, 0.35);
+  --border-focus: #FFAC35;
   
-  --text-primary: #e5e2e1;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
+  --text-primary: #F5F5F5;
+  --text-secondary: #A7ABB4;
+  --text-muted: #71717A;
   
-  --accent-primary: #ffa31a; /* Warm Neon Amber */
-  --accent-primary-hover: #ff8a36;
-  --accent-primary-glow: rgba(255, 163, 26, 0.35);
+  --accent-primary: #FFAC35; /* Warm Neon Amber */
+  --accent-primary-hover: #FF9B1A;
+  --accent-primary-glow: rgba(255, 172, 53, 0.25);
   
-  --accent-success: #36d6a0; /* Emerald Mint */
-  --accent-success-hover: #2ec08e;
-  --accent-success-glow: rgba(54, 214, 160, 0.25);
+  --accent-success: #19C783; /* Emerald Mint */
+  --accent-success-hover: #16B275;
+  --accent-success-glow: rgba(25, 199, 131, 0.25);
   
-  --accent-danger: #ff7185; /* Coral Rose */
-  --accent-danger-hover: #f43f5e;
-  --accent-danger-glow: rgba(255, 113, 133, 0.25);
+  --accent-danger: #FF6262; /* Coral Rose */
+  --accent-danger-hover: #F04E4E;
+  --accent-danger-glow: rgba(255, 98, 98, 0.25);
   
-  --accent-warning: #ffa31a;
+  --accent-warning: #FFAC35;
   
   --font-heading: 'Space Grotesk', -apple-system, sans-serif;
   --font-body: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -93,16 +100,16 @@ a {
 
 html, body {
   height: 100%;
-
-  
   width: 100%;
+  color-scheme: dark;
   color: var(--text-primary);
-  background-color: var(--bg-main);
+  background-color: #111318;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(244, 63, 94, 0.08) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+    radial-gradient(ellipse 900px 600px at 25% 0%, rgba(255, 172, 53, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 800px 550px at 90% 40%, rgba(255, 184, 109, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 450px at 45% 90%, rgba(25, 199, 131, 0.02) 0%, transparent 70%);
   background-attachment: fixed;
+  background-repeat: no-repeat;
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden !important;
@@ -755,28 +762,135 @@ html, body {
   margin-bottom: 0.5rem;
 }
 
-.input-control {
+/* =========================================================
+   UNIVERSAL DARK FORM CONTROLS & DROPDOWNS (GLOBAL STANDARD)
+   ========================================================= */
+
+/* All input fields, select menus, and textareas */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea,
+.input-control,
+.recurring-input,
+.ledger-input,
+.ledger-select,
+.group-input,
+.form-control {
+  background-color: #16181F !important;
+  background-image: none;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  color: #F5F5F5 !important;
+  font-family: var(--font-body, 'Geist', sans-serif);
+  font-size: 0.88rem;
+  padding: 0.65rem 0.95rem;
   width: 100%;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  transition: var(--transition-fast);
+  box-sizing: border-box;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
-.input-control:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 0 0 3px var(--accent-primary-glow);
+/* Hover state */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+select:hover,
+textarea:hover,
+.input-control:hover,
+.recurring-input:hover,
+.ledger-input:hover,
+.ledger-select:hover,
+.group-input:hover {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background-color: #1B1E26 !important;
+}
+
+/* Focus state - Amber Accent */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus,
+.input-control:focus,
+.recurring-input:focus,
+.ledger-input:focus,
+.ledger-select:focus,
+.group-input:focus {
+  --tw-border-opacity: 1 !important;
+  border-color: #FFAC35 !important;
+  box-shadow: 0 0 0 3px rgba(255, 172, 53, 0.25) !important;
+  background-color: #1B1E26 !important;
+}
+
+/* Placeholder text */
+input::placeholder,
+textarea::placeholder {
+  color: #A7ABB4 !important;
+  opacity: 0.65;
+}
+
+/* Disabled & Readonly */
+input:disabled,
+select:disabled,
+textarea:disabled,
+input[readonly],
+.input-control:disabled,
+.ledger-input:disabled {
+  background-color: rgba(22, 24, 31, 0.5) !important;
+  color: #71717A !important;
+  border-color: rgba(255, 255, 255, 0.04) !important;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Custom Styled Select Dropdown (with standard dark arrow icon) */
+select,
+select.input-control,
+select.recurring-input,
+select.ledger-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A7ABB4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.85rem center !important;
+  padding-right: 2.5rem !important;
+  cursor: pointer;
 }
 
 select option {
-  background-color: #0f172a;
-  color: #f8fafc;
+  background-color: #171A20 !important;
+  color: #F5F5F5 !important;
+  padding: 10px 14px;
+}
+
+select option:checked {
+  background-color: #292D36 !important;
+  color: #FFAC35 !important;
+}
+
+/* Checkboxes and Radios */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #FFAC35;
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+/* Chrome / Safari / Edge Autofill Fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #F5F5F5 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #16181F inset !important;
+  box-shadow: 0 0 0px 1000px #16181F inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: #F5F5F5 !important;
+}
+
+/* Native Date Input Picker Icon invert in WebKit */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) brightness(1.2);
+  cursor: pointer;
 }
 
 /* Dialog/Modal Styling */

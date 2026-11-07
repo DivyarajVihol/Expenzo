@@ -4,7 +4,7 @@
 {% block title %}Recurring Monthly Finance - EXPENZO{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/recurring.css' %}">
+<link rel="stylesheet" href="{% static 'css/recurring.css' %}?v=2.1">
 <style>
   .recurring-card-surface {
     background: #20232A;
@@ -24,6 +24,21 @@
     border-color: #FFAC35 !important;
     box-shadow: 0 0 10px rgba(255, 172, 53, 0.25) !important;
     outline: none;
+  }
+  select.recurring-input {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A7ABB4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.85rem center !important;
+    padding-right: 2.25rem !important;
+    cursor: pointer;
+  }
+  select.recurring-input option {
+    background-color: #171A20 !important;
+    color: #F5F5F5 !important;
+    padding: 8px 12px;
   }
   .recurring-item-card {
     background: #16181F;
