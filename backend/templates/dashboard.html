@@ -598,6 +598,30 @@
     </div>
   </div>
 
+  <!-- IN-PAGE WORKSPACE NAVIGATION SUB-PILLS -->
+  <div class="flex items-center gap-1.5 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit overflow-x-auto self-start">
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-primary text-on-primary-container shadow-[0_0_12px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm font-bold">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">receipt_long</span>
+      <span>Expense History</span>
+    </a>
+    <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
+      <span>Recurring Finance</span>
+    </a>
+    <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">monitoring</span>
+      <span>Charts & Analytics</span>
+    </a>
+    <a href="{% url 'spending_streaks' %}" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
+      <span class="material-symbols-outlined text-sm">local_fire_department</span>
+      <span>Streaks</span>
+    </a>
+  </div>
+
   <!-- 2. FOUR-CARD FINANCIAL OVERVIEW -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Card 1: Total Balance -->
@@ -967,7 +991,7 @@
     </div>
 
     <!-- Right: Accounts & Liquidity Breakdown (4 cols) -->
-    <div class="xl:col-span-4 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 flex flex-col justify-between shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+    <div id="accounts-section" class="xl:col-span-4 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 flex flex-col justify-between shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
       <div class="flex items-center justify-between mb-3">
         <div>
           <h2 class="font-display text-base font-bold text-on-surface">Accounts & Cards</h2>
@@ -1021,7 +1045,7 @@
   <!-- 4. SECONDARY SECTION: CATEGORY DISTRIBUTION (5 cols) & PAYMENT METHODS (7 cols) -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
     <!-- Category Spending Allocation (5 cols) -->
-    <div class="lg:col-span-5 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col justify-between">
+    <div id="category-distribution-section" class="lg:col-span-5 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col justify-between">
       <div class="flex items-center justify-between mb-3">
         <div>
           <h2 class="font-display text-base text-on-surface font-bold">Category Distribution</h2>

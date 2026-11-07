@@ -98,7 +98,17 @@
     <!-- Immediate Critical CSS for Collapsible Sidebar & Full-Width Dashboard -->
     <style id="expenzo-collapsible-sidebar-styles">
         :root {
-            --sidebar-width: 280px;
+            --sidebar-width: 260px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        #accounts-section,
+        #category-distribution-section,
+        #security-vault {
+            scroll-margin-top: 72px;
         }
 
         .app-container {
@@ -152,6 +162,9 @@
                 overflow-y: auto !important;
                 overflow-x: hidden !important;
                 box-sizing: border-box !important;
+                background: #121316 !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+                padding: 1.5rem 1.15rem !important;
                 transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                             min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                             max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -213,23 +226,113 @@
                 left: 0 !important;
                 bottom: 0 !important;
                 z-index: 1000 !important;
-                width: 280px !important;
-                min-width: 280px !important;
-                max-width: 280px !important;
+                width: 270px !important;
+                min-width: 270px !important;
+                max-width: 270px !important;
                 height: 100vh !important;
                 height: 100dvh !important;
+                background: #121316 !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+                padding: 1.5rem 1.15rem !important;
                 transform: translateX(-100%) !important;
                 margin-left: 0 !important;
                 opacity: 1 !important;
                 visibility: visible !important;
                 pointer-events: auto !important;
                 transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-                box-shadow: 4px 0 24px rgba(0,0,0,0.7) !important;
+                box-shadow: 6px 0 32px rgba(0,0,0,0.8) !important;
             }
 
             .sidebar.open {
                 transform: translateX(0) !important;
             }
+        }
+
+        /* Sleek scrollbar for sidebar */
+        .sidebar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+        }
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 4px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Navigation Group Headers */
+        .nav-section-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.36);
+            padding: 0.45rem 0.75rem 0.25rem 0.75rem;
+            user-select: none;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.22rem;
+            width: 100%;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.56rem 0.85rem;
+            border-radius: 12px;
+            color: #a1a1aa;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            user-select: none;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            color: #e5e2e1;
+            background: rgba(255, 255, 255, 0.045);
+            transform: translateX(2px);
+        }
+
+        .nav-item.active {
+            color: #ffa31a !important;
+            background: rgba(255, 163, 26, 0.12) !important;
+            border: 1px solid rgba(255, 163, 26, 0.32) !important;
+            font-weight: 600;
+            box-shadow: 0 0 14px rgba(255, 163, 26, 0.14);
+        }
+
+        .nav-item .nav-icon {
+            font-size: 1.2rem;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #71717a;
+            transition: color 0.18s ease;
+        }
+
+        .nav-item:hover .nav-icon {
+            color: #e5e2e1;
+        }
+
+        .nav-item.active .nav-icon {
+            color: #ffa31a !important;
         }
 
         /* Sidebar Toggle Button styling */
@@ -261,7 +364,8 @@
             transform: scale(0.95) !important;
         }
 
-        .sidebar-collapse-btn {
+        .sidebar-collapse-btn,
+        .sidebar-close-btn {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -276,8 +380,31 @@
             padding: 0 !important;
         }
 
-        .sidebar-collapse-btn:hover {
+        .sidebar-collapse-btn:hover,
+        .sidebar-close-btn:hover {
             background: rgba(255, 163, 26, 0.12) !important;
+            border-color: rgba(255, 163, 26, 0.4) !important;
+            color: #ffa31a !important;
+            box-shadow: 0 0 12px rgba(255, 163, 26, 0.2) !important;
+        }
+
+        @media (max-width: 767px) {
+            .sidebar-collapse-btn {
+                display: none !important;
+            }
+            .sidebar-close-btn {
+                display: inline-flex !important;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .sidebar-close-btn {
+                display: none !important;
+            }
+            .sidebar-collapse-btn {
+                display: inline-flex !important;
+            }
+        }
             border-color: rgba(255, 163, 26, 0.4) !important;
             color: #ffa31a !important;
             box-shadow: 0 0 12px rgba(255, 163, 26, 0.2) !important;
@@ -358,7 +485,7 @@
         {% if user.is_authenticated %}
         <!-- Sidebar Navigation -->
         <aside class="sidebar animate__animated animate__fadeInLeft" id="app-sidebar" aria-label="Main Navigation">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
                 <a href="{% url 'dashboard' %}" class="logo-container" style="margin-bottom: 0;" aria-label="Go to Dashboard">
                     <i data-lucide="wallet" class="logo-icon"></i>
                     <span class="logo-text">EXPENZO</span>
@@ -366,28 +493,77 @@
                 <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar (Ctrl+\)">
                     <span class="material-symbols-outlined text-base">menu_open</span>
                 </button>
+                <button id="sidebar-close-btn" class="sidebar-close-btn" type="button" aria-label="Close navigation drawer" title="Close navigation menu">
+                    <span class="material-symbols-outlined text-base">close</span>
+                </button>
             </div>
 
-            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; margin-top: 2rem;">
-                <nav class="nav-menu">
-                    <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'history' or request.resolver_match.url_name == 'recurring' or request.resolver_match.url_name == 'personal_charts' %}active{% endif %}">
-                        <i data-lucide="user"></i>
-                        <span>Personal Spend</span>
+            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <nav class="nav-menu" aria-label="Application Sections">
+                    <!-- WORKSPACE -->
+                    <div class="nav-section-label">WORKSPACE</div>
+                    
+                    <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" title="Dashboard Overview">
+                        <span class="material-symbols-outlined nav-icon">dashboard</span>
+                        <span class="nav-label">Dashboard</span>
                     </a>
-                    <a href="{% url 'groups' %}" class="nav-item {% if request.resolver_match.url_name == 'groups' or request.resolver_match.url_name == 'group_detail' %}active{% endif %}">
-                        <i data-lucide="users"></i>
-                        <span>Group Splits</span>
+
+                    <a href="{% url 'history' %}" class="nav-item {% if request.resolver_match.url_name == 'history' %}active{% endif %}" title="Expense History & Ledger">
+                        <span class="material-symbols-outlined nav-icon">receipt_long</span>
+                        <span class="nav-label">Expense History</span>
                     </a>
-                    <a href="{% url 'profile' %}" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
-                        <i data-lucide="settings" style="color: var(--accent-primary);"></i>
-                        <span>My Profile</span>
+
+                    <a href="{% url 'recurring' %}" class="nav-item {% if request.resolver_match.url_name == 'recurring' %}active{% endif %}" title="Recurring Subscriptions & Cashflows">
+                        <span class="material-symbols-outlined nav-icon">sync_saved_locally</span>
+                        <span class="nav-label">Recurring Finance</span>
+                    </a>
+
+                    <a href="{% url 'personal_charts' %}" class="nav-item {% if request.resolver_match.url_name == 'personal_charts' %}active{% endif %}" title="Charts & Analytics">
+                        <span class="material-symbols-outlined nav-icon">monitoring</span>
+                        <span class="nav-label">Charts & Analytics</span>
+                    </a>
+
+                    <a href="{% url 'dashboard' %}#accounts-section" class="nav-item" title="Accounts & Cards Liquidity">
+                        <span class="material-symbols-outlined nav-icon">account_balance_wallet</span>
+                        <span class="nav-label">Accounts & Cards</span>
+                    </a>
+
+                    <a href="{% url 'spending_streaks' %}" class="nav-item {% if request.resolver_match.url_name == 'spending_streaks' %}active{% endif %}" title="Spending Streaks Habit Tracker">
+                        <span class="material-symbols-outlined nav-icon">local_fire_department</span>
+                        <span class="nav-label">Spending Streaks</span>
+                    </a>
+
+                    <!-- COLLABORATION -->
+                    <div class="nav-section-label" style="margin-top: 1rem;">COLLABORATION</div>
+
+                    <a href="{% url 'groups' %}" class="nav-item {% if request.resolver_match.url_name == 'groups' or request.resolver_match.url_name == 'group_detail' %}active{% endif %}" title="Shared Group Bill Splits">
+                        <span class="material-symbols-outlined nav-icon">group_work</span>
+                        <span class="nav-label">Group Splits</span>
+                    </a>
+
+                    <!-- MANAGEMENT & SETTINGS -->
+                    <div class="nav-section-label" style="margin-top: 1rem;">PREFERENCES</div>
+
+                    <a href="{% url 'dashboard' %}#category-distribution-section" class="nav-item" title="Category Distribution">
+                        <span class="material-symbols-outlined nav-icon">pie_chart</span>
+                        <span class="nav-label">Categories</span>
+                    </a>
+
+                    <a href="{% url 'profile' %}" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" title="User Profile">
+                        <span class="material-symbols-outlined nav-icon">manage_accounts</span>
+                        <span class="nav-label">Profile</span>
+                    </a>
+
+                    <a href="{% url 'profile' %}#security-vault" class="nav-item" title="Security & Settings">
+                        <span class="material-symbols-outlined nav-icon">shield</span>
+                        <span class="nav-label">Settings</span>
                     </a>
                 </nav>
 
-                <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: auto;">
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <div class="sidebar-user-footer" style="border-top: 1px solid var(--border-color); padding-top: 1.15rem; margin-top: 1.25rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                        <a href="{% url 'profile' %}" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none; padding: 0.35rem 0.5rem; border-radius: 12px; transition: background 0.2s ease;" class="hover:bg-white/5" title="View Profile">
+                            <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 {% if user.profile.avatar_base64 %}
                                     <img src="{{ user.profile.avatar_base64 }}" alt="{{ user.first_name }}" style="width: 100%; height: 100%; object-fit: cover;">
                                 {% elif user.profile.avatar %}
@@ -397,16 +573,16 @@
                                 {% endif %}
                             </div>
                             <div style="min-width: 0; flex: 1;">
-                                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
                                 </div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     {{ user.email }}
                                 </div>
                             </div>
-                        </div>
-                        <a href="{% url 'logout' %}" class="btn btn-secondary" style="display: flex; width: 100%; justify-content: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem; text-decoration: none; align-items: center; box-sizing: border-box;">
-                            <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                        </a>
+                        <a href="{% url 'logout' %}" class="btn btn-secondary" style="display: flex; width: 100%; justify-content: center; gap: 0.5rem; padding: 0.45rem 1rem; font-size: 0.85rem; text-decoration: none; align-items: center; box-sizing: border-box; border-radius: 10px;">
+                            <i data-lucide="log-out" style="width: 15px; height: 15px;"></i>
                             <span>Logout</span>
                         </a>
                     </div>
@@ -440,10 +616,11 @@
                     <div class="topbar-context">
                         <span class="context-slash">/</span>
                         <span class="context-title">
-                            {% if request.resolver_match.url_name == 'dashboard' %}Personal Spend
+                            {% if request.resolver_match.url_name == 'dashboard' %}Dashboard Overview
                             {% elif request.resolver_match.url_name == 'history' %}Expense History
                             {% elif request.resolver_match.url_name == 'recurring' %}Recurring Finance
                             {% elif request.resolver_match.url_name == 'personal_charts' %}Analytics & Charts
+                            {% elif request.resolver_match.url_name == 'spending_streaks' %}Spending Streaks
                             {% elif request.resolver_match.url_name == 'groups' %}Group Splits
                             {% elif request.resolver_match.url_name == 'group_detail' %}Group Details
                             {% elif request.resolver_match.url_name == 'profile' %}My Profile
@@ -518,11 +695,11 @@
             const appContainer = document.getElementById('app-container');
             const toggleBtn = document.getElementById('sidebar-toggle-btn');
             const collapseBtn = document.getElementById('sidebar-collapse-btn');
+            const closeBtn = document.getElementById('sidebar-close-btn');
             const toggleIcon = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
             const sidebar = document.querySelector('.sidebar');
             const backdrop = document.getElementById('sidebar-backdrop');
             const menuBtn = document.getElementById('mobile-menu-btn');
-            const navItems = document.querySelectorAll('.sidebar .nav-item, .sidebar .logo-container, .sidebar .btn-secondary');
 
             // --- Sidebar Toggle & State Management ---
             function updateToggleUI(isCollapsed) {
@@ -569,7 +746,17 @@
             }
 
             if (collapseBtn) {
-                collapseBtn.addEventListener('click', toggleDesktopSidebar);
+                collapseBtn.addEventListener('click', () => {
+                    if (window.innerWidth >= 768) {
+                        toggleDesktopSidebar();
+                    } else {
+                        closeSidebar();
+                    }
+                });
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeSidebar);
             }
 
             // Global Keyboard Shortcut: Ctrl+\ or Cmd+\ to toggle sidebar
@@ -586,45 +773,54 @@
             });
 
             // --- Mobile Drawer Handlers (screens < 768px) ---
-            if (!sidebar || !menuBtn) return;
-
             function openSidebar() {
+                if (!sidebar) return;
                 sidebar.classList.add('open');
                 if (backdrop) backdrop.classList.add('active');
-                menuBtn.classList.add('open');
-                menuBtn.setAttribute('aria-expanded', 'true');
+                if (menuBtn) {
+                    menuBtn.classList.add('open');
+                    menuBtn.setAttribute('aria-expanded', 'true');
+                }
                 document.body.style.overflow = 'hidden'; // Prevent body scroll
             }
 
             function closeSidebar() {
+                if (!sidebar) return;
                 sidebar.classList.remove('open');
                 if (backdrop) backdrop.classList.remove('active');
-                menuBtn.classList.remove('open');
-                menuBtn.setAttribute('aria-expanded', 'false');
+                if (menuBtn) {
+                    menuBtn.classList.remove('open');
+                    menuBtn.setAttribute('aria-expanded', 'false');
+                }
                 document.body.style.overflow = ''; // Restore scroll
             }
 
-            menuBtn.addEventListener('click', () => {
-                if (sidebar.classList.contains('open')) closeSidebar();
-                else openSidebar();
-            });
+            if (menuBtn) {
+                menuBtn.addEventListener('click', () => {
+                    if (sidebar && sidebar.classList.contains('open')) closeSidebar();
+                    else openSidebar();
+                });
+            }
 
             if (backdrop) {
                 backdrop.addEventListener('click', closeSidebar);
             }
 
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                if (e.key === 'Escape' && sidebar && sidebar.classList.contains('open')) {
                     closeSidebar();
                 }
             });
 
-            // Close when clicking a nav item (on mobile)
-            navItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    if (window.innerWidth < 768) closeSidebar();
+            // Close when clicking any link inside sidebar on mobile
+            if (sidebar) {
+                const allSidebarLinks = sidebar.querySelectorAll('a');
+                allSidebarLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        if (window.innerWidth < 768) closeSidebar();
+                    });
                 });
-            });
+            }
         });
     </script>
     <script defer src="{% static 'js/custom-calendar.js' %}?v=1.0"></script>
