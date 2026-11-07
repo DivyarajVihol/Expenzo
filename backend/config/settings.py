@@ -138,6 +138,7 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+            "CONN_MAX_AGE": 600,
             "OPTIONS": {
                 "timeout": 20,
             },
@@ -148,13 +149,16 @@ else:
 # CACHES
 # ==================================================
 
+CACHE_DIR = BASE_DIR / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "expenzo_cache",
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": str(CACHE_DIR),
         "TIMEOUT": 300,
         "OPTIONS": {
-            "MAX_ENTRIES": 1000,
+            "MAX_ENTRIES": 2000,
             "CULL_FREQUENCY": 3,
         },
     }

@@ -52,6 +52,13 @@ def get_object_or_none(model, **kwargs):
 def dashboard_view(request):
     user = request.user
     
+    # Preload user.profile to eliminate template N+1 query in base.html
+    if user.is_authenticated and 'profile' not in user._state.fields_cache:
+        try:
+            user._state.fields_cache['profile'] = UserProfile.objects.only('avatar', 'avatar_base64', 'user_id').get(user=user)
+        except UserProfile.DoesNotExist:
+            pass
+
     # Process recurring items dynamically
     process_recurring_finance(user)
     
@@ -77,10 +84,12 @@ def dashboard_view(request):
         expenses = expenses.filter(Q(description__icontains=search_query) | Q(category__icontains=search_query))
         
     if filter_type == 'daily':
-        filtered_expenses = expenses.filter(date__date=now.date())
+        start_of_day = django_timezone.make_aware(datetime(now.year, now.month, now.day, 0, 0, 0))
+        end_of_day = start_of_day + timedelta(days=1)
+        filtered_expenses = expenses.filter(date__gte=start_of_day, date__lt=end_of_day)
     elif filter_type == 'weekly':
-        seven_days_ago = now.date() - timedelta(days=7)
-        filtered_expenses = expenses.filter(date__date__gte=seven_days_ago, date__date__lte=now.date())
+        seven_days_ago = django_timezone.make_aware(datetime(now.year, now.month, now.day, 0, 0, 0)) - timedelta(days=7)
+        filtered_expenses = expenses.filter(date__gte=seven_days_ago, date__lte=now)
     elif filter_type == 'monthly':
         filtered_expenses = expenses.filter(date__gte=start_of_month, date__lt=start_of_next_month)
     else:
@@ -88,21 +97,21 @@ def dashboard_view(request):
         
     recent_transactions = filtered_expenses.order_by('-date')[:20]
     
-    # Cumulative balance calculation using DB-level aggregation (no in-memory Python looping)
-    past_aggregates = PersonalExpense.objects.filter(
+    # Consolidated all-time & monthly aggregates in 1 database query
+    finance_aggs = PersonalExpense.objects.filter(
         user=user,
         date__lt=start_of_next_month
     ).aggregate(
-        cumulative_income=Sum(
-            Case(When(category="Income", then="amount"), default=Value(0.0), output_field=FloatField())
-        ),
-        cumulative_spend=Sum(
-            Case(When(~Q(category="Income"), then="amount"), default=Value(0.0), output_field=FloatField())
-        )
+        cumulative_income=Sum(Case(When(category="Income", then="amount"), default=Value(0.0), output_field=FloatField())),
+        cumulative_spend=Sum(Case(When(~Q(category="Income"), then="amount"), default=Value(0.0), output_field=FloatField())),
+        total_month_income=Sum(Case(When(Q(category="Income") & Q(date__gte=start_of_month), then="amount"), default=Value(0.0), output_field=FloatField())),
+        total_month_spend=Sum(Case(When(~Q(category="Income") & Q(date__gte=start_of_month), then="amount"), default=Value(0.0), output_field=FloatField()))
     )
-    cumulative_income = float(past_aggregates['cumulative_income'] or 0.0)
-    cumulative_spend = float(past_aggregates['cumulative_spend'] or 0.0)
+    cumulative_income = float(finance_aggs['cumulative_income'] or 0.0)
+    cumulative_spend = float(finance_aggs['cumulative_spend'] or 0.0)
     monthly_balance = cumulative_income - cumulative_spend
+    total_month_income = float(finance_aggs['total_month_income'] or 0.0)
+    total_month_spend = float(finance_aggs['total_month_spend'] or 0.0)
     
     # Account & Payment Method Stats via DB aggregation
     SUPPORTED_ACCOUNTS = ['Cash', 'Bank Account', 'Credit Card']
@@ -181,17 +190,7 @@ def dashboard_view(request):
     
     pm_chart_base64 = None
     
-    # Month aggregates and category breakdown via DB aggregation
-    month_aggs = PersonalExpense.objects.filter(
-        user=user,
-        date__gte=start_of_month,
-        date__lt=start_of_next_month
-    ).aggregate(
-        total_month_income=Sum(Case(When(category="Income", then="amount"), default=Value(0.0), output_field=FloatField())),
-        total_month_spend=Sum(Case(When(~Q(category="Income"), then="amount"), default=Value(0.0), output_field=FloatField()))
-    )
-    total_month_income = float(month_aggs['total_month_income'] or 0.0)
-    total_month_spend = float(month_aggs['total_month_spend'] or 0.0)
+    # Month aggregates already computed in consolidated finance_aggs
     
     category_qs = PersonalExpense.objects.filter(
         user=user,
