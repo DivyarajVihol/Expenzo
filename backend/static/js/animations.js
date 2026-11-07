@@ -177,5 +177,9 @@
   window.initExpenzoAnimations = startAllAnimations;
 
   // Execute sequence: wait for window.onload AND document.fonts.ready
-  waitForReady().then(startAllAnimations);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startAllAnimations);
+  } else {
+    startAllAnimations();
+  }
 })();

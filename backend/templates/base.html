@@ -9,9 +9,6 @@
     <meta name="theme-color" content="#12121a">
     <title>{% block title %}EXPENZO - Financial Dashboard{% endblock %}</title>
     
-    <!-- Prevent FOUC: Mark root as loading until window.load & document.fonts.ready -->
-    <script>document.documentElement.classList.add('wf-loading');</script>
-
     <!-- Preconnect & DNS-Prefetch for external origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,15 +22,21 @@
     <!-- Custom Style Sheet -->
     <link rel="stylesheet" href="{% static 'css/globals.css' %}?v=3.8">
     
-    <!-- Obsidian Telemetry Google Fonts & Fontshare -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600&display=swap" rel="stylesheet">
-    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@700&display=swap" rel="stylesheet">
+        <!-- Obsidian Telemetry Google Fonts & Fontshare (Consolidated & Non-Render-Blocking) -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Space+Grotesk:wght@300..700&family=Manrope:wght@800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=general-sans@700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Space+Grotesk:wght@300..700&family=Manrope:wght@800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@700&display=swap">
+    </noscript>
     
-    <!-- Tailwind CSS with Obsidian Telemetry Configuration -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Precompiled Tailored Application Tailwind CSS -->
+    <link rel="stylesheet" href="{% static 'css/app-tailwind.css' %}?v=1.0">
+
+    <!-- Tailwind CSS with Obsidian Telemetry Configuration (Deferred Runtime) -->
+    <script defer src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
+        window.tailwind = window.tailwind || {};
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -928,25 +931,8 @@
                 navigateTo(window.location.href, false);
             }
         });
+        // Route prefetching activated smoothly on pointerenter / hover
 
-        // Initial prefetch of the other sibling routes when browser is idle
-        if ('requestIdleCallback' in window) {
-            window.requestIdleCallback(() => {
-                PERSONAL_ROUTES.forEach(route => {
-                    if (normalizePath(window.location.href) !== normalizePath(route)) {
-                        prefetchRoute(route);
-                    }
-                });
-            }, { timeout: 2000 });
-        } else {
-            setTimeout(() => {
-                PERSONAL_ROUTES.forEach(route => {
-                    if (normalizePath(window.location.href) !== normalizePath(route)) {
-                        prefetchRoute(route);
-                    }
-                });
-            }, 1000);
-        }
     })();
     </script>
 <!-- Expenzo Professional Subtle Animations Script -->
