@@ -500,62 +500,18 @@
 
             <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
                 <nav class="nav-menu" aria-label="Application Sections">
-                    <!-- WORKSPACE -->
-                    <div class="nav-section-label">WORKSPACE</div>
-                    
-                    <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" title="Dashboard Overview">
-                        <span class="material-symbols-outlined nav-icon">dashboard</span>
-                        <span class="nav-label">Dashboard</span>
-                    </a>
-
-                    <a href="{% url 'history' %}" class="nav-item {% if request.resolver_match.url_name == 'history' %}active{% endif %}" title="Expense History & Ledger">
+                    <a href="{% url 'history' %}" class="nav-item {% if request.resolver_match.url_name == 'history' %}active{% endif %}" title="Personal Spend & Ledger">
                         <span class="material-symbols-outlined nav-icon">receipt_long</span>
-                        <span class="nav-label">Expense History</span>
+                        <span class="nav-label">Personal Spend</span>
                     </a>
 
-                    <a href="{% url 'recurring' %}" class="nav-item {% if request.resolver_match.url_name == 'recurring' %}active{% endif %}" title="Recurring Subscriptions & Cashflows">
-                        <span class="material-symbols-outlined nav-icon">sync_saved_locally</span>
-                        <span class="nav-label">Recurring Finance</span>
+                    <a href="{% url 'groups' %}" class="nav-item {% if request.resolver_match.url_name == 'groups' or request.resolver_match.url_name == 'group_detail' %}active{% endif %}" title="Group Bill Splits">
+                        <span class="material-symbols-outlined nav-icon">groups</span>
+                        <span class="nav-label">Group Split</span>
                     </a>
 
-                    <a href="{% url 'personal_charts' %}" class="nav-item {% if request.resolver_match.url_name == 'personal_charts' %}active{% endif %}" title="Charts & Analytics">
-                        <span class="material-symbols-outlined nav-icon">monitoring</span>
-                        <span class="nav-label">Charts & Analytics</span>
-                    </a>
-
-                    <a href="{% url 'dashboard' %}#accounts-section" class="nav-item" title="Accounts & Cards Liquidity">
-                        <span class="material-symbols-outlined nav-icon">account_balance_wallet</span>
-                        <span class="nav-label">Accounts & Cards</span>
-                    </a>
-
-                    <a href="{% url 'spending_streaks' %}" class="nav-item {% if request.resolver_match.url_name == 'spending_streaks' %}active{% endif %}" title="Spending Streaks Habit Tracker">
-                        <span class="material-symbols-outlined nav-icon">local_fire_department</span>
-                        <span class="nav-label">Spending Streaks</span>
-                    </a>
-
-                    <!-- COLLABORATION -->
-                    <div class="nav-section-label" style="margin-top: 1rem;">COLLABORATION</div>
-
-                    <a href="{% url 'groups' %}" class="nav-item {% if request.resolver_match.url_name == 'groups' or request.resolver_match.url_name == 'group_detail' %}active{% endif %}" title="Shared Group Bill Splits">
-                        <span class="material-symbols-outlined nav-icon">group_work</span>
-                        <span class="nav-label">Group Splits</span>
-                    </a>
-
-                    <!-- MANAGEMENT & SETTINGS -->
-                    <div class="nav-section-label" style="margin-top: 1rem;">PREFERENCES</div>
-
-                    <a href="{% url 'dashboard' %}#category-distribution-section" class="nav-item" title="Category Distribution">
-                        <span class="material-symbols-outlined nav-icon">pie_chart</span>
-                        <span class="nav-label">Categories</span>
-                    </a>
-
-                    <a href="{% url 'profile' %}" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" title="User Profile">
-                        <span class="material-symbols-outlined nav-icon">manage_accounts</span>
-                        <span class="nav-label">Profile</span>
-                    </a>
-
-                    <a href="{% url 'profile' %}#security-vault" class="nav-item" title="Security & Settings">
-                        <span class="material-symbols-outlined nav-icon">shield</span>
+                    <a href="{% url 'profile' %}#security-vault" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" title="Security & Settings">
+                        <span class="material-symbols-outlined nav-icon">settings</span>
                         <span class="nav-label">Settings</span>
                     </a>
                 </nav>
@@ -617,7 +573,7 @@
                         <span class="context-slash">/</span>
                         <span class="context-title">
                             {% if request.resolver_match.url_name == 'dashboard' %}Dashboard Overview
-                            {% elif request.resolver_match.url_name == 'history' %}Expense History
+                            {% elif request.resolver_match.url_name == 'history' %}Personal Spend
                             {% elif request.resolver_match.url_name == 'recurring' %}Recurring Finance
                             {% elif request.resolver_match.url_name == 'personal_charts' %}Analytics & Charts
                             {% elif request.resolver_match.url_name == 'spending_streaks' %}Spending Streaks
