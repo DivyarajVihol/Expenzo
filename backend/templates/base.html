@@ -33,8 +33,7 @@
     <!-- Precompiled Tailored Application Tailwind CSS -->
     <link rel="stylesheet" href="{% static 'css/app-tailwind.css' %}?v=1.0">
 
-    <!-- Tailwind CSS with Obsidian Telemetry Configuration (Deferred Runtime) -->
-    <script defer src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS with Obsidian Telemetry Configuration (Idle Background Runtime) -->
     <script id="tailwind-config">
         window.tailwind = window.tailwind || {};
         tailwind.config = {
@@ -78,6 +77,22 @@
                 }
             }
         };
+        // Schedule runtime Tailwind compiler during browser idle to eliminate main thread blocking (TBT)
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(function() {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.tailwindcss.com';
+                s.defer = true;
+                document.head.appendChild(s);
+            }, { timeout: 3500 });
+        } else {
+            setTimeout(function() {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.tailwindcss.com';
+                s.defer = true;
+                document.head.appendChild(s);
+            }, 2500);
+        }
     </script>
 
     <!-- Immediate Critical CSS for Collapsible Sidebar & Full-Width Dashboard -->
@@ -482,15 +497,22 @@
         <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
     </div>
 
-    <!-- Lucide Icon CDN Script (Deferred) -->
+    <!-- Lucide Icon CDN Script (Deferred & Idle Scheduled) -->
     <script defer src="{% static 'js/lucide.min.js' %}?v=1.0"></script>
     <script>
+        function scheduleLucide() {
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                if ('requestIdleCallback' in window) {
+                    window.requestIdleCallback(() => window.lucide.createIcons(), { timeout: 1500 });
+                } else {
+                    setTimeout(() => window.lucide.createIcons(), 150);
+                }
+            }
+        }
         if (window.lucide) {
-            lucide.createIcons();
+            scheduleLucide();
         } else {
-            window.addEventListener('DOMContentLoaded', () => {
-                if (window.lucide) lucide.createIcons();
-            });
+            window.addEventListener('DOMContentLoaded', scheduleLucide);
         }
         document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app-container');

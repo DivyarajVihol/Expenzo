@@ -177,7 +177,9 @@
   window.initExpenzoAnimations = startAllAnimations;
 
   // Execute sequence: wait for window.onload AND document.fonts.ready
-  if (document.readyState === 'loading') {
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(startAllAnimations, { timeout: 1000 });
+  } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startAllAnimations);
   } else {
     startAllAnimations();

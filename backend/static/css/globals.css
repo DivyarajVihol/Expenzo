@@ -1433,6 +1433,25 @@ input[type=number] {
 }
 
 
+/* Material Symbols zero-shift rule */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+}
+
 /* Animations active */
 /* Base scroll reveal state */
 .reveal {

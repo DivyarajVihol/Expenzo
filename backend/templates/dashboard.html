@@ -521,152 +521,228 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col w-full relative">
-  <!-- Ambient Telemetry Radial Glows -->
-  <div class="absolute -top-16 left-1/4 w-[500px] h-[350px] bg-primary-container/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-  <div class="absolute top-[480px] right-10 w-[420px] h-[400px] bg-secondary/10 rounded-full blur-[140px] pointer-events-none -z-10"></div>
-  <div class="absolute bottom-10 left-12 w-[380px] h-[300px] bg-tertiary-container/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+<div class="flex flex-col w-full relative space-y-6">
 
-  <!-- Top Command Bar (Search & Active Month) -->
-  <div class="flex items-center justify-between gap-4 mb-6">
-    <div class="flex items-center gap-3 flex-1 max-w-2xl">
-      <form method="GET" action="{% url 'dashboard' %}" class="relative w-full flex items-center">
-        <span class="material-symbols-outlined absolute left-3 text-outline text-lg pointer-events-none">search</span>
+  <!-- Ambient Subtle Glows -->
+  <div class="absolute -top-12 left-1/4 w-[450px] h-[300px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+  <div class="absolute top-[400px] right-8 w-[380px] h-[320px] bg-secondary/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+
+  <!-- 1. COMPACT DASHBOARD HEADER & QUICK ACTIONS -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-1">
+    <!-- Greeting & Status -->
+    <div class="flex flex-col">
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">
+          Good day, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
+        </h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-label-md text-xs font-bold tracking-wide">
+          CAPITAL PRO
+        </span>
+      </div>
+      <p class="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1 flex items-center gap-2 flex-wrap">
+        <span>Financial overview & liquidity tracking</span>
+        <span class="text-outline">•</span>
+        <span class="inline-flex items-center gap-1 text-primary font-semibold">
+          <span class="material-symbols-outlined text-sm">calendar_today</span>
+          {{ active_month_label }}
+        </span>
+      </p>
+    </div>
+
+    <!-- Quick Action Buttons Group -->
+    <div class="flex items-center gap-2 flex-wrap self-start md:self-auto">
+      <!-- Add Income -->
+      <button type="button"
+              onclick="openTransactionModal('income')"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-tertiary/15 hover:bg-tertiary/25 text-tertiary border border-tertiary/30 font-label-md text-xs font-bold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer shadow-[0_0_12px_rgba(83,236,180,0.15)]"
+              title="Add Income">
+        <span class="material-symbols-outlined text-sm font-bold">south_west</span>
+        <span>Add Income</span>
+      </button>
+
+      <!-- Add Expense -->
+      <button type="button"
+              onclick="openTransactionModal('expense')"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary-container font-label-md text-xs font-bold shadow-[0_0_16px_rgba(255,163,26,0.25)] hover:brightness-110 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+              title="Add Expense">
+        <span class="material-symbols-outlined text-sm font-bold">north_east</span>
+        <span>Add Expense</span>
+      </button>
+
+      <!-- Scan Receipt -->
+      <button type="button"
+              onclick="openScanReceiptModal()"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface border border-white/5 font-label-md text-xs font-medium transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+              title="Scan Receipt">
+        <span class="material-symbols-outlined text-sm">document_scanner</span>
+        <span class="hidden sm:inline">Scan</span>
+      </button>
+
+      <!-- Search Trigger Input -->
+      <form method="GET" action="{% url 'dashboard' %}" class="relative flex items-center ml-1">
+        <span class="material-symbols-outlined absolute left-2.5 text-outline text-base pointer-events-none">search</span>
         <input
           type="text"
           name="search"
           value="{{ search_query|default:'' }}"
-          placeholder="Search transactions, categories... [Press Enter]"
-          class="w-full pl-9 pr-9 py-2 bg-surface-container-lowest/80 text-on-surface font-body-sm text-sm rounded-xl outline-none placeholder:text-outline border border-white/5 focus:bg-surface-container focus:border-primary/40 focus:ring-1 focus:ring-primary/40 transition-all"
+          placeholder="Search..."
+          class="w-32 sm:w-44 pl-8 pr-7 py-1.5 bg-surface-container-lowest/80 text-on-surface font-body-sm text-xs rounded-xl outline-none placeholder:text-outline border border-white/5 focus:w-56 focus:bg-surface-container focus:border-primary/40 transition-all"
         />
         {% if search_query %}
-          <a href="{% url 'dashboard' %}?filter={{ filter_type }}" class="absolute right-3 text-outline hover:text-on-surface transition-colors" title="Clear search">
-            <span class="material-symbols-outlined text-base">close</span>
+          <a href="{% url 'dashboard' %}?filter={{ filter_type }}" class="absolute right-2 text-outline hover:text-on-surface transition-colors" title="Clear">
+            <span class="material-symbols-outlined text-xs">close</span>
           </a>
         {% endif %}
         <input type="hidden" name="filter" value="{{ filter_type }}">
       </form>
-      
-      <div class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container-low border border-white/5 text-on-surface-variant text-xs font-semibold whitespace-nowrap">
-        <span class="material-symbols-outlined text-base text-primary">calendar_today</span>
-        <span>Current Month: {{ active_month_label }}</span>
+    </div>
+  </div>
+
+  <!-- 2. FOUR-CARD FINANCIAL OVERVIEW -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Card 1: Total Balance -->
+    <div class="bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.35)] hover:border-white/10 transition-all">
+      <div class="flex items-center justify-between">
+        <span class="font-label-md text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Total Balance</span>
+        <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+          <span class="material-symbols-outlined text-base">account_balance_wallet</span>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="font-display text-2xl font-bold text-on-surface tabular-nums">
+          ₹{{ monthly_balance|floatformat:2 }}
+        </div>
+        <div class="flex items-center gap-1.5 mt-1 text-xs">
+          {% if monthly_balance >= 0 %}
+            <span class="text-tertiary font-semibold flex items-center gap-0.5">
+              <span class="material-symbols-outlined text-xs font-bold">trending_up</span> Surplus Active
+            </span>
+          {% else %}
+            <span class="text-error font-semibold flex items-center gap-0.5">
+              <span class="material-symbols-outlined text-xs font-bold">trending_down</span> In Deficit
+            </span>
+          {% endif %}
+          <span class="text-outline">• Net Liquid</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Monthly Inflow -->
+    <div class="bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.35)] hover:border-white/10 transition-all">
+      <div class="flex items-center justify-between">
+        <span class="font-label-md text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Monthly Income</span>
+        <div class="w-8 h-8 rounded-lg bg-tertiary/10 border border-tertiary/20 flex items-center justify-center text-tertiary">
+          <span class="material-symbols-outlined text-base">trending_up</span>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="font-display text-2xl font-bold text-tertiary tabular-nums">
+          ₹{{ total_month_income|floatformat:2|default:"0.00" }}
+        </div>
+        <div class="text-xs text-outline mt-1 truncate">
+          {{ active_month_label }} Inflow
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Monthly Outflow -->
+    <div class="bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.35)] hover:border-white/10 transition-all">
+      <div class="flex items-center justify-between">
+        <span class="font-label-md text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Monthly Expenses</span>
+        <div class="w-8 h-8 rounded-lg bg-error/10 border border-error/20 flex items-center justify-center text-error">
+          <span class="material-symbols-outlined text-base">payments</span>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="font-display text-2xl font-bold text-error tabular-nums">
+          ₹{{ total_month_spend|floatformat:2|default:"0.00" }}
+        </div>
+        <div class="text-xs text-outline mt-1 truncate">
+          {{ active_month_label }} Outflow
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Net Surplus / Position -->
+    <div class="bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.35)] hover:border-white/10 transition-all">
+      <div class="flex items-center justify-between">
+        <span class="font-label-md text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Net Surplus</span>
+        <div class="w-8 h-8 rounded-lg bg-primary-container/15 border border-primary-container/20 flex items-center justify-center text-primary">
+          <span class="material-symbols-outlined text-base">savings</span>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="font-display text-2xl font-bold text-on-surface tabular-nums">
+          ₹{{ monthly_balance|floatformat:2 }}
+        </div>
+        <div class="text-xs text-outline mt-1 truncate">
+          All-time Inflow: ₹{{ total_income|floatformat:0 }}
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Page Header & Navigation Bar -->
-  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 animate__animated animate__fadeIn" style="--animate-duration: 0.6s;">
-    <div class="flex flex-col">
-      <div class="flex items-center gap-2 flex-wrap">
-        <h1 class="font-display text-2xl lg:text-3xl font-bold text-on-surface tracking-tight">Good day, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</h1>
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-container/20 border border-primary-container/30 text-primary font-label-md text-xs font-bold">CAPITAL PRO</span>
-      </div>
-      <p class="font-body-md text-sm text-on-surface-variant mt-1">Overview of your personal finances and liquidity for {{ active_month_label }}</p>
-    </div>
-
-    <!-- Navigation Bar (Right side next to greeting) -->
-    <div class="flex items-center gap-1 p-1 rounded-2xl bg-surface-container-low/80 backdrop-blur-xl border border-white/5 max-w-fit overflow-x-auto self-start lg:self-auto">
-      <a href="{% url 'dashboard' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary-container text-on-primary-container shadow-[0_0_15px_rgba(255,163,26,0.3)] transition-all whitespace-nowrap">
-        <span class="material-symbols-outlined text-sm">dashboard</span>
-        <span>Dashboard</span>
-      </a>
-      <a href="{% url 'history' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-        <span class="material-symbols-outlined text-sm">receipt_long</span>
-        <span>Expense History</span>
-      </a>
-      <a href="{% url 'recurring' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-        <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
-        <span>Recurring Finance</span>
-      </a>
-      <a href="{% url 'personal_charts' %}" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all whitespace-nowrap">
-        <span class="material-symbols-outlined text-sm">monitoring</span>
-        <span>Charts</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- TOP DECK: Main Balance & Telemetry Chart + Stacked Cards -->
-  <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-6">
-    <!-- Left: Balance & Glowing Telemetry Curve (8 cols) -->
-    <div class="xl:col-span-8 bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 md:p-6 flex flex-col justify-between shadow-[0_8px_32px_rgba(0,0,0,0.6)] relative overflow-hidden group animate__animated animate__fadeInUp" style="--animate-delay: 0.1s;">
-      <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-container/40 to-transparent"></div>
-      
-      <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3 z-10">
+  <!-- 3. PRIMARY ROW: FINANCIAL CHART (8 cols) + ACCOUNTS SUMMARY (4 cols) -->
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+    <!-- Left: Main Financial Liquidity Trajectory Chart -->
+    <div class="xl:col-span-8 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 flex flex-col justify-between shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
         <div>
-          <span class="font-label-md text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Total Capital Balance</span>
-          <div class="flex items-baseline gap-2.5 mt-1 flex-wrap">
-            <h2 class="font-display text-3xl md:text-4xl text-on-surface tracking-tight font-extrabold tabular-nums animate__animated animate__fadeIn" style="--animate-delay: 0.2s;">
-              ₹{{ monthly_balance|floatformat:2 }}
-            </h2>
-            {% if monthly_balance >= 0 %}
-              <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-tertiary/15 text-tertiary font-label-md text-xs font-bold">
-                <span class="material-symbols-outlined text-sm">trending_up</span>
-                Surplus Active
-              </span>
-            {% else %}
-              <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-error/15 text-error font-label-md text-xs font-bold">
-                <span class="material-symbols-outlined text-sm">trending_down</span>
-                In Deficit
-              </span>
-            {% endif %}
-          </div>
-          <p class="font-body-sm text-xs text-outline mt-1">Available liquidity across all connected accounts & cash</p>
+          <h2 class="font-display text-base font-bold text-on-surface">Financial Trajectory</h2>
+          <p class="font-body-sm text-xs text-on-surface-variant">12-month rolling cashflow & closing balances</p>
         </div>
 
         <!-- Period Selector Filter -->
-        <div class="inline-flex p-1 bg-surface-container-low border border-white/5 rounded-xl self-start">
-          <a href="{% url 'dashboard' %}?filter=all" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'all' %}bg-primary-container text-on-primary-container font-bold shadow-[0_0_12px_rgba(255,163,26,0.3)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">All</a>
-          <a href="{% url 'dashboard' %}?filter=daily" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'daily' %}bg-primary-container text-on-primary-container font-bold shadow-[0_0_12px_rgba(255,163,26,0.3)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">Daily</a>
-          <a href="{% url 'dashboard' %}?filter=weekly" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'weekly' %}bg-primary-container text-on-primary-container font-bold shadow-[0_0_12px_rgba(255,163,26,0.3)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">Weekly</a>
-          <a href="{% url 'dashboard' %}?filter=monthly" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'monthly' %}bg-primary-container text-on-primary-container font-bold shadow-[0_0_12px_rgba(255,163,26,0.3)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">Monthly</a>
+        <div class="inline-flex p-0.5 bg-surface-container-low border border-white/5 rounded-xl self-start">
+          <a href="{% url 'dashboard' %}?filter=all" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'all' %}bg-primary text-on-primary-container font-bold shadow-[0_0_10px_rgba(255,163,26,0.25)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">All</a>
+          <a href="{% url 'dashboard' %}?filter=daily" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'daily' %}bg-primary text-on-primary-container font-bold shadow-[0_0_10px_rgba(255,163,26,0.25)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">Daily</a>
+          <a href="{% url 'dashboard' %}?filter=weekly" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'weekly' %}bg-primary text-on-primary-container font-bold shadow-[0_0_10px_rgba(255,163,26,0.25)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">Weekly</a>
+          <a href="{% url 'dashboard' %}?filter=monthly" class="px-2.5 py-1 rounded-lg font-label-md text-xs {% if filter_type == 'monthly' %}bg-primary text-on-primary-container font-bold shadow-[0_0_10px_rgba(255,163,26,0.25)]{% else %}text-on-surface-variant hover:text-on-surface{% endif %} transition-all no-underline">Monthly</a>
         </div>
       </div>
 
-      <!-- Interactive Dynamic SVG Liquidity Chart Area -->
-      <div id="liquidity-chart-container" class="relative w-full h-56 my-2 z-10 flex items-center justify-center animate__animated animate__zoomIn select-none" style="--animate-delay: 0.25s; cursor: crosshair;">
-        <svg id="liquidity-chart-svg" class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 760 220">
+      <!-- Interactive Dynamic SVG Liquidity Chart Area (Reserved Height: 224px, zero layout shift) -->
+      <div id="liquidity-chart-container" class="relative w-full h-56 my-1 z-10 flex items-center justify-center select-none" style="cursor: crosshair;">
+        <svg id="liquidity-chart-svg" class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 760 220">
           <defs>
-            <lineargradient id="amberChartGrad" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#ffa31a" stop-opacity="0.35"></stop>
-              <stop offset="60%" stop-color="#905500" stop-opacity="0.10"></stop>
+            <linearGradient id="amberChartGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#ffa31a" stop-opacity="0.30"></stop>
+              <stop offset="60%" stop-color="#905500" stop-opacity="0.08"></stop>
               <stop offset="100%" stop-color="#0d0e11" stop-opacity="0"></stop>
-            </lineargradient>
+            </linearGradient>
             <filter height="140%" id="glowTelemetry" width="140%" x="-10%" y="-10%">
-              <fegaussianblur result="coloredBlur" stddeviation="3"></fegaussianblur>
-              <femerge>
-                <femergenode in="coloredBlur"></femergenode>
-                <femergenode in="SourceGraphic"></femergenode>
-              </femerge>
+              <feGaussianBlur result="coloredBlur" stdDeviation="3"></feGaussianBlur>
+              <feMerge>
+                <feMergeNode in="coloredBlur"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+              </feMerge>
             </filter>
           </defs>
           <!-- Horizontal Grid Lines -->
-          <line id="liquidity-grid-1" stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="35" y2="35"></line>
-          <line id="liquidity-grid-2" stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="90" y2="90"></line>
-          <line id="liquidity-grid-3" stroke="#343538" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="145" y2="145"></line>
-          <line id="liquidity-grid-4" stroke="#292a2d" stroke-width="1" x1="0" x2="760" y1="200" y2="200"></line>
+          <line id="liquidity-grid-1" stroke="#28292e" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="35" y2="35"></line>
+          <line id="liquidity-grid-2" stroke="#28292e" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="90" y2="90"></line>
+          <line id="liquidity-grid-3" stroke="#28292e" stroke-dasharray="4 6" stroke-width="0.75" x1="0" x2="760" y1="145" y2="145"></line>
+          <line id="liquidity-grid-4" stroke="#28292e" stroke-width="1" x1="0" x2="760" y1="200" y2="200"></line>
           
-          <!-- Benchmark Target Line (Teal accent trend line) -->
-          <path id="liquidity-trend-path" d="M 0 160 C 130 145, 260 155, 380 135 C 500 115, 620 95, 760 70" fill="none" stroke="#2acf9a" stroke-dasharray="3 4" stroke-opacity="0.45" stroke-width="1.75"></path>
+          <!-- Benchmark Target Line -->
+          <path id="liquidity-trend-path" d="M 0 160 C 130 145, 260 155, 380 135 C 500 115, 620 95, 760 70" fill="none" stroke="#2acf9a" stroke-dasharray="3 4" stroke-opacity="0.35" stroke-width="1.5"></path>
           
-          <!-- Area under amber curve -->
-          <path id="liquidity-area-path" d="M 0 140 C 70 120, 110 155, 170 110 C 220 85, 270 160, 330 125 C 390 95, 430 85, 480 70 C 520 60, 560 145, 610 130 C 660 115, 710 65, 760 85 L 760 210 L 0 210 Z" fill="url(#amberChartGrad)"></path>
+          <!-- Glowing Area Fill -->
+          <path id="liquidity-area-path" d="M 0 200 L 760 200 Z" fill="url(#amberChartGrad)"></path>
           
-          <!-- Glowing Telemetry Line -->
-          <path id="liquidity-curve-path" d="M 0 140 C 70 120, 110 155, 170 110 C 220 85, 270 160, 330 125 C 390 95, 430 85, 480 70 C 520 60, 560 145, 610 130 C 660 115, 710 65, 760 85" fill="none" filter="url(#glowTelemetry)" stroke="#ffa31a" stroke-width="2.5"></path>
+          <!-- Main Cubic Bezier Spline -->
+          <path id="liquidity-curve-path" d="M 0 195 L 760 195" fill="none" filter="url(#glowTelemetry)" stroke="#ffa31a" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
           
-          <!-- Active Node Anchor Point (follows hovered/active month) -->
-          <circle id="liquidity-anchor-outer" cx="760" cy="85" fill="#ffa31a" fill-opacity="0.25" r="8"></circle>
-          <circle id="liquidity-anchor-inner" cx="760" cy="85" fill="#ffddba" r="4.5"></circle>
-          <line id="liquidity-hover-line" stroke="#ffa31a" stroke-dasharray="2 3" stroke-opacity="0.7" stroke-width="1.5" x1="760" x2="760" y1="85" y2="200"></line>
+          <!-- Interactive Hover Tracker -->
+          <line id="liquidity-hover-line" stroke="#ffc98e" stroke-dasharray="3 3" stroke-width="1.2" style="opacity: 0; transition: opacity 0.15s ease;" x1="0" x2="0" y1="10" y2="205"></line>
+          <circle id="liquidity-anchor-outer" cx="-100" cy="-100" fill="#ffa31a" fill-opacity="0.25" r="9" style="transition: transform 0.08s ease-out;"></circle>
+          <circle id="liquidity-anchor-inner" cx="-100" cy="-100" fill="#ffc98e" r="4.5" stroke="#121316" stroke-width="2" style="transition: transform 0.08s ease-out;"></circle>
         </svg>
 
-        <!-- Floating Glass Tooltip node pinned to point -->
-        <div id="liquidity-tooltip" class="absolute top-2 -translate-x-1/2 bg-surface-container-high/95 backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-xl shadow-[0_12px_28px_rgba(0,0,0,0.7)] flex flex-col pointer-events-none z-20 transition-all duration-75" style="left: 62%;">
-          <div class="flex items-center justify-between gap-2">
-            <span id="liquidity-tooltip-month" class="font-label-md text-[11px] text-on-surface-variant font-semibold">{{ active_month_label }}</span>
-            <span class="material-symbols-outlined text-xs text-primary">north_east</span>
-          </div>
-          <span id="liquidity-tooltip-amount" class="font-display text-sm text-on-surface font-bold tabular-nums">₹{{ total_month_spend|floatformat:2|default:"0.00" }}</span>
+        <!-- Dynamic Glass Telemetry Tooltip -->
+        <div id="liquidity-tooltip" class="absolute pointer-events-none z-30 flex flex-col gap-0.5 px-3 py-1.5 rounded-xl bg-surface-container-highest/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.85)] text-left" style="opacity: 0; transform: translate(-50%, -125%); top: 0; left: 0; transition: opacity 0.15s ease, transform 0.08s ease-out;">
+          <span id="liquidity-tooltip-month" class="font-label-md text-[11px] text-on-surface-variant font-medium">Month</span>
+          <span id="liquidity-tooltip-amount" class="font-display text-sm font-extrabold text-on-surface tabular-nums">₹0.00</span>
           <span id="liquidity-tooltip-label" class="font-body-sm text-[10px] text-tertiary">Active Month Outflow</span>
         </div>
       </div>
@@ -674,7 +750,7 @@
       <!-- Embedded Initial Liquidity History Data -->
       <script id="initial-liquidity-data" type="application/json">{{ liquidity_history_json|default:'[]'|safe }}</script>
 
-      <!-- Liquidity Graph Dynamic Engine -->
+      <!-- Liquidity Graph Dynamic Engine (Optimized with requestIdleCallback) -->
       <script>
       (function initLiquidityGraph() {
         function setup() {
@@ -723,7 +799,6 @@
           let animFrameId = null;
           let activeIndex = rawHistory.length - 1;
 
-          // Fritsch-Carlson Monotone Cubic Spline Interpolation
           function computeMonotoneBezier(points) {
             const n = points.length;
             if (n === 0) return 'M 0 195 L 760 195';
@@ -752,708 +827,211 @@
                 const beta = m[i + 1] / deltas[i];
                 if (alpha < 0) m[i] = 0;
                 if (beta < 0) m[i + 1] = 0;
-                const hypot2 = alpha * alpha + beta * beta;
-                if (hypot2 > 9) {
-                  const tau = 3 / Math.sqrt(hypot2);
+                const dist = alpha * alpha + beta * beta;
+                if (dist > 9) {
+                  const tau = 3 / Math.sqrt(dist);
                   m[i] = tau * alpha * deltas[i];
                   m[i + 1] = tau * beta * deltas[i];
                 }
               }
             }
 
-            const d = [`M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`];
+            let path = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
             for (let i = 0; i < n - 1; i++) {
-              const dx = points[i + 1].x - points[i].x;
-              const cp1x = points[i].x + dx / 3;
-              const cp1y = points[i].y + (m[i] * dx) / 3;
-              const cp2x = points[i + 1].x - dx / 3;
-              const cp2y = points[i + 1].y - (m[i + 1] * dx) / 3;
-              const p2x = points[i + 1].x;
-              const p2y = points[i + 1].y;
-              d.push(`C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2x.toFixed(1)} ${p2y.toFixed(1)}`);
+              const p0 = points[i];
+              const p1 = points[i + 1];
+              const dx = (p1.x - p0.x) / 3;
+              const cp1x = p0.x + dx;
+              const cp1y = p0.y + m[i] * dx;
+              const cp2x = p1.x - dx;
+              const cp2y = p1.y - m[i + 1] * dx;
+              path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
             }
-
-            return d.join(' ');
+            return path;
           }
 
-          function calculateYCoordinates(data) {
-            const count = data.length || 12;
-            const balances = data.map(d => Number(d.closingBalance) || 0);
-            const minVal = Math.min(...balances);
-            const maxVal = Math.max(...balances);
-
-            const Y_TOP = 25;
-            const Y_BOTTOM = 195;
-
-            // Empty state: flat line at baseline
-            if (balances.every(v => v === 0)) {
-              return {
-                curveY: new Array(count).fill(Y_BOTTOM),
-                trendY: new Array(count).fill(Y_BOTTOM)
-              };
-            }
+          function calculatePoints() {
+            const vals = rawHistory.map(d => Number(d.closingBalance) || 0);
+            let minVal = Math.min(...vals);
+            let maxVal = Math.max(...vals);
 
             if (minVal === maxVal) {
-              return {
-                curveY: new Array(count).fill(110),
-                trendY: new Array(count).fill(110)
-              };
+              minVal = minVal > 0 ? 0 : minVal - 100;
+              maxVal = maxVal + 100;
+            } else {
+              const pad = (maxVal - minVal) * 0.15;
+              minVal -= pad;
+              maxVal += pad;
             }
 
             const range = maxVal - minVal;
-            const pad = range * 0.12;
-            const yMin = minVal >= 0 ? Math.max(0, minVal - pad) : minVal - pad;
-            const yMax = maxVal + pad;
-            const effectiveRange = (yMax - yMin) || 1;
+            const topY = 25;
+            const botY = 195;
+            const spanY = botY - topY;
 
-            const curveY = balances.map(v => {
-              const norm = (v - yMin) / effectiveRange;
-              return Y_BOTTOM - norm * (Y_BOTTOM - Y_TOP);
-            });
-
-            // 3-Month Moving Average for Trend Line
-            const trendY = new Array(count);
-            for (let i = 0; i < count; i++) {
-              let sum = 0;
-              let c = 0;
-              for (let j = Math.max(0, i - 2); j <= i; j++) {
-                sum += balances[j];
-                c++;
-              }
-              const maVal = sum / c;
-              const norm = (maVal - yMin) / effectiveRange;
-              trendY[i] = Y_BOTTOM - norm * (Y_BOTTOM - Y_TOP);
-            }
-
-            return { curveY, trendY };
-          }
-
-          function renderPaths(curveYArr, trendYArr) {
-            const count = curveYArr.length;
-            const pts = curveYArr.map((y, i) => ({
-              x: (i / (count - 1)) * 760,
-              y: y
-            }));
-
-            const trendPts = trendYArr.map((y, i) => ({
-              x: (i / (count - 1)) * 760,
-              y: y
-            }));
-
-            const curvePathD = computeMonotoneBezier(pts);
-            const trendPathD = computeMonotoneBezier(trendPts);
-            const areaPathD = `${curvePathD} L 760 210 L 0 210 Z`;
-
-            if (curvePath) curvePath.setAttribute('d', curvePathD);
-            if (areaPath) areaPath.setAttribute('d', areaPathD);
-            if (trendPath) trendPath.setAttribute('d', trendPathD);
-
-            return pts;
-          }
-
-          function easeInOutCubic(t) {
-            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-          }
-
-          function animateTo(targetCurveY, targetTrendY, duration, callback) {
-            if (animFrameId) {
-              cancelAnimationFrame(animFrameId);
-              animFrameId = null;
-            }
-
-            if (!currentY || currentY.length !== targetCurveY.length) {
-              currentY = [...targetCurveY];
-              currentTrendY = [...targetTrendY];
-              const pts = renderPaths(currentY, currentTrendY);
-              if (callback) callback(pts);
-              return;
-            }
-
-            const startCurveY = [...currentY];
-            const startTrendY = [...currentTrendY];
-            const startTime = performance.now();
-            const count = targetCurveY.length;
-
-            function step(now) {
-              const elapsed = now - startTime;
-              const progress = Math.min(1, elapsed / duration);
-              const ease = easeInOutCubic(progress);
-
-              for (let i = 0; i < count; i++) {
-                currentY[i] = startCurveY[i] + (targetCurveY[i] - startCurveY[i]) * ease;
-                currentTrendY[i] = startTrendY[i] + (targetTrendY[i] - startTrendY[i]) * ease;
-              }
-
-              const pts = renderPaths(currentY, currentTrendY);
-
-              if (progress < 1) {
-                animFrameId = requestAnimationFrame(step);
-              } else {
-                currentY = [...targetCurveY];
-                currentTrendY = [...targetTrendY];
-                renderPaths(currentY, currentTrendY);
-                animFrameId = null;
-                if (callback) callback(pts);
-              }
-            }
-
-            animFrameId = requestAnimationFrame(step);
-          }
-
-          function formatINR(val) {
-            const num = Number(val) || 0;
-            return '₹' + num.toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
+            return rawHistory.map((d, i) => {
+              const x = (i / (rawHistory.length - 1)) * 760;
+              const val = Number(d.closingBalance) || 0;
+              const normalized = (val - minVal) / range;
+              const y = botY - normalized * spanY;
+              return { x, y, raw: d };
             });
           }
 
-          function setAnchorAndTooltip(idx) {
-            if (!currentY || idx < 0 || idx >= rawHistory.length) return;
+          const targetPoints = calculatePoints();
+          const targetY = targetPoints.map(p => p.y);
+          currentY = [...targetY];
+
+          function renderPaths(pts) {
+            const curveD = computeMonotoneBezier(pts);
+            if (curvePath) curvePath.setAttribute('d', curveD);
+            if (areaPath) areaPath.setAttribute('d', `${curveD} L 760 200 L 0 200 Z`);
+          }
+
+          renderPaths(targetPoints);
+
+          function updateAnchor(idx) {
+            if (idx < 0 || idx >= targetPoints.length) return;
             activeIndex = idx;
-            const pt = rawHistory[idx] || {};
-            const count = rawHistory.length;
-            const x = (idx / (count - 1)) * 760;
-            const y = currentY[idx];
-
+            const pt = targetPoints[idx];
             if (anchorOuter) {
-              anchorOuter.setAttribute('cx', x.toFixed(1));
-              anchorOuter.setAttribute('cy', y.toFixed(1));
+              anchorOuter.setAttribute('cx', pt.x.toFixed(1));
+              anchorOuter.setAttribute('cy', pt.y.toFixed(1));
             }
             if (anchorInner) {
-              anchorInner.setAttribute('cx', x.toFixed(1));
-              anchorInner.setAttribute('cy', y.toFixed(1));
+              anchorInner.setAttribute('cx', pt.x.toFixed(1));
+              anchorInner.setAttribute('cy', pt.y.toFixed(1));
             }
             if (hoverLine) {
-              hoverLine.setAttribute('x1', x.toFixed(1));
-              hoverLine.setAttribute('x2', x.toFixed(1));
-              hoverLine.setAttribute('y1', y.toFixed(1));
-              hoverLine.setAttribute('y2', '200');
+              hoverLine.setAttribute('x1', pt.x.toFixed(1));
+              hoverLine.setAttribute('x2', pt.x.toFixed(1));
             }
-
-            if (tooltipMonth) tooltipMonth.textContent = pt.month || '';
-            if (tooltipAmount) tooltipAmount.textContent = formatINR(pt.outflow || 0);
-            if (tooltipLabel) {
-              tooltipLabel.textContent = idx === (count - 1) ? 'Active Month Outflow' : 'Month Outflow';
-            }
-
             if (tooltip) {
-              const rawPercent = (x / 760) * 100;
-              const clampedPercent = Math.max(14, Math.min(86, rawPercent));
-              tooltip.style.left = clampedPercent.toFixed(1) + '%';
+              const rect = container.getBoundingClientRect();
+              const pctX = (pt.x / 760) * 100;
+              const pctY = (pt.y / 220) * 100;
+              tooltip.style.left = `${pctX}%`;
+              tooltip.style.top = `${pctY}%`;
+              if (tooltipMonth) tooltipMonth.textContent = pt.raw.month || pt.raw.short_month || 'Month';
+              if (tooltipAmount) tooltipAmount.textContent = `₹${(Number(pt.raw.closingBalance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              if (tooltipLabel) {
+                const outflow = Number(pt.raw.outflow) || 0;
+                tooltipLabel.textContent = `Outflow: ₹${outflow.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              }
             }
           }
 
-          function handlePointer(clientX) {
-            const rect = svg.getBoundingClientRect();
-            if (!rect.width) return;
-            const relX = clientX - rect.left;
-            const ratio = Math.max(0, Math.min(1, relX / rect.width));
-            const count = rawHistory.length;
-            const idx = Math.round(ratio * (count - 1));
-            setAnchorAndTooltip(idx);
-          }
+          updateAnchor(targetPoints.length - 1);
 
-          let pointerRaf = null;
-          function throttledHandlePointer(clientX) {
-            if (pointerRaf) cancelAnimationFrame(pointerRaf);
-            pointerRaf = requestAnimationFrame(() => {
-              handlePointer(clientX);
-              pointerRaf = null;
+          container.addEventListener('mousemove', function(e) {
+            const rect = container.getBoundingClientRect();
+            if (rect.width <= 0) return;
+            const mouseX = ((e.clientX - rect.left) / rect.width) * 760;
+            let closestIdx = 0;
+            let minDist = Infinity;
+            targetPoints.forEach((pt, i) => {
+              const d = Math.abs(pt.x - mouseX);
+              if (d < minDist) {
+                minDist = d;
+                closestIdx = i;
+              }
             });
+            updateAnchor(closestIdx);
+            if (hoverLine) hoverLine.style.opacity = '1';
+            if (tooltip) tooltip.style.opacity = '1';
+          });
+
+          container.addEventListener('mouseleave', function() {
+            if (hoverLine) hoverLine.style.opacity = '0';
+            if (tooltip) tooltip.style.opacity = '0';
+            updateAnchor(targetPoints.length - 1);
+          });
+        }
+
+        // Lazy-initialize chart when idle to minimize TBT
+        function scheduleSetup() {
+          if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(setup, { timeout: 600 });
+          } else {
+            setTimeout(setup, 60);
           }
-
-          container.addEventListener('mousemove', (e) => {
-            throttledHandlePointer(e.clientX);
-          });
-
-          container.addEventListener('touchmove', (e) => {
-            if (e.touches && e.touches[0]) {
-              throttledHandlePointer(e.touches[0].clientX);
-            }
-          }, { passive: true });
-
-          container.addEventListener('mouseleave', () => {
-            setAnchorAndTooltip(rawHistory.length - 1);
-          });
-
-          container.addEventListener('touchend', () => {
-            setAnchorAndTooltip(rawHistory.length - 1);
-          }, { passive: true });
-
-          // Initial Render
-          const initialCoords = calculateYCoordinates(rawHistory);
-          animateTo(initialCoords.curveY, initialCoords.trendY, 600, () => {
-            setAnchorAndTooltip(rawHistory.length - 1);
-          });
-
-          // Exposed dynamic update function
-          window.updateLiquidityGraph = async function(newData) {
-            if (Array.isArray(newData) && newData.length > 0) {
-              rawHistory = newData;
-            } else if (newData && typeof newData === 'object') {
-              let newBalance = 0;
-              if (typeof newData.balance === 'number') {
-                newBalance = newData.balance;
-              } else {
-                const cash = Number(newData.cash) || 0;
-                const upi = Number(newData.upi) || 0;
-                const bank = Number(newData.bank || newData['Bank Account']) || 0;
-                const card = Number(newData.card || newData['Credit Card']) || 0;
-                newBalance = cash + upi + bank + card;
-              }
-              if (rawHistory.length > 0) {
-                rawHistory[rawHistory.length - 1].closingBalance = newBalance;
-              }
-            } else if (typeof newData === 'number') {
-              if (rawHistory.length > 0) {
-                rawHistory[rawHistory.length - 1].closingBalance = newData;
-              }
-            } else {
-              try {
-                const res = await fetch('/api/liquidity-history/');
-                if (res.ok) {
-                  const json = await res.json();
-                  if (json.history && json.history.length > 0) {
-                    rawHistory = json.history;
-                  }
-                }
-              } catch (err) {
-                console.warn('Could not fetch liquidity history:', err);
-              }
-            }
-
-            const { curveY, trendY } = calculateYCoordinates(rawHistory);
-            animateTo(curveY, trendY, 600, () => {
-              setAnchorAndTooltip(activeIndex);
-            });
-          };
-
-          let resizeTimer = null;
-          window.addEventListener('resize', () => {
-            if (resizeTimer) clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-              if (currentY) setAnchorAndTooltip(activeIndex);
-            }, 100);
-          });
         }
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', setup);
+          document.addEventListener('DOMContentLoaded', scheduleSetup);
         } else {
-          setup();
+          scheduleSetup();
         }
       })();
       </script>
-
-      <!-- X-Axis Labels & Legend -->
-      <div class="flex items-center justify-between pt-2 z-10 flex-wrap gap-2">
-        <div class="flex items-center gap-4 text-xs text-on-surface-variant font-semibold">
-          <span class="hidden sm:inline">PAST</span>
-          <span>CYCLE 1</span>
-          <span>CYCLE 2</span>
-          <span class="text-primary font-bold">{{ active_month_label }} (Current)</span>
-        </div>
-        <div class="flex items-center gap-3 text-xs text-on-surface-variant">
-          <div class="flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-full bg-primary-container shadow-[0_0_8px_rgba(255,163,26,0.8)]"></span>
-            <span>Actual Velocity</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="w-2.5 h-0.5 bg-tertiary-container rounded"></span>
-            <span>Target Line</span>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- Right: Stacked Luxury Cards (4 cols) -->
-    <div class="xl:col-span-4 bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 md:p-6 flex flex-col justify-between shadow-[0_8px_32px_rgba(0,0,0,0.6)] relative overflow-hidden animate__animated animate__fadeInUp" style="--animate-delay: 0.2s;">
-      <div class="absolute -top-12 -right-12 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
-      
-      <div>
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-xl">credit_card</span>
-            <h2 class="font-headline-sm text-base text-on-surface font-bold tracking-tight">My Cards & Accounts</h2>
-          </div>
+    <!-- Right: Accounts & Liquidity Breakdown (4 cols) -->
+    <div class="xl:col-span-4 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 flex flex-col justify-between shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="font-display text-base font-bold text-on-surface">Accounts & Cards</h2>
+          <p class="font-body-sm text-xs text-on-surface-variant">Live available balances</p>
         </div>
-
-        <!-- Overlapping 3-Card Swappable Luxury Stack -->
-        <style>
-          #swappable-card-stack-container {
-            position: relative;
-            width: 100%;
-            height: 188px;
-            perspective: 1000px;
-          }
-          #swappable-card-stack-container .card-swappable-item {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 154px;
-            transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms cubic-bezier(0.4, 0, 0.2, 1);
-            transform-origin: center top;
-            transform: translateZ(0);
-            backface-visibility: hidden;
-            user-select: none;
-            cursor: pointer;
-          }
-          #swappable-card-stack-container .card-swappable-item.pos-front {
-            transform: translate3d(0, 0, 0) scale(1);
-            z-index: 30;
-            opacity: 1;
-            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85);
-            pointer-events: auto;
-          }
-          #swappable-card-stack-container .card-swappable-item.pos-mid {
-            transform: translate3d(0, -16px, 0) scale(0.94);
-            z-index: 20;
-            opacity: 0.82;
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.65);
-            pointer-events: auto;
-          }
-          #swappable-card-stack-container .card-swappable-item.pos-mid:hover {
-            transform: translate3d(0, -20px, 0) scale(0.95);
-            opacity: 0.92;
-          }
-          #swappable-card-stack-container .card-swappable-item.pos-back {
-            transform: translate3d(0, -30px, 0) scale(0.88);
-            z-index: 10;
-            opacity: 0.55;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
-            pointer-events: auto;
-          }
-          #swappable-card-stack-container .card-swappable-item.pos-back:hover {
-            transform: translate3d(0, -34px, 0) scale(0.89);
-            opacity: 0.7;
-          }
-        </style>
-
-        <div class="relative pt-2 pb-1">
-          <div id="swappable-card-stack-container" role="region" aria-label="3-card interactive swappable stack">
-            <!-- 1. CARD Card (Card Balance) -->
-            <div class="card-swappable-item pos-front rounded-2xl bg-gradient-to-br from-surface-container-high via-surface-container to-surface-container-lowest border border-white/10 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.85)] overflow-hidden" data-card-index="0" role="button" tabindex="0" aria-label="Card Balance Card">
-              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-primary/5 to-transparent pointer-events-none"></div>
-              <div class="absolute top-0 right-0 w-32 h-32 bg-primary-container/15 rounded-full blur-2xl pointer-events-none"></div>
-              
-              <div class="flex items-start justify-between relative z-10">
-                <span class="font-display text-base font-extrabold tracking-wider text-on-surface">CARD BALANCE</span>
-                <!-- EMV Chip Skeuomorph -->
-                <div class="w-8 h-6 rounded-md bg-gradient-to-br from-secondary-fixed via-primary to-secondary-container flex flex-col justify-around p-1 shadow-inner opacity-90">
-                  <div class="h-0.5 bg-on-secondary/30 rounded"></div>
-                  <div class="h-0.5 bg-on-secondary/30 rounded"></div>
-                </div>
-              </div>
-
-              <div class="mt-3 mb-2 relative z-10">
-                <span class="font-label-md text-[10px] text-on-surface-variant tracking-wider uppercase">Available Liquid Net</span>
-                <div class="flex items-baseline gap-2 mt-0.5">
-                  <span class="font-display text-xl font-bold text-on-surface tabular-nums">₹{{ monthly_balance|default:'0.00'|floatformat:2 }}</span>
-                  <span class="text-tertiary font-label-md text-xs font-semibold">Active</span>
-                </div>
-              </div>
-
-              <div class="flex items-end justify-between pt-1 relative z-10 text-on-surface-variant">
-                <div class="font-tabular-numeric text-xs tracking-widest text-outline">
-                  •••• •••• •••• 8842
-                </div>
-                <div class="flex flex-col items-end">
-                  <span class="font-label-md text-[9px] text-outline uppercase">Status</span>
-                  <span class="font-tabular-numeric text-xs text-on-surface font-semibold">Verified</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2. UPI Card -->
-            <div class="card-swappable-item pos-mid rounded-2xl bg-gradient-to-br from-surface-container-high via-surface-container to-surface-container-lowest border border-white/10 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.85)] overflow-hidden" data-card-index="1" role="button" tabindex="0" aria-label="UPI Balance Card">
-              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-secondary/5 to-transparent pointer-events-none"></div>
-              <div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/20 rounded-full blur-2xl pointer-events-none"></div>
-              
-              <div class="flex items-start justify-between relative z-10">
-                <span class="font-display text-base font-extrabold tracking-wider text-on-surface">UPI</span>
-                <!-- Instant Badge -->
-                <div class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary/15 border border-secondary/30 text-secondary font-label-caps text-[10px] font-bold tracking-wider">
-                  <span class="material-symbols-outlined text-[13px]">bolt</span>
-                  <span>INSTANT</span>
-                </div>
-              </div>
-
-              <div class="mt-3 mb-2 relative z-10">
-                <span class="font-label-md text-[10px] text-on-surface-variant tracking-wider uppercase">UPI Balance</span>
-                <div class="flex items-baseline gap-2 mt-0.5">
-                  <span class="font-display text-xl font-bold text-on-surface tabular-nums">₹{% filter default:'0.00' %}{% for acc in account_breakdown %}{% if acc.name == 'UPI' %}{{ acc.balance|floatformat:2 }}{% endif %}{% endfor %}{% for pm in payment_method_breakdown %}{% if pm.name == 'UPI' %}{{ pm.income|floatformat:2 }}{% endif %}{% endfor %}{% endfilter %}</span>
-                  <span class="text-secondary font-label-md text-xs font-semibold">Active</span>
-                </div>
-              </div>
-
-              <div class="flex items-end justify-between pt-1 relative z-10 text-on-surface-variant">
-                <div class="font-tabular-numeric text-xs tracking-wider text-outline">
-                  expenzo@upi
-                </div>
-                <div class="flex flex-col items-end">
-                  <span class="font-label-md text-[9px] text-outline uppercase">Status</span>
-                  <span class="font-tabular-numeric text-xs text-on-surface font-semibold">Verified</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 3. CASH Card -->
-            <div class="card-swappable-item pos-back rounded-2xl bg-gradient-to-br from-surface-container-high via-surface-container to-surface-container-lowest border border-white/10 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.85)] overflow-hidden" data-card-index="2" role="button" tabindex="0" aria-label="Cash Balance Card">
-              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-amber-500/5 to-transparent pointer-events-none"></div>
-              <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/15 rounded-full blur-2xl pointer-events-none"></div>
-              
-              <div class="flex items-start justify-between relative z-10">
-                <span class="font-display text-base font-extrabold tracking-wider text-on-surface">CASH</span>
-                <!-- Reserve Badge -->
-                <div class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-400 font-label-caps text-[10px] font-bold tracking-wider">
-                  <span class="material-symbols-outlined text-[13px]">payments</span>
-                  <span>RESERVE</span>
-                </div>
-              </div>
-
-              <div class="mt-3 mb-2 relative z-10">
-                <span class="font-label-md text-[10px] text-on-surface-variant tracking-wider uppercase">Cash In Hand</span>
-                <div class="flex items-baseline gap-2 mt-0.5">
-                  <span class="font-display text-xl font-bold text-on-surface tabular-nums">₹{% filter default:'0.00' %}{% for acc in account_breakdown %}{% if acc.name == 'Cash' %}{{ acc.balance|floatformat:2 }}{% endif %}{% endfor %}{% endfilter %}</span>
-                  <span class="text-tertiary font-label-md text-xs font-semibold">Active</span>
-                </div>
-              </div>
-
-              <div class="flex items-end justify-between pt-1 relative z-10 text-on-surface-variant">
-                <div class="font-tabular-numeric text-xs tracking-wider text-outline">
-                  Physical Vault
-                </div>
-                <div class="flex flex-col items-end">
-                  <span class="font-label-md text-[9px] text-outline uppercase">Status</span>
-                  <span class="font-tabular-numeric text-xs text-on-surface font-semibold">In Hand</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Indicator Dots & Navigation Control -->
-          <div class="flex items-center justify-center gap-1.5 pt-2 pb-1" id="swappable-card-indicators">
-            <button type="button" class="card-indicator-dot w-4 h-1.5 rounded-full bg-primary transition-all duration-300 cursor-pointer" data-target="0" aria-label="View Card Balance"></button>
-            <button type="button" class="card-indicator-dot w-1.5 h-1.5 rounded-full bg-outline/40 hover:bg-outline transition-all duration-300 cursor-pointer" data-target="1" aria-label="View UPI Balance"></button>
-            <button type="button" class="card-indicator-dot w-1.5 h-1.5 rounded-full bg-outline/40 hover:bg-outline transition-all duration-300 cursor-pointer" data-target="2" aria-label="View Cash Balance"></button>
-          </div>
-        </div>
-
-        <script>
-          (function initSwappableCards() {
-            function setup() {
-              const container = document.getElementById('swappable-card-stack-container');
-              if (!container || container.dataset.initialized === 'true') return;
-              container.dataset.initialized = 'true';
-
-              const cards = Array.from(container.querySelectorAll('.card-swappable-item'));
-              const dots = Array.from(document.querySelectorAll('#swappable-card-indicators .card-indicator-dot'));
-              if (cards.length === 0) return;
-
-              let activeIndex = 0;
-              let rotateInterval = null;
-
-              function updateCardStack() {
-                cards.forEach((card, idx) => {
-                  card.style.willChange = 'transform, opacity';
-                  card.addEventListener('transitionend', function onEnd() {
-                    card.style.willChange = '';
-                    card.removeEventListener('transitionend', onEnd);
-                  }, { once: true });
-
-                  card.classList.remove('pos-front', 'pos-mid', 'pos-back');
-                  const rel = (idx - activeIndex + cards.length) % cards.length;
-                  if (rel === 0) {
-                    card.classList.add('pos-front');
-                    card.setAttribute('aria-hidden', 'false');
-                  } else if (rel === 1) {
-                    card.classList.add('pos-mid');
-                    card.setAttribute('aria-hidden', 'true');
-                  } else {
-                    card.classList.add('pos-back');
-                    card.setAttribute('aria-hidden', 'true');
-                  }
-                });
-
-                dots.forEach((dot, idx) => {
-                  if (idx === activeIndex) {
-                    dot.classList.add('w-4', 'bg-primary');
-                    dot.classList.remove('w-1.5', 'bg-outline/40');
-                  } else {
-                    dot.classList.remove('w-4', 'bg-primary');
-                    dot.classList.add('w-1.5', 'bg-outline/40');
-                  }
-                });
-              }
-
-              function rotateNext() {
-                activeIndex = (activeIndex + 1) % cards.length;
-                updateCardStack();
-              }
-
-              function startTimer() {
-                stopTimer();
-                rotateInterval = setInterval(rotateNext, 5000);
-              }
-
-              function stopTimer() {
-                if (rotateInterval) {
-                  clearInterval(rotateInterval);
-                  rotateInterval = null;
-                }
-              }
-
-              cards.forEach((card) => {
-                card.addEventListener('click', () => {
-                  const clickedIdx = parseInt(card.getAttribute('data-card-index'), 10);
-                  if (clickedIdx === activeIndex) {
-                    activeIndex = (activeIndex + 1) % cards.length;
-                  } else {
-                    activeIndex = clickedIdx;
-                  }
-                  updateCardStack();
-                  startTimer();
-                });
-
-                card.addEventListener('keydown', (e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    const clickedIdx = parseInt(card.getAttribute('data-card-index'), 10);
-                    activeIndex = clickedIdx === activeIndex ? (activeIndex + 1) % cards.length : clickedIdx;
-                    updateCardStack();
-                    startTimer();
-                  }
-                });
-              });
-
-              dots.forEach((dot) => {
-                dot.addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  const targetIdx = parseInt(dot.getAttribute('data-target'), 10);
-                  if (!isNaN(targetIdx) && targetIdx !== activeIndex) {
-                    activeIndex = targetIdx;
-                    updateCardStack();
-                    startTimer();
-                  }
-                });
-              });
-
-              container.addEventListener('mouseenter', stopTimer);
-              container.addEventListener('mouseleave', startTimer);
-              container.addEventListener('touchstart', stopTimer, { passive: true });
-
-              document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                  stopTimer();
-                } else {
-                  startTimer();
-                }
-              });
-
-              startTimer();
-            }
-
-            if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', setup);
-            } else {
-              setup();
-            }
-          })();
-        </script>
+        <span class="text-xs text-primary font-semibold px-2 py-0.5 rounded-full bg-primary/10">Active</span>
       </div>
 
-      <!-- Quick Action Controls for Cards (Exactly 3 Actions) -->
-      <div class="grid grid-cols-3 gap-1.5 sm:gap-2 mt-4 pt-2 z-10">
-        <!-- 1. Scan Receipt -->
-        <button type="button" onclick="openScanReceiptModal()" class="flex items-center justify-center gap-1 py-2 px-1.5 sm:px-2 rounded-xl bg-surface-container-high border border-white/5 hover:bg-surface-bright text-on-surface font-label-lg text-xs font-semibold transition-all cursor-pointer truncate" title="Scan receipt with OCR">
-          <span class="material-symbols-outlined text-sm sm:text-base text-primary">photo_camera</span>
-          <span class="truncate">Scan Receipt</span>
-        </button>
-        <!-- 2. Add Income -->
-        <button type="button" onclick="openTransactionModal('income')" class="flex items-center justify-center gap-1 py-2 px-1.5 sm:px-2 rounded-xl bg-surface-container-high border border-white/5 hover:bg-surface-bright text-on-surface font-label-lg text-xs font-semibold transition-all cursor-pointer truncate" title="Add Income">
-          <span class="material-symbols-outlined text-sm sm:text-base text-tertiary">south_west</span>
-          <span class="truncate">Add Income</span>
-        </button>
-        <!-- 3. Add Expense -->
-        <button type="button" onclick="openTransactionModal('expense')" class="flex items-center justify-center gap-1 py-2 px-1.5 sm:px-2 rounded-xl bg-gradient-to-r from-primary-container to-secondary text-on-primary-container font-label-lg text-xs font-bold shadow-[0_0_18px_rgba(255,163,26,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer truncate" title="Add Expense">
-          <span class="material-symbols-outlined text-sm sm:text-base">north_east</span>
-          <span class="truncate">Add Expense</span>
-        </button>
+      <div class="flex flex-col gap-2.5 my-auto">
+        {% for acc in account_breakdown %}
+          <div class="p-3 rounded-xl bg-surface-container/40 border border-white/5 flex items-center justify-between hover:bg-surface-container/70 transition-all">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-surface-container-high border border-white/5 flex items-center justify-center text-primary flex-shrink-0">
+                {% if acc.name == 'Bank Account' %}
+                  <span class="material-symbols-outlined text-lg">account_balance</span>
+                {% elif acc.name == 'Cash' %}
+                  <span class="material-symbols-outlined text-lg">payments</span>
+                {% elif acc.name == 'Credit Card' %}
+                  <span class="material-symbols-outlined text-lg">credit_card</span>
+                {% else %}
+                  <span class="material-symbols-outlined text-lg">wallet</span>
+                {% endif %}
+              </div>
+              <div class="min-w-0">
+                <div class="font-label-md text-xs font-semibold text-on-surface truncate">{{ acc.name }}</div>
+                <div class="text-[10px] text-on-surface-variant truncate">
+                  {% if acc.name == 'Bank Account' %}Primary Checking • Verified{% elif acc.name == 'Credit Card' %}Credit Limit Active{% else %}Physical Currency{% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0 ml-2">
+              <div class="font-display text-sm font-bold {% if acc.balance >= 0 %}text-on-surface{% else %}text-error{% endif %} tabular-nums">
+                ₹{{ acc.balance|floatformat:2 }}
+              </div>
+              <div class="text-[10px] text-tertiary font-medium">In: ₹{{ acc.income|floatformat:0 }}</div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="text-center py-6 text-xs text-outline">No account data recorded</div>
+        {% endfor %}
+      </div>
+
+      <!-- Quick Add Actions in Account card -->
+      <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs mt-2">
+        <span class="text-on-surface-variant font-medium">Available Net:</span>
+        <span class="font-display text-sm font-bold text-primary tabular-nums">₹{{ monthly_balance|floatformat:2 }}</span>
       </div>
     </div>
   </div>
 
-  <!-- MIDDLE ROW: Summary Stat Triad (Left 4 cols) + Category Distribution (Right 8 cols) -->
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
-    <!-- 3 Mini Summary Metric Cards (4 cols on lg/xl) -->
-    <div class="lg:col-span-4 flex flex-col gap-3 justify-between">
-      <!-- Total Income / Inflow -->
-      <div class="bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center justify-between group hover:bg-surface-container/60 transition-all animate__animated animate__fadeInUp" style="--animate-delay: 0.3s;">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl bg-tertiary/10 border border-tertiary/20 flex items-center justify-center text-tertiary">
-            <span class="material-symbols-outlined text-2xl">account_balance</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="font-label-md text-xs text-on-surface-variant font-medium uppercase tracking-wider">Total Inflow</span>
-            <span class="font-display text-lg font-bold text-on-surface tabular-nums">₹{{ total_month_income|floatformat:2|default:"0.00" }}</span>
-          </div>
-        </div>
-        <div class="flex flex-col items-end">
-          <span class="px-2 py-0.5 rounded-full bg-tertiary/15 text-tertiary font-label-md text-xs font-bold">+Inflow</span>
-          <span class="text-[10px] text-outline mt-1">{{ active_month_label }}</span>
-        </div>
-      </div>
-
-      <!-- Total Expenses / Outflow -->
-      <div class="bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center justify-between group hover:bg-surface-container/60 transition-all animate__animated animate__fadeInUp" style="--animate-delay: 0.4s;">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl bg-error/10 border border-error/20 flex items-center justify-center text-error">
-            <span class="material-symbols-outlined text-2xl">payments</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="font-label-md text-xs text-on-surface-variant font-medium uppercase tracking-wider">Total Expenses</span>
-            <span class="font-display text-lg font-bold text-on-surface tabular-nums">₹{{ total_month_spend|floatformat:2|default:"0.00" }}</span>
-          </div>
-        </div>
-        <div class="flex flex-col items-end">
-          <span class="px-2 py-0.5 rounded-full bg-error-container/40 text-error font-label-md text-xs font-bold">-Outflow</span>
-          <span class="text-[10px] text-outline mt-1">{{ active_month_label }}</span>
-        </div>
-      </div>
-
-      <!-- Net Position / Net Savings -->
-      <div class="bg-surface-container-lowest/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center justify-between group hover:bg-surface-container/60 transition-all animate__animated animate__fadeInUp" style="--animate-delay: 0.5s;">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl bg-primary-container/15 border border-primary-container/20 flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined text-2xl">savings</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="font-label-md text-xs text-on-surface-variant font-medium uppercase tracking-wider">Net Position</span>
-            <span class="font-display text-lg font-bold text-on-surface tabular-nums">₹{{ monthly_balance|floatformat:2 }}</span>
-          </div>
-        </div>
-        <div class="flex flex-col items-end">
-          <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary font-label-md text-xs font-bold">Liquid</span>
-          <span class="text-[10px] text-outline mt-1">Net Balance</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Category Spending Allocation (8 cols on lg/xl, replacing Spend Velocity) -->
-    <div class="lg:col-span-8 bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 md:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col justify-between animate__animated animate__fadeInUp" style="--animate-delay: 0.35s;">
+  <!-- 4. SECONDARY SECTION: CATEGORY DISTRIBUTION (5 cols) & PAYMENT METHODS (7 cols) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+    <!-- Category Spending Allocation (5 cols) -->
+    <div class="lg:col-span-5 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col justify-between">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <h2 class="font-headline-sm text-base text-on-surface font-bold">Category Distribution</h2>
-          <p class="font-body-sm text-xs text-on-surface-variant">{{ category_breakdown|length }} active expenditure channels</p>
+          <h2 class="font-display text-base text-on-surface font-bold">Category Distribution</h2>
+          <p class="font-body-sm text-xs text-on-surface-variant">{{ category_breakdown|length }} active channels</p>
         </div>
         <span class="font-label-md text-xs text-primary font-semibold">{{ active_month_label }}</span>
       </div>
 
       <!-- Segmented Stack Bar Visual -->
-      <div class="w-full h-3.5 bg-surface-container border border-white/5 rounded-full overflow-hidden flex gap-1 p-0.5 mb-4 animate__animated animate__fadeIn" style="--animate-delay: 0.5s;">
+      <div class="w-full h-3 bg-surface-container border border-white/5 rounded-full overflow-hidden flex gap-0.5 p-0.5 mb-3">
         {% if category_breakdown %}
           {% for cat in category_breakdown %}
             <div class="h-full rounded-full transition-all" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};" title="{{ cat.name }}: {{ cat.percentage }}%"></div>
@@ -1463,8 +1041,8 @@
         {% endif %}
       </div>
 
-      <!-- Itemized Category telemetry bars (2 responsive columns when wide) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 max-h-56 overflow-y-auto pr-1">
+      <!-- Itemized Category Bars -->
+      <div class="flex flex-col gap-2.5 max-h-56 overflow-y-auto pr-1">
         {% if category_breakdown %}
           {% for cat in category_breakdown %}
             <div class="flex flex-col gap-1">
@@ -1473,39 +1051,90 @@
                   <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ cat.color }};"></span>
                   <span class="truncate">{{ cat.name }}</span>
                 </span>
-                <div class="flex items-center gap-2.5 flex-shrink-0 ml-2">
-                  <span class="font-tabular-numeric font-semibold text-on-surface">₹{{ cat.value|floatformat:2 }}</span>
-                  <span class="font-label-md text-xs text-on-surface-variant font-mono">{{ cat.percentage }}%</span>
+                <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <span class="font-display text-xs font-semibold text-on-surface tabular-nums">₹{{ cat.value|floatformat:2 }}</span>
+                  <span class="font-label-md text-[11px] text-on-surface-variant font-mono">{{ cat.percentage }}%</span>
                 </div>
               </div>
-              <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+              <div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
                 <div class="h-full rounded-full transition-all" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};"></div>
               </div>
             </div>
           {% endfor %}
         {% else %}
-          <div class="col-span-full text-center py-6 text-xs text-outline">
+          <div class="text-center py-6 text-xs text-outline">
             No expenses recorded for {{ active_month_label }}.
           </div>
         {% endif %}
       </div>
     </div>
+
+    <!-- Spending Channels & Payment Methods (7 cols) -->
+    <div class="lg:col-span-7 bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="font-display text-base text-on-surface font-bold">Payment Methods & Velocity</h2>
+          <p class="font-body-sm text-xs text-on-surface-variant">Spending volume breakdown by payment channel</p>
+        </div>
+        <span class="text-xs text-outline">{{ payment_method_breakdown|length }} channels</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-auto">
+        {% for pm in payment_method_breakdown %}
+          <div class="p-3 rounded-xl bg-surface-container/40 border border-white/5 flex items-center justify-between hover:bg-surface-container/70 transition-all">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-white/5 flex items-center justify-center text-primary flex-shrink-0">
+                {% if pm.name == 'UPI' %}
+                  <span class="material-symbols-outlined text-base">qr_code_scanner</span>
+                {% elif pm.name == 'Credit Card' or pm.name == 'Debit Card' %}
+                  <span class="material-symbols-outlined text-base">credit_card</span>
+                {% elif pm.name == 'Cash' %}
+                  <span class="material-symbols-outlined text-base">payments</span>
+                {% else %}
+                  <span class="material-symbols-outlined text-base">account_balance</span>
+                {% endif %}
+              </div>
+              <div class="min-w-0">
+                <div class="font-label-md text-xs font-semibold text-on-surface truncate">{{ pm.name }}</div>
+                <div class="text-[10px] text-on-surface-variant">{{ pm.count }} transactions</div>
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0 ml-2">
+              <div class="font-display text-sm font-bold text-on-surface tabular-nums">
+                ₹{{ pm.expense|floatformat:2 }}
+              </div>
+              <div class="text-[10px] text-tertiary">In: ₹{{ pm.income|floatformat:0 }}</div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-span-full text-center py-6 text-xs text-outline">
+            No payment method data recorded.
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Footer Summary -->
+      <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-on-surface-variant mt-2">
+        <span>Total Month Expenditure</span>
+        <span class="font-display text-sm font-bold text-error tabular-nums">₹{{ total_month_spend|floatformat:2 }}</span>
+      </div>
+    </div>
   </div>
 
-  <!-- BOTTOM ROW: Recent Cash Ledger (Full Width, replacing Encrypted Vault) -->
-  <div class="w-full bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 rounded-2xl p-5 md:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] mb-6 reveal" data-reveal="animate__fadeInUp">
+  <!-- 5. FULL-WIDTH LEDGER: RECENT TRANSACTIONS STREAM -->
+  <div class="w-full bg-surface-container-lowest/90 border border-white/5 rounded-2xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <div class="flex items-center gap-2.5">
         <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-white/5 flex items-center justify-center text-primary">
-          <span class="material-symbols-outlined text-lg">receipt_long</span>
+          <span class="material-symbols-outlined text-base">receipt_long</span>
         </div>
         <div>
-          <h2 class="font-headline-sm text-base text-on-surface font-bold">Recent Cash Ledger</h2>
-          <p class="font-body-sm text-xs text-on-surface-variant">Real-time cleared transaction stream</p>
+          <h2 class="font-display text-base text-on-surface font-bold">Recent Transactions</h2>
+          <p class="font-body-sm text-xs text-on-surface-variant">Latest 20 financial operations & settlements</p>
         </div>
       </div>
-      <a href="{% url 'history' %}" class="inline-flex items-center gap-1 text-xs text-primary hover:text-secondary-fixed transition-colors font-bold no-underline">
-        <span>View All Transactions</span>
+      <a href="{% url 'history' %}" class="inline-flex items-center gap-1 text-xs text-primary hover:underline font-bold no-underline">
+        <span>View Full History</span>
         <span class="material-symbols-outlined text-sm">arrow_forward</span>
       </a>
     </div>
@@ -1514,7 +1143,7 @@
     <div class="flex flex-col gap-2">
       {% if recent_transactions %}
         {% for exp in recent_transactions %}
-          <div class="transaction-item-row flex items-center justify-between p-3 sm:px-4 sm:py-3.5 rounded-xl bg-surface-container/30 border border-white/5 hover:bg-surface-container-high/60 transition-all group"
+          <div class="transaction-item-row flex items-center justify-between p-3 sm:px-4 sm:py-3 rounded-xl bg-surface-container/30 border border-white/5 hover:bg-surface-container-high/60 transition-all group"
                data-id="{{ exp.id }}"
                data-amount="{{ exp.amount }}"
                data-desc="{{ exp.description }}"
@@ -1526,19 +1155,19 @@
                onclick="openEditPersonalModal('{{ exp.id }}', '{{ exp.amount }}', '{{ exp.description|escapejs }}', '{{ exp.category|escapejs }}', '{{ exp.account|escapejs }}', '{{ exp.payment_method|escapejs }}', '{{ exp.date|date:'Y-m-d' }}')">
             
             <div class="flex items-center gap-3 min-w-0">
-              <div class="w-10 h-10 rounded-full bg-surface-container-highest border border-white/5 flex items-center justify-center flex-shrink-0 {% if exp.category == 'Income' %}text-tertiary{% else %}text-primary{% endif %}">
+              <div class="w-9 h-9 rounded-full bg-surface-container-highest border border-white/5 flex items-center justify-center flex-shrink-0 {% if exp.category == 'Income' %}text-tertiary{% else %}text-primary{% endif %}">
                 {% if exp.category == 'Income' %}
-                  <span class="material-symbols-outlined text-lg">arrow_downward</span>
+                  <span class="material-symbols-outlined text-base">south_west</span>
                 {% elif exp.category == 'Food' %}
-                  <span class="material-symbols-outlined text-lg">restaurant</span>
+                  <span class="material-symbols-outlined text-base">restaurant</span>
                 {% elif exp.category == 'Shopping' %}
-                  <span class="material-symbols-outlined text-lg">shopping_bag</span>
+                  <span class="material-symbols-outlined text-base">shopping_bag</span>
                 {% elif exp.category == 'Travel' %}
-                  <span class="material-symbols-outlined text-lg">flight</span>
+                  <span class="material-symbols-outlined text-base">flight</span>
                 {% elif exp.category == 'Entertainment' %}
-                  <span class="material-symbols-outlined text-lg">movie</span>
+                  <span class="material-symbols-outlined text-base">movie</span>
                 {% else %}
-                  <span class="material-symbols-outlined text-lg">credit_card</span>
+                  <span class="material-symbols-outlined text-base">receipt</span>
                 {% endif %}
               </div>
               <div class="flex flex-col min-w-0">
@@ -1553,7 +1182,7 @@
 
             <div class="flex items-center gap-3 flex-shrink-0 ml-3">
               <div class="flex flex-col items-end">
-                <span class="font-tabular-numeric text-sm font-bold tabular-nums {% if exp.category == 'Income' %}text-tertiary{% else %}text-error{% endif %}">
+                <span class="font-display text-sm font-bold tabular-nums {% if exp.category == 'Income' %}text-tertiary{% else %}text-error{% endif %}">
                   {% if exp.category == 'Income' %}+{% else %}-{% endif %}₹{{ exp.amount|floatformat:2 }}
                 </span>
                 <span class="text-[10px] text-outline">{{ exp.category }}</span>
@@ -1578,12 +1207,20 @@
           </div>
         {% endfor %}
       {% else %}
-        <div class="text-center py-8 bg-surface-container/20 rounded-xl border border-white/5">
-          <span class="material-symbols-outlined text-3xl text-outline mb-1">receipt_long</span>
-          <p class="text-sm text-on-surface-variant">No transactions found for this period.</p>
-          <button type="button" onclick="openTransactionModal('expense')" class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary-container text-on-primary-container text-xs font-bold cursor-pointer">
-            <span class="material-symbols-outlined text-sm">add</span>
-            <span>Log First Expense</span>
+        <div class="text-center py-12 flex flex-col items-center justify-center">
+          <div class="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center text-outline mb-3">
+            <span class="material-symbols-outlined text-2xl">receipt_long</span>
+          </div>
+          <span class="font-display text-sm font-bold text-on-surface">No transactions recorded</span>
+          <p class="text-xs text-outline mt-1 max-w-sm">
+            {% if search_query %}
+              No results match your search term "{{ search_query }}". Try clearing the filter.
+            {% else %}
+              Start tracking by logging your first expense or income above.
+            {% endif %}
+          </p>
+          <button type="button" onclick="openTransactionModal('expense')" class="mt-3 px-3 py-1.5 rounded-xl bg-primary text-on-primary-container font-label-md text-xs font-bold shadow-[0_0_12px_rgba(255,163,26,0.3)] cursor-pointer">
+            + Log First Expense
           </button>
         </div>
       {% endif %}
